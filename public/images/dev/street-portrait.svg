@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-hidden="true">
+  <defs>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#100e12"/>
+      <stop offset="0.55" stop-color="#05060a"/>
+      <stop offset="1" stop-color="#010102"/>
+    </linearGradient>
+    <radialGradient id="g" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffb37a" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#ffb37a" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#ffb37a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="s" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="v" cx="0.5" cy="0.45" r="0.75">
+      <stop offset="0.4" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.55"/>
+    </radialGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="82"/>
+    </filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="0" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+  </defs>
+  <rect width="1080" height="1350" fill="url(#b)"/>
+  <ellipse cx="605" cy="567" rx="513" ry="513" fill="url(#g)" filter="url(#blur)"/>
+  <g filter="url(#blur)">
+    <circle cx="464" cy="797" r="71" fill="#ffb37a" opacity="0.27"/>
+    <circle cx="508" cy="581" r="32" fill="#e0543c" opacity="0.22"/>
+    <circle cx="259" cy="945" r="45" fill="#8fa6bd" opacity="0.22"/>
+    <circle cx="788" cy="473" r="58" fill="#ffb37a" opacity="0.22"/>
+    <circle cx="832" cy="1094" r="84" fill="#e0543c" opacity="0.17"/>
+    <circle cx="583" cy="621" r="32" fill="#8fa6bd" opacity="0.17"/>
+    <ellipse cx="324" cy="891" rx="173" ry="95" fill="url(#s)"/>
+  </g>
+  <path d="M 410 1350
+           L 464 702
+           Q 540 594 616 702
+           L 670 1350 Z"
+           fill="#03040580"/>
+  <rect width="1080" height="1350" fill="url(#v)"/>
+  <rect width="1080" height="1350" filter="url(#grain)" opacity="0.07" style="mix-blend-mode:overlay"/>
+</svg>
