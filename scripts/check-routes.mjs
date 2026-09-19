@@ -33,6 +33,23 @@ const requiredMarkers = [
   ["wrangler.jsonc", "\"./workers/app.ts\""],
   ["app/routes/admin.tsx", "Slice 05"],
   ["app/routes/manager.tsx", "Slice 05"],
+  // Slice 03 data boundary: public pages must read through the query layer.
+  ["app/routes/galleries.tsx", "listPublishedGalleries"],
+  ["app/routes/gallery.tsx", "getPublishedGallery"],
+  ["app/routes/photo.tsx", "getPhotoDetail"],
+  ["app/routes/home.tsx", "listFeaturedWithGallery"],
+  ["app/data/queries.ts", "listPublishedPhotos"],
+  ["app/data/model.ts", "PhotoRecord"],
+];
+
+/**
+ * Gallery and photograph content must come from the data layer, so these route
+ * modules must not embed collection names or media paths directly.
+ */
+const forbiddenContent = [
+  ["app/routes/galleries.tsx", /"(Nightlife|Live Music|Cityscapes|Black & White)"/],
+  ["app/routes/gallery.tsx", /\/images\/dev\//],
+  ["app/routes/photo.tsx", /\/images\/dev\//],
 ];
 
 const failures = [];
@@ -74,6 +91,19 @@ for (const [file, marker] of requiredMarkers) {
   }
   if (!readFileSync(filePath, "utf8").includes(marker)) {
     failures.push(`${file} does not contain the expected marker ${JSON.stringify(marker)}`);
+  }
+}
+
+for (const [file, pattern] of forbiddenContent) {
+  const filePath = resolve(root, file);
+  if (!existsSync(filePath)) {
+    failures.push(`${file} is missing`);
+    continue;
+  }
+  if (pattern.test(readFileSync(filePath, "utf8"))) {
+    failures.push(
+      `${file} embeds content that must come from the data layer (${pattern.source})`,
+    );
   }
 }
 

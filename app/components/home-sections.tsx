@@ -2,16 +2,13 @@ import { Link } from "react-router";
 
 import { PhotoFigure } from "./PhotoFigure";
 import { PlaceholderNotice } from "./PlaceholderNotice";
-import {
-  aboutPreview,
-  featuredWork,
-  galleryCollections,
-  latestWork,
-} from "../data/home";
+import { aboutPreview } from "../data/home";
+import type { HomepageGalleryCard, HomepagePhotoCard } from "../data/home";
 
 /**
- * Homepage sections for Slice 02. Composition only: all content comes from the
- * provisional data module, which the Slice 03 gallery/photo model replaces.
+ * Homepage sections (slices 02-03). Presentational only: photographs and
+ * galleries arrive as view objects mapped from the public query boundary, so
+ * the same records back the homepage, gallery pages and photo pages.
  */
 
 export function HeroSection({
@@ -60,7 +57,11 @@ export function HeroSection({
   );
 }
 
-export function FeaturedWorkSection() {
+export function FeaturedWorkSection({ photos }: { photos: readonly HomepagePhotoCard[] }) {
+  if (photos.length === 0) {
+    return null;
+  }
+
   return (
     <section className="section container" aria-labelledby="featured-heading">
       <header className="section-header">
@@ -72,7 +73,7 @@ export function FeaturedWorkSection() {
       </header>
 
       <div className="featured-grid">
-        {featuredWork.map((photo) => (
+        {photos.map((photo) => (
           <div className={`featured-grid__item is-${photo.variant}`} key={photo.id}>
             <PhotoFigure
               src={photo.photo}
@@ -81,14 +82,14 @@ export function FeaturedWorkSection() {
               featured
               sizes="(min-width: 56.25rem) 60vw, 100vw"
               titleLink={{
-                to: `/photo/${photo.id}`,
+                to: photo.to,
                 label: photo.title,
-                title: `${photo.title} (placeholder photograph page)`,
+                title: `${photo.title} — photograph page`,
               }}
               galleryLink={{
-                to: `/gallery/${photo.gallerySlug}`,
+                to: photo.galleryTo,
                 label: photo.galleryLabel,
-                title: `${photo.galleryLabel} gallery (placeholder)`,
+                title: `${photo.galleryLabel} gallery`,
               }}
             />
           </div>
@@ -98,45 +99,54 @@ export function FeaturedWorkSection() {
   );
 }
 
-export function ExploreGalleriesSection() {
+export function ExploreGalleriesSection({
+  galleries,
+}: {
+  galleries: readonly HomepageGalleryCard[];
+}) {
+  if (galleries.length === 0) {
+    return null;
+  }
+
   return (
     <section className="section container" aria-labelledby="galleries-heading">
       <header className="section-header">
         <p className="eyebrow">Explore galleries</p>
         <h2 id="galleries-heading">Find your way in</h2>
         <p className="lede">
-          Six provisional collections — street, stage and the hours in between.
+          Street, stage and the hours in between — every collection is drawn from the
+          published portfolio.
         </p>
       </header>
 
       <PlaceholderNotice>
-        Provisional collections and image counts. Galleries become database-driven and
-        administrator-managed in Slice 03, so nothing here is approved final structure.
+        Provisional collections, counts and imagery. Galleries are administrator-managed
+        once the storage slices land, and no name or count here is approved final content.
       </PlaceholderNotice>
 
       <ul className="collections">
-        {galleryCollections.map((gallery) => (
-          <li className="collections__item" key={gallery.slug}>
-            <Link
-              className="collection-card"
-              to={`/gallery/${gallery.slug}`}
-              title={`${gallery.name} gallery (placeholder)`}
-            >
-              <span className="collection-card__media">
-                <img
-                  className="collection-card__image"
-                  src={gallery.cover.photo}
-                  alt={gallery.cover.alt}
-                  loading="lazy"
-                  decoding="async"
-                  sizes="(min-width: 56.25rem) 33vw, (min-width: 34rem) 50vw, 100vw"
-                  style={{ aspectRatio: gallery.cover.ratio }}
-                />
-              </span>
+        {galleries.map((gallery) => (
+          <li className="collections__item" key={gallery.id}>
+            <Link className="collection-card" to={gallery.to} title={`${gallery.name} gallery`}>
+              {gallery.cover ? (
+                <span className="collection-card__media">
+                  <img
+                    className="collection-card__image"
+                    src={gallery.cover.photo}
+                    alt={gallery.cover.alt}
+                    loading="lazy"
+                    decoding="async"
+                    sizes="(min-width: 56.25rem) 33vw, (min-width: 34rem) 50vw, 100vw"
+                    style={{ aspectRatio: "4 / 5" }}
+                  />
+                </span>
+              ) : (
+                <span className="collection-card__media collection-card__media--empty" />
+              )}
               <span className="collection-card__body">
                 <span className="collection-card__title">{gallery.name}</span>
                 <span className="collection-card__meta">
-                  {gallery.provisionalCount} provisional images
+                  {gallery.count === 1 ? "1 photograph" : `${gallery.count} photographs`}
                 </span>
                 <span className="collection-card__copy">{gallery.description}</span>
               </span>
@@ -148,7 +158,11 @@ export function ExploreGalleriesSection() {
   );
 }
 
-export function LatestWorkSection() {
+export function LatestWorkSection({ photos }: { photos: readonly HomepagePhotoCard[] }) {
+  if (photos.length === 0) {
+    return null;
+  }
+
   return (
     <section className="section container" aria-labelledby="latest-heading">
       <header className="section-header section-header--row">
@@ -164,7 +178,7 @@ export function LatestWorkSection() {
       </header>
 
       <div className="latest-grid">
-        {latestWork.map((photo) => (
+        {photos.map((photo) => (
           <PhotoFigure
             className="latest-grid__item"
             key={photo.id}
@@ -173,14 +187,14 @@ export function LatestWorkSection() {
             ratio={photo.ratio}
             sizes="(min-width: 62rem) 25vw, (min-width: 40rem) 50vw, 100vw"
             titleLink={{
-              to: `/photo/${photo.id}`,
+              to: photo.to,
               label: photo.title,
-              title: `${photo.title} (placeholder photograph page)`,
+              title: `${photo.title} — photograph page`,
             }}
             galleryLink={{
-              to: `/gallery/${photo.gallerySlug}`,
+              to: photo.galleryTo,
               label: photo.galleryLabel,
-              title: `${photo.galleryLabel} gallery (placeholder)`,
+              title: `${photo.galleryLabel} gallery`,
             }}
           />
         ))}

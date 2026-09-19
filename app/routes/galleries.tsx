@@ -1,55 +1,94 @@
 import type { MetaFunction } from "react-router";
 import { Link } from "react-router";
 
-import { PlaceholderFrame } from "../components/PlaceholderFrame";
 import { PlaceholderNotice } from "../components/PlaceholderNotice";
+import { site } from "../data/site";
+import {
+  galleryCover,
+  listPublishedGalleries,
+  publishedPhotoCounts,
+} from "../data/queries";
+import { galleryPath } from "../lib/paths";
 
 export const meta: MetaFunction = () => [
-  { title: "Galleries — Anyaparallax Photography" },
+  { title: `Galleries — ${site.name} ${site.secondary}` },
   {
     name: "description",
     content:
-      "Placeholder gallery index for the Anyaparallax development preview. Gallery data arrives in a later slice.",
+      "Browse the Anyaparallax photography collections — nightlife, live music, cityscapes, cars, people and monochrome work. Development preview with placeholder imagery.",
   },
 ];
 
-// Slots exist only to demonstrate the gallery route. The real, database-driven
-// gallery list replaces these in Slice 03; nothing here is permanently coded.
-const placeholderSlots = [
-  { key: "placeholder-1", label: "Gallery slot one" },
-  { key: "placeholder-2", label: "Gallery slot two" },
-  { key: "placeholder-3", label: "Gallery slot three" },
-  { key: "placeholder-4", label: "Gallery slot four" },
-] as const;
-
+/**
+ * Published galleries only. The list is driven by the public query boundary, so
+ * an unpublished gallery can never appear here.
+ */
 export default function GalleriesRoute() {
+  const galleries = listPublishedGalleries();
+  const counts = publishedPhotoCounts();
+
   return (
     <section className="page container">
       <header className="page__header">
         <p className="eyebrow">Galleries</p>
         <h1>Galleries</h1>
         <p className="lede">
-          Placeholder overview of the collections that will be published here.
+          Collections of street, stage and night work. Photography fills the page; the
+          interface stays out of the way.
         </p>
       </header>
 
       <PlaceholderNotice>
-        Provisional. Collections become database-driven in Slice 03, so no gallery names,
-        covers or metadata are stored in this repository yet. The slots below only
-        demonstrate that the gallery route responds.
+        Development preview — gallery names and metadata are provisional seed data, not
+        approved final content. Real photography and the administrator-managed gallery
+        system arrive with the storage and upload slices.
       </PlaceholderNotice>
 
-      <div className="placeholder-grid">
-        {placeholderSlots.map((slot) => (
-          <article className="placeholder-card" key={slot.key}>
-            <PlaceholderFrame label={slot.label} />
-            <h2 className="placeholder-card__title">{slot.label}</h2>
-            <p className="muted">
-              <Link to={`/gallery/${slot.key}`}>Placeholder gallery route</Link>
-            </p>
-          </article>
-        ))}
-      </div>
+      <ul className="collections">
+        {galleries.map((gallery) => {
+          const cover = galleryCover(gallery);
+          const count = counts.get(gallery.id) ?? 0;
+
+          return (
+            <li className="collections__item" key={gallery.id}>
+              <Link
+                className="collection-card"
+                to={galleryPath(gallery.slug)}
+                title={`${gallery.name} gallery`}
+              >
+                {cover ? (
+                  <span className="collection-card__media">
+                    <img
+                      className="collection-card__image"
+                      src={cover.thumbnailStorageKey}
+                      alt={`Development placeholder for the ${gallery.name} cover photograph.`}
+                      loading="lazy"
+                      decoding="async"
+                      sizes="(min-width: 56.25rem) 33vw, (min-width: 34rem) 50vw, 100vw"
+                      style={{ aspectRatio: "4 / 5" }}
+                    />
+                  </span>
+                ) : (
+                  <span className="collection-card__media collection-card__media--empty" />
+                )}
+                <span className="collection-card__body">
+                  <span className="collection-card__title">{gallery.name}</span>
+                  <span className="collection-card__meta">
+                    {count === 1 ? "1 photograph" : `${count} photographs`}
+                  </span>
+                  <span className="collection-card__copy">{gallery.description}</span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      <p className="section-actions">
+        <Link className="button" to="/prints">
+          Print information
+        </Link>
+      </p>
     </section>
   );
 }

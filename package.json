@@ -12,7 +12,9 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "check:routes": "node scripts/check-routes.mjs",
-    "check": "pnpm run typecheck && pnpm run check:routes",
+    "check:data": "node --experimental-strip-types --no-warnings scripts/run-check-data-layer.mjs",
+    "check:images": "node scripts/generate-dev-images.mjs --check",
+    "check": "pnpm run typecheck && pnpm run check:routes && pnpm run check:data && pnpm run check:images",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
