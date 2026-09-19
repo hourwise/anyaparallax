@@ -1,6 +1,6 @@
 # Anyaparallax V1 worker evidence ledger
 
-This directory records the first real Codex-supervisor / DeepSeek-worker implementation experiment. It is a preflight plan and evidence framework; no worker run or implementation has happened yet. The authoritative requirements remain `../ANYAPARALLAX — V1 GOAL, IMPLEMENTATION.md`. Its section 51 defines the nine-slice sequence used here. These files do not amend that specification.
+This directory records the Codex-supervisor / DeepSeek-worker implementation experiment. Preflight was accepted and Slice 01 completed locally on 2026-09-19. The authoritative requirements remain `../ANYAPARALLAX — V1 GOAL, IMPLEMENTATION.md`. Its section 51 defines the nine-slice sequence used here. These files do not amend that specification.
 
 ## Starting and protected state (preflight, 2026-09-19)
 
@@ -28,7 +28,7 @@ Phil supplied these readings on **2026-09-19**, while **PREFLIGHT-00** was runni
 
 | Slice | Objective | Worker | Worker exit code | DeepSeek tokens | Repair attempts | Codex independent verification | Status | Evidence file |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 01 Project shell | Routes, shared components, responsive dark photographic foundation | DeepSeek planned | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT STARTED | [01-project-shell.md](01-project-shell.md) |
+| 01 Project shell | Routes, shared components, responsive dark photographic foundation | DeepSeek | 0 on two completed calls; one interrupted | 147,295 CLI reported, plus interrupted call unknown | 2 | Build, type/route check, 10 local HTTP paths, desktop visual and scope review passed | ACCEPTED | [01-project-shell.md](01-project-shell.md) |
 | 02 Homepage | Image-first home and editorial photography presentation | DeepSeek planned | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT STARTED | [02-homepage.md](02-homepage.md) |
 | 03 Portfolio data and pages | Gallery/photo model, public pages, tags, publication states | DeepSeek planned | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT STARTED | [03-portfolio-data-and-pages.md](03-portfolio-data-and-pages.md) |
 | 04 D1/R2 storage plumbing | Migrations, storage interfaces, private/public image boundary | DeepSeek planned | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT STARTED | [04-d1-r2-storage.md](04-d1-r2-storage.md) |
@@ -41,8 +41,8 @@ Phil supplied these readings on **2026-09-19**, while **PREFLIGHT-00** was runni
 ## Operating rules for later slices
 
 - DeepSeek is an implementation worker only. Codex is planner, supervisor, independent verifier, and final acceptance authority. Worker self-reported success is never sufficient for acceptance.
-- Before each run, Codex records starting HEAD, branch, status, protected state, exact allowed scope, task file, and checks. The task file must be bounded and secret-free. The build sheet suggests `docs/worker-tasks/`, but any future task-file placement must be decided after this preflight; no task files are created here.
-- Before the first repository-derived material is sent to DeepSeek, obtain Phil's explicit disclosure approval under build sheet section 56. Limit external disclosure to what the particular slice needs. Never send secrets, credentials, `.env` contents, tokens, private keys, personal/customer data, or unrelated sensitive material.
+- Before each run, Codex records starting HEAD, branch, status, protected state, exact allowed scope, task file, and checks. Task files live in `DOCS/worker-tasks/` and must be bounded and secret-free.
+- Phil explicitly approved bounded repository-derived disclosure to the configured DeepSeek worker for this V1 mission after preflight. Limit disclosure to what the particular slice needs. Never send secrets, credentials, `.env` contents, tokens, private keys, personal/customer data, or unrelated sensitive material.
 - DeepSeek may write locally in a bounded `workspace-write` slice. It may not commit unless explicitly authorised for that slice. No worker may push, merge, rebase, cherry-pick, tag, publish, deploy, promote, mutate Cloudflare or GitHub remote state, alter protected refs, broaden scope, or decide final acceptance.
 - For the first real vertical slice, allow local worker writes but **NO COMMIT, NO PUSH, NO DEPLOYMENT, NO CLOUDFLARE MUTATION** until Codex has independently reviewed and passed the complete slice. This preflight itself makes no commits.
 - Codex inspects exit code, transcript, Git diff/status/HEAD, and changed files, then executes the applicable checks independently. Record actual results and reasons for acceptance or rejection.
@@ -50,6 +50,6 @@ Phil supplied these readings on **2026-09-19**, while **PREFLIGHT-00** was runni
 - The experiment tracks first-pass acceptance, repairs, Codex takeover, measured tokens per accepted slice, elapsed time where available, acceptance/repair rates, supervisor effort, and recurring failure modes. Markdown records suffice; do not invent costs or token counts.
 - Production publication remains separately authorised under `AUTHORIZATION_ONLY_NO_PUBLICATION`. V2 commerce is outside these slices.
 
-## Planning decisions still open
+## Planning decisions and open inputs
 
-The build sheet specifies Cloudflare D1, preferred R2, and preferred Cloudflare Access, but leaves the framework/runtime and detailed deployment, image processing, object key, and local testing choices to Codex. Codex must decide and document those before delegating affected implementation. The exact gallery/content copy, final domain, authorised emails, destination email, photographs, social links, and final watermark asset need operator input at the relevant gates. Do not turn placeholders into approved content.
+Codex selected Cloudflare Workers with React Router v8 full-stack, Vite/Cloudflare Vite plugin, TypeScript and pnpm for Slice 01. The build sheet specifies Cloudflare D1, preferred R2, and preferred Cloudflare Access; detailed deployment, image processing, object key, and local testing choices for later slices remain to be decided before delegation. Exact gallery/content copy, final domain, authorised emails, destination email, photographs, social links, and final watermark asset need operator input at relevant gates. Do not turn placeholders into approved content.

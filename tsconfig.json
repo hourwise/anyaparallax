@@ -1,0 +1,32 @@
+{
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "workers/**/*.ts",
+    "vite.config.ts",
+    "react-router.config.ts",
+    "vite-env.d.ts",
+    "worker-configuration.d.ts",
+    ".react-router/types/**/*"
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "rootDirs": [".", "./.react-router/types"],
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  }
+}
