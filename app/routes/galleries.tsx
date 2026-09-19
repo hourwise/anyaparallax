@@ -1,13 +1,10 @@
 import type { MetaFunction } from "react-router";
-import { Link } from "react-router";
+import { Link, useLoaderData } from "react-router";
 
 import { PlaceholderNotice } from "../components/PlaceholderNotice";
+import { appEnvironmentFrom } from "../data/context.server";
 import { site } from "../data/site";
-import {
-  galleryCover,
-  listPublishedGalleries,
-  publishedPhotoCounts,
-} from "../data/queries";
+import { galleryCover, listPublishedGalleries, publishedPhotoCounts } from "../data/queries";
 import { galleryPath } from "../lib/paths";
 
 export const meta: MetaFunction = () => [
@@ -19,13 +16,28 @@ export const meta: MetaFunction = () => [
   },
 ];
 
+export async function loader({ context }: { context: unknown }) {
+  const env = appEnvironmentFrom(context);
+  const galleries = await listPublishedGalleries(env);
+  const counts = await publishedPhotoCounts(env);
+  // Maps are not serialised across the loader boundary, so return plain arrays.
+  return {
+    galleries,
+    counts: galleries.map((gallery) => [gallery.id, counts.get(gallery.id) ?? 0] as const),
+    covers: await Promise.all(
+      galleries.map(async (gallery) => [gallery.id, await galleryCover(gallery, env)] as const),
+    ),
+  };
+}
+
 /**
  * Published galleries only. The list is driven by the public query boundary, so
  * an unpublished gallery can never appear here.
  */
 export default function GalleriesRoute() {
-  const galleries = listPublishedGalleries();
-  const counts = publishedPhotoCounts();
+  const { galleries, counts, covers } = useLoaderData<typeof loader>();
+  const countById = new Map(counts);
+  const coverById = new Map(covers);
 
   return (
     <section className="page container">
@@ -46,8 +58,8 @@ export default function GalleriesRoute() {
 
       <ul className="collections">
         {galleries.map((gallery) => {
-          const cover = galleryCover(gallery);
-          const count = counts.get(gallery.id) ?? 0;
+          const cover = coverById.get(gallery.id) ?? null;
+          const count = countById.get(gallery.id) ?? 0;
 
           return (
             <li className="collections__item" key={gallery.id}>

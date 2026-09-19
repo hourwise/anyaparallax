@@ -12,11 +12,14 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "check:routes": "node scripts/check-routes.mjs",
-    "check:data": "node --experimental-strip-types --no-warnings scripts/run-check-data-layer.mjs",
+    "check:data": "node --experimental-strip-types --no-warnings scripts/run-checks.mjs",
     "check:images": "node scripts/generate-dev-images.mjs --check",
     "check:served": "node scripts/check-served-payload.mjs",
     "precheck": "pnpm run build",
     "check": "pnpm run typecheck && pnpm run check:routes && pnpm run check:data && pnpm run check:images && pnpm run check:served",
+    "db:migrate:local": "wrangler d1 migrations apply anyaparallax --local",
+    "db:migrate:remote": "wrangler d1 migrations apply anyaparallax --remote",
+    "db:seed:local": "node --experimental-strip-types --no-warnings scripts/seed-local-d1.mjs",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {

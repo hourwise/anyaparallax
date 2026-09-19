@@ -2,12 +2,22 @@ import type { MetaFunction } from "react-router";
 import { Link, useLoaderData } from "react-router";
 
 import { PhotoFigure } from "../components/PhotoFigure";
+import { appEnvironmentFrom } from "../data/context.server";
 import { site } from "../data/site";
 import { getPhotoDetail, getPublishedGallery, resolveTags } from "../data/queries";
 import { absoluteUrl, galleriesPath, galleryPath, photoPath } from "../lib/paths";
 
-export function loader({ request, params }: { request: Request; params: { slug?: string } }) {
-  const detail = params.slug ? getPhotoDetail(params.slug) : null;
+export async function loader({
+  request,
+  params,
+  context,
+}: {
+  request: Request;
+  params: { slug?: string };
+  context: unknown;
+}) {
+  const env = appEnvironmentFrom(context);
+  const detail = params.slug ? await getPhotoDetail(params.slug, env) : null;
   if (!detail) {
     // Unknown and unpublished photographs are indistinguishable publicly, so
     // publication state cannot be inferred from a 404.
@@ -17,13 +27,12 @@ export function loader({ request, params }: { request: Request; params: { slug?:
   const origin = new URL(request.url).origin;
   const photo = detail.photo;
   const description = photo.description || site.description;
+  const gallery = await getPublishedGallery(detail.gallery.slug, env);
 
   return {
     detail,
-    tags: resolveTags(photo.tags),
-    related: getPublishedGallery(detail.gallery.slug)?.photos.filter(
-      (candidate) => candidate.id !== photo.id,
-    ).slice(0, 4) ?? [],
+    tags: await resolveTags(photo.tags, env),
+    related: gallery?.photos.filter((candidate) => candidate.id !== photo.id).slice(0, 4) ?? [],
     social: {
       canonical: absoluteUrl(origin, photoPath(photo.slug)),
       image: absoluteUrl(origin, photo.webStorageKey),

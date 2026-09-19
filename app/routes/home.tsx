@@ -11,15 +11,16 @@ import {
 import {
   hero,
   homepageMeta,
-  publishedPhotoCounts,
   toGalleryCard,
   toPhotoCard,
 } from "../data/home";
+import { appEnvironmentFrom } from "../data/context.server";
 import {
-  getPublishedGallery,
+  galleryCover,
   listFeaturedWithGallery,
   listPublishedGalleries,
   listRecentWithGallery,
+  publishedPhotoCounts,
 } from "../data/queries";
 
 export const meta: MetaFunction = () => [
@@ -29,18 +30,22 @@ export const meta: MetaFunction = () => [
 
 /**
  * Slice 02/03 homepage: image-first, editorial and restrained. Photography,
- * featured work and collections are loaded from the public query boundary, so
- * unpublished work can never reach this page. Page copy remains provisional.
+ * featured work and collections are loaded through the public query boundary
+ * (D1, or the development seed when no binding is present), so unpublished work
+ * can never reach this page. Page copy remains provisional.
  */
-export function loader() {
-  const counts = publishedPhotoCounts();
-  const galleries = listPublishedGalleries().map((gallery) =>
-    toGalleryCard(getPublishedGallery(gallery.slug) ?? { ...gallery, photos: [] }, counts),
+export async function loader({ context }: { context: unknown }) {
+  const env = appEnvironmentFrom(context);
+  const counts = await publishedPhotoCounts(env);
+  const galleries = await Promise.all(
+    (await listPublishedGalleries(env)).map(async (gallery) =>
+      toGalleryCard(gallery, counts.get(gallery.id) ?? 0, await galleryCover(gallery, env)),
+    ),
   );
 
   return {
-    featured: listFeaturedWithGallery(5).map(toPhotoCard),
-    latest: listRecentWithGallery(4).map(toPhotoCard),
+    featured: (await listFeaturedWithGallery(5, env)).map(toPhotoCard),
+    latest: (await listRecentWithGallery(4, env)).map(toPhotoCard),
     galleries,
   };
 }

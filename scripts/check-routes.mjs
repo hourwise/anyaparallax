@@ -8,7 +8,7 @@
  * needs no installed packages, so it can run even when the registry is
  * unreachable.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -30,7 +30,11 @@ const requiredRouteEntries = [
 const requiredMarkers = [
   ["app/entry.server.tsx", "handleRequest"],
   ["workers/app.ts", "virtual:react-router/server-build"],
+  ["workers/app.ts", "RouterContextProvider"],
   ["wrangler.jsonc", "\"./workers/app.ts\""],
+  ["wrangler.jsonc", "\"DB\""],
+  ["wrangler.jsonc", "\"MASTERS\""],
+  ["wrangler.jsonc", "\"IMAGES\""],
   ["app/routes/admin.tsx", "Slice 05"],
   ["app/routes/manager.tsx", "Slice 05"],
   // Slice 03 data boundary: public pages must read through the query layer.
@@ -38,8 +42,16 @@ const requiredMarkers = [
   ["app/routes/gallery.tsx", "getPublishedGallery"],
   ["app/routes/photo.tsx", "getPhotoDetail"],
   ["app/routes/home.tsx", "listFeaturedWithGallery"],
-  ["app/data/queries.ts", "listPublishedPhotos"],
+  ["app/data/queries.ts", "repositoryFor"],
   ["app/data/model.ts", "PhotoRecord"],
+  // Slice 04 storage plumbing.
+  ["app/data/storage.ts", "MASTERS_SCHEME"],
+  ["app/data/storage.server.ts", "putMaster"],
+  ["app/data/repository.d1.server.ts", "D1PortfolioRepository"],
+  ["app/data/repository.seed.server.ts", "SeedPortfolioRepository"],
+  ["app/data/repository.ts", "interface PortfolioRepository"],
+  ["migrations/0001_initial_schema.sql", "CREATE TABLE IF NOT EXISTS photos"],
+  ["migrations/0001_initial_schema.sql", "original_storage_key"],
 ];
 
 /**
@@ -51,6 +63,37 @@ const forbiddenContent = [
   ["app/routes/gallery.tsx", /\/images\/dev\//],
   ["app/routes/photo.tsx", /\/images\/dev\//],
 ];
+
+/**
+ * Persistence code, the private bucket binding and the master storage scheme
+ * must never be imported by a route module or a shared component: route modules
+ * are bundled for the browser.
+ */
+const forbiddenImports = [
+  [/repository\.d1\.server/, "the D1 repository"],
+  [/storage\.server/, "R2 storage access"],
+  [/\bMASTERS\b/, "the private bucket binding"],
+  [/originalStorageKey/, "the private master key"],
+];
+
+for (const directory of ["app/routes", "app/components"]) {
+  const entries = existsSync(resolve(root, directory))
+    ? readdirSync(resolve(root, directory), { recursive: true })
+    : [];
+  for (const entry of entries) {
+    const name = String(entry);
+    if (!/\.tsx?$/.test(name)) {
+      continue;
+    }
+    const filePath = resolve(root, directory, name);
+    const source = readFileSync(filePath, "utf8");
+    for (const [pattern, label] of forbiddenImports) {
+      if (pattern.test(source)) {
+        failures.push(`${directory}/${name} references ${label}`);
+      }
+    }
+  }
+}
 
 const failures = [];
 

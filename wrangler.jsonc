@@ -3,5 +3,42 @@
   "name": "anyaparallax",
   "main": "./workers/app.ts",
   "compatibility_date": "2026-09-19",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Structured application data (Slice 04). `database_id` is intentionally
+  // absent: no Cloudflare resource has been created. Local development and the
+  // checks use Wrangler's local D1 simulation, which needs only the name.
+  // Provisioning steps (including setting the real id) are documented in
+  // README.md under "Storage and data".
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "anyaparallax",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Two buckets, two security domains:
+  //   MASTERS — private archival/print originals. Never served to visitors.
+  //   IMAGES  — public web derivatives and gallery thumbnails.
+  // Keep them separate so a bug in public serving cannot reach a master.
+  "r2_buckets": [
+    {
+      "binding": "MASTERS",
+      "bucket_name": "anyaparallax-masters",
+      "preview_bucket_name": "anyaparallax-masters-dev"
+    },
+    {
+      "binding": "IMAGES",
+      "bucket_name": "anyaparallax-images",
+      "preview_bucket_name": "anyaparallax-images-dev"
+    }
+  ],
+
+  // Development-only safety valve: when no D1 binding is present, public routes
+  // fall back to the development seed set instead of failing. Production must
+  // never rely on this, so set it to false for a real deployment.
+  "vars": {
+    "ALLOW_DEVELOPMENT_SEED": "true"
+  }
 }

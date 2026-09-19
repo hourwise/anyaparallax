@@ -5,10 +5,12 @@ import { PhotoFigure } from "../components/PhotoFigure";
 import { PlaceholderNotice } from "../components/PlaceholderNotice";
 import { site } from "../data/site";
 import { getPublishedGallery } from "../data/queries";
+import { appEnvironmentFrom } from "../data/context.server";
 import { galleriesPath, photoPath } from "../lib/paths";
 
-export function loader({ params }: { params: { slug?: string } }) {
-  const gallery = params.slug ? getPublishedGallery(params.slug) : null;
+export async function loader({ context, params }: { context: unknown; params: { slug?: string } }) {
+  const env = appEnvironmentFrom(context);
+  const gallery = params.slug ? await getPublishedGallery(params.slug, env) : null;
   if (!gallery) {
     // Unknown and unpublished galleries are indistinguishable publicly.
     throw new Response("Gallery not found", { status: 404, statusText: "Not Found" });

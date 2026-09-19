@@ -2,280 +2,165 @@
  * Public portfolio queries — the single boundary between stored portfolio data
  * and anything a visitor can see.
  *
- * Two contracts are enforced here:
+ * Three contracts are enforced here:
  *
  * 1. VISIBILITY — a photograph is publicly visible only when `published` is
  *    true, and a gallery only when its own `published` flag is true.
  *    Unpublished and unknown items are indistinguishable publicly: public
  *    routes render the same 404 for both.
  *
- * 2. PROJECTION — this module never returns raw persistence records. Every
- *    export returns explicit public view types built field by field by the
- *    `toPublic*` mappers, so private-master fields (for example
- *    `originalStorageKey`) and other internal columns cannot reach loader
- *    payloads even by accident. Loader data is serialised to the browser, so
- *    anything returned here is effectively public.
+ * 2. PROJECTION — every export returns explicit public view types built field
+ *    by field, so private-master fields (for example `originalStorageKey`) and
+ *    other internal columns cannot reach loader payloads. Loader data is
+ *    serialised to the browser, so anything returned here is effectively public.
  *
- * Slice 04 replaces the `seed` source with D1 queries while keeping these
- * signatures, so routes and components do not change.
+ * 3. SOURCE — routes never touch a storage technology. This module selects the
+ *    repository:
+ *
+ *      D1 binding present            → D1PortfolioRepository (the real store)
+ *      no binding + seed allowed     → SeedPortfolioRepository (local only)
+ *      no binding + seed not allowed → throws, so a misconfigured deployment
+ *                                      fails loudly instead of serving stale data
+ *
+ *    The seed fallback is controlled by the `ALLOW_DEVELOPMENT_SEED` variable
+ *    in `wrangler.jsonc`, which must be "false" for a real deployment.
  */
 import type {
-  GalleryRecord,
-  PhotoRecord,
   PublicGallery,
   PublicGalleryWithPhotos,
   PublicPhoto,
-  PublicPhotoDetail,
   PublicPhotoWithGallery,
   PublicTag,
 } from "./model";
-import { seed } from "./seed";
+import type { PortfolioRepository, PublicPhotoDetail } from "./repository";
 
-// ---------------------------------------------------------------------------
-// Projection mappers. These are the only place where persistence fields are
-// chosen for public consumption; everything else is dropped.
-// ---------------------------------------------------------------------------
+/** The Cloudflare bindings and variables this application reads. */
+export type AppEnvironment = {
+  readonly DB?: unknown;
+  readonly MASTERS?: unknown;
+  readonly IMAGES?: unknown;
+  readonly ALLOW_DEVELOPMENT_SEED?: string;
+};
 
-/** Persistence photograph → public projection. */
-function toPublicPhoto(photo: PhotoRecord): PublicPhoto {
-  return {
-    id: photo.id,
-    slug: photo.slug,
-    title: photo.title,
-    description: photo.description,
-    galleryId: photo.galleryId,
-    tags: photo.tags,
-    location: photo.location,
-    captureDate: photo.captureDate,
-    width: photo.width,
-    height: photo.height,
-    orientation: photo.orientation,
-    webStorageKey: photo.webStorageKey,
-    thumbnailStorageKey: photo.thumbnailStorageKey,
-    featured: photo.featured,
-    featuredVariant: photo.featuredVariant,
-    printAvailable: photo.printAvailable,
-  };
-}
+export type { PublicPhotoDetail };
 
-/** Persistence gallery → public projection. */
-function toPublicGallery(gallery: GalleryRecord): PublicGallery {
-  return {
-    id: gallery.id,
-    name: gallery.name,
-    slug: gallery.slug,
-    description: gallery.description,
-    coverPhotoId: gallery.coverPhotoId,
-    displayOrder: gallery.displayOrder,
-  };
-}
+/**
+ * Repository instances are cached per binding object. They hold no per-request
+ * state; the cache only avoids re-constructing them on every request.
+ */
+const d1Repositories = new WeakMap<object, PortfolioRepository>();
+let seedRepository: PortfolioRepository | null = null;
 
-// ---------------------------------------------------------------------------
-// Internal record-level visibility helpers. Not exported: callers outside this
-// module must use the projected public functions below.
-// ---------------------------------------------------------------------------
-
-function isPublishedPhoto(photo: PhotoRecord): photo is PhotoRecord {
-  return photo.published;
-}
-
-function isPublishedGallery(gallery: GalleryRecord): gallery is GalleryRecord {
-  return gallery.published;
-}
-
-/** Newest first, then stable alphabetical slug order. */
-function byPublishedAtDesc(a: PhotoRecord, b: PhotoRecord): number {
-  const left = a.publishedAt ?? "";
-  const right = b.publishedAt ?? "";
-  if (left === right) {
-    return a.slug.localeCompare(b.slug);
-  }
-  return left < right ? 1 : -1;
-}
-
-/** Published photographs belonging to a gallery, newest first. */
-function publishedRecordsInGallery(galleryId: string): PhotoRecord[] {
-  const result: PhotoRecord[] = [];
-  for (const photo of seed.photos) {
-    if (isPublishedPhoto(photo) && photo.galleryId === galleryId) {
-      result.push(photo);
+async function repositoryFor(env: AppEnvironment | undefined): Promise<PortfolioRepository> {
+  const db = env?.DB;
+  if (db && typeof db === "object" && typeof (db as { prepare?: unknown }).prepare === "function") {
+    const key = db as object;
+    const cached = d1Repositories.get(key);
+    if (cached) {
+      return cached;
     }
+    const { D1PortfolioRepository } = await import("./repository.d1.server");
+    const repository: PortfolioRepository = new D1PortfolioRepository(
+      db as ConstructorParameters<typeof D1PortfolioRepository>[0],
+    );
+    d1Repositories.set(key, repository);
+    return repository;
   }
-  return result.sort(byPublishedAtDesc);
-}
 
-/** Published gallery records, in configured display order. */
-function publishedGalleryRecords(): GalleryRecord[] {
-  const result: GalleryRecord[] = [];
-  for (const gallery of seed.galleries) {
-    if (isPublishedGallery(gallery)) {
-      result.push(gallery);
-    }
+  if (env?.ALLOW_DEVELOPMENT_SEED === "true") {
+    seedRepository ??= new (await import("./repository.seed.server")).SeedPortfolioRepository();
+    return seedRepository;
   }
-  return result.sort((a, b) => a.displayOrder - b.displayOrder);
-}
 
-/** Published photograph records across published galleries, newest first. */
-function publishedPhotoRecords(): PhotoRecord[] {
-  const visibleGalleryIds = new Set(publishedGalleryRecords().map((gallery) => gallery.id));
-  const result: PhotoRecord[] = [];
-  for (const photo of seed.photos) {
-    if (isPublishedPhoto(photo) && visibleGalleryIds.has(photo.galleryId)) {
-      result.push(photo);
-    }
-  }
-  return result.sort(byPublishedAtDesc);
-}
-
-function publishedGalleryRecordById(galleryId: string): GalleryRecord | null {
-  for (const gallery of publishedGalleryRecords()) {
-    if (gallery.id === galleryId) {
-      return gallery;
-    }
-  }
-  return null;
+  throw new Error(
+    "No D1 binding is available and ALLOW_DEVELOPMENT_SEED is not enabled. " +
+      "Configure the DB binding in wrangler.jsonc, or run with ALLOW_DEVELOPMENT_SEED=true " +
+      "for local development.",
+  );
 }
 
 // ---------------------------------------------------------------------------
-// Public API — projections only.
+// Public API — async, projected, source-agnostic.
 // ---------------------------------------------------------------------------
 
 /** Published galleries, in configured display order. */
-export function listPublishedGalleries(): readonly PublicGallery[] {
-  return publishedGalleryRecords().map(toPublicGallery);
+export async function listPublishedGalleries(
+  env?: AppEnvironment,
+): Promise<readonly PublicGallery[]> {
+  return (await repositoryFor(env)).listGalleries();
 }
 
-/**
- * A published gallery with its published member photographs, or null when the
- * slug does not exist or the gallery is unpublished.
- */
-export function getPublishedGallery(slug: string): PublicGalleryWithPhotos | null {
-  const gallery = seed.galleries.find(
-    (candidate) => candidate.slug === slug && isPublishedGallery(candidate),
-  );
-  if (!gallery) {
-    return null;
-  }
-  return {
-    ...toPublicGallery(gallery),
-    photos: publishedRecordsInGallery(gallery.id).map(toPublicPhoto),
-  };
-}
-
-/** Every published photograph across published galleries, newest first. */
-export function listPublishedPhotos(): readonly PublicPhoto[] {
-  return publishedPhotoRecords().map(toPublicPhoto);
+/** A published gallery with its published photographs, or null. */
+export async function getPublishedGallery(
+  slug: string,
+  env?: AppEnvironment,
+): Promise<PublicGalleryWithPhotos | null> {
+  return (await repositoryFor(env)).getGallery(slug);
 }
 
 /** Public counts of published photographs per gallery id. */
-export function publishedPhotoCounts(): ReadonlyMap<string, number> {
-  const counts = new Map<string, number>();
-  for (const gallery of publishedGalleryRecords()) {
-    counts.set(gallery.id, publishedRecordsInGallery(gallery.id).length);
-  }
-  return counts;
+export async function publishedPhotoCounts(
+  env?: AppEnvironment,
+): Promise<ReadonlyMap<string, number>> {
+  return (await repositoryFor(env)).photoCounts();
 }
 
-function withGallery(records: readonly PhotoRecord[]): PublicPhotoWithGallery[] {
-  const result: PublicPhotoWithGallery[] = [];
-  for (const record of records) {
-    const gallery = publishedGalleryRecordById(record.galleryId);
-    if (gallery) {
-      result.push({ ...toPublicPhoto(record), gallery: toPublicGallery(gallery) });
-    }
-  }
-  return result;
+/** Every published photograph across published galleries, newest first. */
+export async function listPublishedPhotos(
+  env?: AppEnvironment,
+): Promise<readonly PublicPhoto[]> {
+  return (await repositoryFor(env)).listPhotos();
+}
+
+/** A published photograph with its publishing gallery, or null. */
+export async function getPublishedPhoto(
+  slug: string,
+  env?: AppEnvironment,
+): Promise<PublicPhotoWithGallery | null> {
+  return (await repositoryFor(env)).getPhoto(slug);
+}
+
+/** A published photograph with previous/next navigation inside its gallery. */
+export async function getPhotoDetail(
+  slug: string,
+  env?: AppEnvironment,
+): Promise<PublicPhotoDetail | null> {
+  return (await repositoryFor(env)).getPhotoDetail(slug);
 }
 
 /** Featured published photographs with gallery context, newest first. */
-export function listFeaturedWithGallery(limit?: number): readonly PublicPhotoWithGallery[] {
-  const records = publishedPhotoRecords().filter((photo) => photo.featured);
-  const bounded = typeof limit === "number" ? records.slice(0, limit) : records;
-  return withGallery(bounded);
+export async function listFeaturedWithGallery(
+  limit?: number,
+  env?: AppEnvironment,
+): Promise<readonly PublicPhotoWithGallery[]> {
+  return (await repositoryFor(env)).listFeatured(limit);
 }
 
 /** Recent published photographs with gallery context, newest first. */
-export function listRecentWithGallery(limit: number): readonly PublicPhotoWithGallery[] {
-  return withGallery(publishedPhotoRecords().slice(0, limit));
-}
-
-/**
- * A published photograph resolved with its gallery, or null when the slug does
- * not exist, the photograph is unpublished, or its gallery is unpublished.
- */
-export function getPublishedPhoto(slug: string): PublicPhotoWithGallery | null {
-  const record = seed.photos.find(
-    (candidate) => candidate.slug === slug && isPublishedPhoto(candidate),
-  );
-  if (!record) {
-    return null;
-  }
-  const gallery = publishedGalleryRecordById(record.galleryId);
-  if (!gallery) {
-    return null;
-  }
-  return { ...toPublicPhoto(record), gallery: toPublicGallery(gallery) };
-}
-
-/**
- * A photograph with previous/next navigation inside its gallery. Unpublished
- * photographs are never part of the navigation order.
- */
-export function getPhotoDetail(slug: string): PublicPhotoDetail | null {
-  const photo = getPublishedPhoto(slug);
-  if (!photo) {
-    return null;
-  }
-  const siblings = publishedRecordsInGallery(photo.galleryId);
-  const index = siblings.findIndex((candidate) => candidate.slug === slug);
-  const previousRecord = index > 0 ? siblings[index - 1] ?? null : null;
-  const nextRecord =
-    index >= 0 && index < siblings.length - 1 ? siblings[index + 1] ?? null : null;
-  return {
-    photo,
-    gallery: photo.gallery,
-    previous: previousRecord ? toPublicPhoto(previousRecord) : null,
-    next: nextRecord ? toPublicPhoto(nextRecord) : null,
-  };
+export async function listRecentWithGallery(
+  limit: number,
+  env?: AppEnvironment,
+): Promise<readonly PublicPhotoWithGallery[]> {
+  return (await repositoryFor(env)).listRecent(limit);
 }
 
 /** Resolve tag ids to their public registry entries, preserving input order. */
-export function resolveTags(tagIds: readonly string[]): readonly PublicTag[] {
-  const resolved: PublicTag[] = [];
-  for (const tagId of tagIds) {
-    const tag = seed.tags.find((candidate) => candidate.id === tagId);
-    if (tag) {
-      resolved.push({ name: tag.name, slug: tag.slug });
-    }
-  }
-  return resolved;
+export async function resolveTags(
+  tagIds: readonly string[],
+  env?: AppEnvironment,
+): Promise<readonly PublicTag[]> {
+  return (await repositoryFor(env)).resolveTags(tagIds);
 }
 
 /** Every tag used by at least one published photograph, A–Z. */
-export function listPublishedTags(): readonly PublicTag[] {
-  const used = new Set<string>();
-  for (const photo of publishedPhotoRecords()) {
-    for (const tagId of photo.tags) {
-      used.add(tagId);
-    }
-  }
-  const result: PublicTag[] = [];
-  for (const tag of seed.tags) {
-    if (used.has(tag.id)) {
-      result.push({ name: tag.name, slug: tag.slug });
-    }
-  }
-  return result.sort((a, b) => a.name.localeCompare(b.name));
+export async function listPublishedTags(env?: AppEnvironment): Promise<readonly PublicTag[]> {
+  return (await repositoryFor(env)).listTags();
 }
 
-/**
- * The gallery cover as a public photograph. Falls back to the newest published
- * member when the configured cover is missing or unpublished, and returns null
- * when the gallery has no published photographs at all.
- */
-export function galleryCover(gallery: PublicGallery): PublicPhoto | null {
-  const photos = publishedRecordsInGallery(gallery.id);
-  const cover =
-    photos.find((photo) => photo.id === gallery.coverPhotoId) ?? photos[0] ?? null;
-  return cover ? toPublicPhoto(cover) : null;
+/** The gallery cover as a public photograph, or null when the gallery has none. */
+export async function galleryCover(
+  gallery: PublicGallery,
+  env?: AppEnvironment,
+): Promise<PublicPhoto | null> {
+  return (await repositoryFor(env)).getGalleryCover(gallery);
 }

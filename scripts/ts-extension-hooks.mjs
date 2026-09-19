@@ -1,10 +1,10 @@
 /**
- * Node module-resolution hook used by `scripts/run-check-data-layer.mjs`.
+ * Node module-resolution hook used by the check runners.
  *
  * The application source uses bundler-style extensionless imports (for example
  * `./seed`), which Vite resolves but Node's ESM resolver does not. This hook
- * resolves those specifiers against the real TypeScript file so the data-layer
- * check can import the source directly under Node's type stripping.
+ * resolves those specifiers against the real TypeScript file so the checks can
+ * import application source directly under Node's type stripping.
  */
 import { access } from "node:fs/promises";
 

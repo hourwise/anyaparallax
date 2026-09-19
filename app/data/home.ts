@@ -9,12 +9,11 @@
  * come from the same source as the public gallery and photo pages.
  */
 import type {
-  PublicGalleryWithPhotos,
+  PublicGallery,
   PublicPhoto,
   PublicPhotoWithGallery,
 } from "./model";
 import { aspectRatioOf } from "./model";
-import { galleryCover, publishedPhotoCounts } from "./queries";
 import { galleryPath, photoPath } from "../lib/paths";
 
 export const homepageMeta = {
@@ -100,10 +99,10 @@ export function toPhotoCard(photo: PublicPhotoWithGallery): HomepagePhotoCard {
 
 /** Published gallery → homepage collection card view object. */
 export function toGalleryCard(
-  gallery: PublicGalleryWithPhotos,
-  counts: ReadonlyMap<string, number>,
+  gallery: PublicGallery,
+  count: number,
+  cover: PublicPhoto | null,
 ): HomepageGalleryCard {
-  const cover = galleryCover(gallery);
   return {
     id: gallery.id,
     name: gallery.name,
@@ -114,9 +113,7 @@ export function toGalleryCard(
           alt: `Development placeholder for the ${gallery.name} cover photograph.`,
         }
       : null,
-    count: counts.get(gallery.id) ?? 0,
+    count,
     description: gallery.description,
   };
 }
-
-export { publishedPhotoCounts };

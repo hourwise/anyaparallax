@@ -17,6 +17,7 @@
  * - Titles, descriptions, locations and dates are invented placeholder metadata.
  */
 import type { GalleryRecord, PhotoOrientation, PhotoRecord, TagRecord } from "./model";
+import { masterKey } from "./storage";
 
 /** Development placeholder asset path. Slice 04/06 replace these with derivatives. */
 function devAsset(name: string): string {
@@ -26,16 +27,13 @@ function devAsset(name: string): string {
 /**
  * Development stand-in for the PRIVATE archival/print master object key.
  *
- * No real bucket exists yet, so the value is a recognisable placeholder rather
- * than a servable path. This is deliberate: the value must never be reachable
- * from a public loader, and using a distinct private marker makes that a
- * testable property (`scripts/check-data-layer.mjs` asserts the marker cannot
- * appear in any public result). Slices 04/06 replace it with real R2 keys.
+ * Built with the shared storage helper so the scheme matches production
+ * (`r2://masters/...`). The key must never be reachable from a public loader;
+ * the checks assert the masters scheme is absent from every public payload.
+ * Slice 06 writes the real original to this key.
  */
-const PRIVATE_MASTER_PREFIX = "r2-private://anyaparallax-masters/original/";
-
 function originalMasterKey(slug: string): string {
-  return `${PRIVATE_MASTER_PREFIX}${slug}`;
+  return masterKey(slug, "master.tif");
 }
 
 const dimensionSets: Record<PhotoOrientation, { width: number; height: number }> = {
@@ -64,6 +62,8 @@ type PhotoSeed = {
 
 function toPhoto(seed: PhotoSeed): PhotoRecord {
   const { width, height } = dimensionSets[seed.orientation];
+  // Public derivatives resolve to the development placeholder assets until the
+  // upload pipeline generates real ones; the private master never resolves.
   const asset = devAsset(seed.asset);
   return {
     id: seed.slug,

@@ -1,27 +1,26 @@
 #!/usr/bin/env node
 /**
- * Served-payload check for the Slice 03 security repair.
+ * Served-payload check.
  *
  * Loader data is serialised into the HTML that reaches the browser, so this
- * script inspects real responses from the built application and fails if any
+ * script inspects real responses from the running application and fails if any
  * page leaks the private archival/print master identifier.
  *
- * It builds nothing itself: run `pnpm run build` first (the `check` script does
- * this by ordering `check:served` after the build in CI-style runs, and the
- * package script runs the build when the output is missing).
+ * It runs the Vite development server (the same runtime as production, with
+ * local D1/R2 bindings) because loaders need Cloudflare bindings; the
+ * production build is still exercised by `pnpm run build` and the other checks.
  *
  * Checks, for every public route:
  * - the field name `originalStorageKey` must not appear
- * - the development private-master marker must not appear
+ * - the private masters storage scheme must not appear
  */
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const port = 4174;
-/** Match the host the preview server binds to; bracketed IPv6 form is explicit. */
+/** Match the host the dev server binds to; bracketed IPv6 form is explicit. */
 const origin = `http://[::1]:${port}`;
 
 /** Routes that carry photograph or gallery loader data. */
@@ -36,24 +35,25 @@ const routes = [
   "/photo/blue-hour",
 ];
 
+/** Routes that must not exist publicly, including deliberately unpublished rows. */
+const hiddenRoutes = ["/photo/studio-trial", "/photo/unreleased-edit", "/gallery/studio-work"];
+
 const forbidden = [
   { label: "field name originalStorageKey", value: "originalStorageKey" },
-  {
-    label: "private-master marker",
-    value: "r2-private://anyaparallax-masters",
-  },
+  { label: "private masters storage scheme", value: "r2://masters/" },
 ];
-
-if (!existsSync(resolve(root, "build", "server", "index.js"))) {
-  console.error("Served-payload check requires a build. Run `pnpm run build` first.");
-  process.exit(1);
-}
 
 const failures = [];
 
 const server = spawn(
   process.platform === "win32" ? "node.exe" : "node",
-  [resolve(root, "node_modules", "vite", "bin", "vite.js"), "preview", "--port", String(port), "--strictPort"],
+  [
+    resolve(root, "node_modules", "vite", "bin", "vite.js"),
+    "dev",
+    "--port",
+    String(port),
+    "--strictPort",
+  ],
   { cwd: root, stdio: ["ignore", "pipe", "pipe"] },
 );
 
@@ -104,8 +104,16 @@ try {
         failures.push(`${route} (${response.status}) leaks ${rule.label}`);
       }
     }
-    if (!response.ok && response.status !== 404) {
+    if (!response.ok) {
       failures.push(`${route} returned unexpected status ${response.status}`);
+    }
+  }
+
+  // Unpublished and unknown rows must stay indistinguishable publicly.
+  for (const route of hiddenRoutes) {
+    const response = await fetch(`${origin}${route}`);
+    if (response.status !== 404) {
+      failures.push(`${route} should be 404 but returned ${response.status}`);
     }
   }
 } finally {
@@ -121,5 +129,6 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Served-payload check passed: ${routes.length} routes inspected, no private-master identifiers in served HTML.`,
+  `Served-payload check passed: ${routes.length} routes inspected, no private-master identifiers in served HTML; ` +
+    `${hiddenRoutes.length} hidden routes return 404.`,
 );
