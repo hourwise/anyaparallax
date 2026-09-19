@@ -23,6 +23,21 @@ function devAsset(name: string): string {
   return `/images/dev/${name}.svg`;
 }
 
+/**
+ * Development stand-in for the PRIVATE archival/print master object key.
+ *
+ * No real bucket exists yet, so the value is a recognisable placeholder rather
+ * than a servable path. This is deliberate: the value must never be reachable
+ * from a public loader, and using a distinct private marker makes that a
+ * testable property (`scripts/check-data-layer.mjs` asserts the marker cannot
+ * appear in any public result). Slices 04/06 replace it with real R2 keys.
+ */
+const PRIVATE_MASTER_PREFIX = "r2-private://anyaparallax-masters/original/";
+
+function originalMasterKey(slug: string): string {
+  return `${PRIVATE_MASTER_PREFIX}${slug}`;
+}
+
 const dimensionSets: Record<PhotoOrientation, { width: number; height: number }> = {
   landscape: { width: 1080, height: 720 },
   portrait: { width: 1080, height: 1350 },
@@ -62,7 +77,7 @@ function toPhoto(seed: PhotoSeed): PhotoRecord {
     width,
     height,
     orientation: seed.orientation,
-    originalStorageKey: asset,
+    originalStorageKey: originalMasterKey(seed.slug),
     webStorageKey: asset,
     thumbnailStorageKey: asset,
     watermarkEnabled: false,

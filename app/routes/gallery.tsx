@@ -5,7 +5,6 @@ import { PhotoFigure } from "../components/PhotoFigure";
 import { PlaceholderNotice } from "../components/PlaceholderNotice";
 import { site } from "../data/site";
 import { getPublishedGallery } from "../data/queries";
-import type { GalleryWithPhotos } from "../data/model";
 import { galleriesPath, photoPath } from "../lib/paths";
 
 export function loader({ params }: { params: { slug?: string } }) {
@@ -33,7 +32,7 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
  * column grid that lets portrait and landscape work keep their own proportions.
  */
 export default function GalleryRoute() {
-  const { gallery } = useLoaderData() as { gallery: GalleryWithPhotos };
+  const { gallery } = useLoaderData<typeof loader>();
   const count = gallery.photos.length;
   return (
     <section className="page container">

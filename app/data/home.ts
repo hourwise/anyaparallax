@@ -8,10 +8,13 @@
  * with the helpers below. Gallery names, covers and photo metadata therefore
  * come from the same source as the public gallery and photo pages.
  */
-import type { GalleryWithPhotos, PublishedPhoto } from "./model";
+import type {
+  PublicGalleryWithPhotos,
+  PublicPhoto,
+  PublicPhotoWithGallery,
+} from "./model";
 import { aspectRatioOf } from "./model";
 import { galleryCover, publishedPhotoCounts } from "./queries";
-import type { PhotoWithGallery } from "./queries";
 import { galleryPath, photoPath } from "../lib/paths";
 
 export const homepageMeta = {
@@ -73,14 +76,14 @@ export type HomepageGalleryCard = {
  * Featured work uses the editorial grid slots stored on the photographs
  * (`featuredVariant`), so the composition is data-driven and stable per photo.
  */
-function photoAlt(photo: PublishedPhoto): string {
+function photoAlt(photo: PublicPhoto): string {
   return photo.description
     ? `Development placeholder: ${photo.description}`
     : `Development placeholder photograph — ${photo.title}.`;
 }
 
-/** Published photograph with gallery context → homepage card view object. */
-export function toPhotoCard(photo: PhotoWithGallery): HomepagePhotoCard {
+/** Public photograph with gallery context → homepage card view object. */
+export function toPhotoCard(photo: PublicPhotoWithGallery): HomepagePhotoCard {
   return {
     id: photo.id,
     slug: photo.slug,
@@ -97,7 +100,7 @@ export function toPhotoCard(photo: PhotoWithGallery): HomepagePhotoCard {
 
 /** Published gallery → homepage collection card view object. */
 export function toGalleryCard(
-  gallery: GalleryWithPhotos,
+  gallery: PublicGalleryWithPhotos,
   counts: ReadonlyMap<string, number>,
 ): HomepageGalleryCard {
   const cover = galleryCover(gallery);

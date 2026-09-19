@@ -15,6 +15,11 @@
  *   need). Tags are independent of galleries so one master never needs
  *   duplicating to appear under several classifications.
  * - Like and share data (slices 07) will be separate tables keyed by photo id.
+ *
+ * Record types (`*Record`) are persistence shapes and must never be returned
+ * from public loaders. Public routes receive the explicit projections below
+ * (`PublicPhoto`, `PublicGallery`, `PublicTag` and their compositions), which
+ * exclude private-master storage keys and other internal fields.
  */
 
 /** Gallery row, as stored. */
@@ -58,9 +63,10 @@ export type PhotoRecord = {
   readonly height: number;
   readonly orientation: PhotoOrientation;
   /**
-   * Storage keys. They are R2-style object keys; Slice 03 development seed data
-   * points them at placeholder assets on the public origin. Slices 04/06 replace
-   * them with real bucket keys and generated derivatives.
+   * Storage keys. `originalStorageKey` locates the PRIVATE archival/print
+   * master and must never be exposed publicly — see `PublicPhoto`. The web and
+   * thumbnail derivatives are public once their photograph is published.
+   * Slices 04/06 replace the development values with real bucket keys.
    */
   readonly originalStorageKey: string;
   readonly webStorageKey: string;
@@ -92,23 +98,81 @@ export type WatermarkPosition =
   | "none";
 
 /** Computed aspect ratio, e.g. "3 / 2", for reserved layout space. */
-export function aspectRatioOf(photo: Pick<PhotoRecord, "width" | "height">): string {
+export function aspectRatioOf(photo: Pick<PublicPhoto, "width" | "height">): string {
   return `${photo.width} / ${photo.height}`;
 }
 
 /**
- * A photograph that has passed the public visibility rules.
+ * Public photograph projection (`PublicPhoto`).
  *
- * Visibility is expressed through the query boundary's types (these aliases are
- * produced only by narrowing on `published`), not by a literal-`true` property.
- * That keeps records easy to spread and to map from database rows.
+ * This is the ONLY photograph shape that may leave the query boundary. It is
+ * built field by field by `toPublicPhoto()` so persistence-only fields — most
+ * importantly `originalStorageKey`, which identifies the private archival/print
+ * master in R2 — can never reach a public loader payload or client bundle.
+ *
+ * Enforced by `scripts/check-data-layer.mjs`, which fails if a forbidden field
+ * appears in any public result, and by `scripts/check-served-payload.mjs`,
+ * which fails if a private master key appears in served HTML.
+ *
+ * Fields added to `PhotoRecord` are NOT public by default: add them here only
+ * when the public UI genuinely needs them.
  */
-export type PublishedPhoto = PhotoRecord;
+export type PublicPhoto = {
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly description: string;
+  /** Gallery id for relationship checks; the display name comes from `PublicGallery`. */
+  readonly galleryId: string;
+  /** Tag ids resolved through the public tag projection. */
+  readonly tags: readonly string[];
+  readonly location: string | null;
+  readonly captureDate: string | null;
+  readonly width: number;
+  readonly height: number;
+  readonly orientation: PhotoOrientation;
+  /** Public derivatives only. The private master key is deliberately absent. */
+  readonly webStorageKey: string;
+  readonly thumbnailStorageKey: string;
+  readonly featured: boolean;
+  /** Editorial grid slot for featured presentation; presentation-only. */
+  readonly featuredVariant: string;
+  readonly printAvailable: boolean;
+};
 
-/** A gallery that has passed the public visibility rules. */
-export type PublishedGallery = GalleryRecord;
+/**
+ * Public gallery projection. Excludes persistence-only fields such as
+ * timestamps and the `published` flag, and never carries master keys.
+ */
+export type PublicGallery = {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+  readonly description: string;
+  readonly coverPhotoId: string | null;
+  readonly displayOrder: number;
+};
 
-/** A gallery's published member photographs, in display order. */
-export type GalleryWithPhotos = PublishedGallery & {
-  readonly photos: readonly PublishedPhoto[];
+/** A public photograph with its publishing gallery resolved. */
+export type PublicPhotoWithGallery = PublicPhoto & {
+  readonly gallery: PublicGallery;
+};
+
+/** A public gallery with its published member photographs, in display order. */
+export type PublicGalleryWithPhotos = PublicGallery & {
+  readonly photos: readonly PublicPhoto[];
+};
+
+/** A public photograph with adjacent navigation inside its gallery. */
+export type PublicPhotoDetail = {
+  readonly photo: PublicPhoto;
+  readonly gallery: PublicGallery;
+  readonly previous: PublicPhoto | null;
+  readonly next: PublicPhoto | null;
+};
+
+/** Tag registry entry as exposed publicly. */
+export type PublicTag = {
+  readonly name: string;
+  readonly slug: string;
 };

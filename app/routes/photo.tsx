@@ -4,8 +4,6 @@ import { Link, useLoaderData } from "react-router";
 import { PhotoFigure } from "../components/PhotoFigure";
 import { site } from "../data/site";
 import { getPhotoDetail, getPublishedGallery, resolveTags } from "../data/queries";
-import type { PhotoDetail, PublicTag } from "../data/queries";
-import type { PublishedPhoto } from "../data/model";
 import { absoluteUrl, galleriesPath, galleryPath, photoPath } from "../lib/paths";
 
 export function loader({ request, params }: { request: Request; params: { slug?: string } }) {
@@ -33,13 +31,6 @@ export function loader({ request, params }: { request: Request; params: { slug?:
     },
   };
 }
-
-type PhotoLoaderData = {
-  detail: PhotoDetail;
-  tags: readonly PublicTag[];
-  related: readonly PublishedPhoto[];
-  social: { canonical: string; image: string; description: string };
-};
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
   if (!loaderData) {
@@ -85,7 +76,7 @@ function displayDate(iso: string | null): string | null {
  * in the data layer but not yet interactive; their controls arrive in Slice 07.
  */
 export default function PhotoRoute() {
-  const data = useLoaderData<PhotoLoaderData>();
+  const data = useLoaderData<typeof loader>();
   const { detail, tags, related } = data;
   const { photo, gallery, previous, next } = detail;
   const captureDate = displayDate(photo.captureDate);

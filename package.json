@@ -14,7 +14,9 @@
     "check:routes": "node scripts/check-routes.mjs",
     "check:data": "node --experimental-strip-types --no-warnings scripts/run-check-data-layer.mjs",
     "check:images": "node scripts/generate-dev-images.mjs --check",
-    "check": "pnpm run typecheck && pnpm run check:routes && pnpm run check:data && pnpm run check:images",
+    "check:served": "node scripts/check-served-payload.mjs",
+    "precheck": "pnpm run build",
+    "check": "pnpm run typecheck && pnpm run check:routes && pnpm run check:data && pnpm run check:images && pnpm run check:served",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
