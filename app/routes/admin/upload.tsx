@@ -9,6 +9,7 @@ import {
   WATERMARK_POSITIONS,
   type WatermarkPosition,
 } from "../../images/image-processor";
+import { isSameOriginRequest, refuseCrossOriginRequest } from "../../lib/same-origin";
 
 export const meta: MetaFunction = () => [
   { title: "Upload photos — Anyaparallax admin" },
@@ -66,14 +67,17 @@ function readOptions(form: FormData) {
  * one cannot bound what the next one allocates:
  *
  *   1. the admin guard;
- *   2. `assertRequestWithinLimit` — the request is refused from its
+ *   2. the same-origin guard (REPAIR-09E) — an authenticated upload that did not
+ *      come from this site is refused here, before the pipeline is even loaded and
+ *      long before a byte of multipart data is parsed;
+ *   3. `assertRequestWithinLimit` — the request is refused from its
  *      `Content-Length` HEADER, before the body is parsed at all. A request whose
  *      size is undeclared is refused here too: an unbounded request cannot be
  *      given a memory ceiling;
- *   3. `request.formData()` — the only step that buffers the multipart body;
- *   4. `fileSourcesFrom` — the batch policy is applied to the parsed Files'
+ *   4. `request.formData()` — the only step that buffers the multipart body;
+ *   5. `fileSourcesFrom` — the batch policy is applied to the parsed Files'
  *      METADATA, still before any file body is read;
- *   5. `ingestUploads` — reads and processes ONE file at a time.
+ *   6. `ingestUploads` — reads and processes ONE file at a time.
  *
  * What this does NOT claim: that the body is never buffered. `formData()` holds
  * the file parts. The claim is that an oversized or unbounded request never
@@ -81,6 +85,11 @@ function readOptions(form: FormData) {
  */
 export async function action({ request, context }: { request: Request; context: unknown }) {
   await requireAdminAccess(request, context);
+  // Step 2. Authentication says who is asking; this says where the request came
+  // from, and both must hold before the expensive path begins.
+  if (!isSameOriginRequest(request)) {
+    throw refuseCrossOriginRequest();
+  }
   const { assertRequestWithinLimit, fileSourcesFrom } = await import(
     "../../images/upload-request.server"
   );

@@ -174,6 +174,11 @@ const EXPECTED_NOTICES = [
     "the footer's provisional note",
   ],
   ["/", "Development preview. Not approved final content.", "the footer's preview note"],
+  [
+    "/",
+    "social accounts are added once the operator confirms",
+    "the footer's social note (REPAIR-09E: gated, not deleted)",
+  ],
   ["/", "Development preview.", "the homepage meta-description suffix"],
   [
     "/galleries",

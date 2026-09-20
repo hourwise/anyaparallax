@@ -85,39 +85,3 @@ export function shareUrlFor(channel: ShareChannel, target: ShareTarget): string 
       return null;
   }
 }
-
-/**
- * Is this request same-origin?
- *
- * A cheap, non-invasive CSRF guard for the mutating engagement endpoint. It
- * compares the `Origin` header — which a browser sets and script cannot forge
- * across origins — against the request's own origin, and accepts a same-origin
- * `Referer` when `Origin` is absent. A request carrying neither is refused: this
- * endpoint is only ever called by its own page, so a missing origin means it did
- * not come from there.
- *
- * This is a complement to, not a replacement for, `SameSite=Lax` on the browser
- * identifier cookie: the cookie stops another site's page from being recognised
- * as this browser, and this check stops the request from being accepted at all.
- */
-export function isSameOriginRequest(request: Request): boolean {
-  let expected: string;
-  try {
-    expected = new URL(request.url).origin;
-  } catch {
-    return false;
-  }
-  const origin = request.headers.get("origin");
-  if (origin !== null) {
-    return origin === expected;
-  }
-  const referer = request.headers.get("referer");
-  if (referer !== null) {
-    try {
-      return new URL(referer).origin === expected;
-    } catch {
-      return false;
-    }
-  }
-  return false;
-}

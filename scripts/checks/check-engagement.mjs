@@ -43,9 +43,9 @@ const {
 const {
   OUTBOUND_SHARE_CHANNELS,
   isOutboundShareChannel,
-  isSameOriginRequest,
   shareUrlFor,
 } = await import("../../app/engagement/share.ts");
+const { isSameOriginRequest } = await import("../../app/lib/same-origin.ts");
 const { likePhoto, readEngagement, recordShare, unlikePhoto } = await import(
   "../../app/engagement/engagement.server.ts"
 );
@@ -581,6 +581,25 @@ const badReferer = new Request("https://anyaparallax.co.uk/engagement/x", {
   headers: { referer: "not a url" },
 });
 check(isSameOriginRequest(badReferer) === false, "a malformed referer was accepted");
+// REPAIR-09E: `Origin` decides whenever it is present, so a hostile origin cannot be
+// rescued by a friendly `Referer` — the pair is what an attacker would try.
+const hostileOriginFriendlyReferer = new Request("https://anyaparallax.co.uk/engagement/x", {
+  method: "POST",
+  headers: {
+    origin: "https://evil.example",
+    referer: "https://anyaparallax.co.uk/photo/x",
+  },
+});
+check(
+  isSameOriginRequest(hostileOriginFriendlyReferer) === false,
+  "a hostile origin was accepted because the referer looked friendly",
+);
+// And a hostile referer on its own is a refusal, not a missing-header benefit.
+const hostileReferer = new Request("https://anyaparallax.co.uk/engagement/x", {
+  method: "POST",
+  headers: { referer: "https://evil.example/photo/x" },
+});
+check(isSameOriginRequest(hostileReferer) === false, "a cross-origin referer was accepted");
 
 // --- K. Stored data holds nothing identifying -----------------------------
 

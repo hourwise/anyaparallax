@@ -11,6 +11,7 @@ import {
 } from "../../enquiries/enquiry";
 import { readEnquiries, updateEnquiryStatus } from "../../enquiries/enquiries.server";
 import { photoPath } from "../../lib/paths";
+import { isSameOriginRequest, refuseCrossOriginRequest } from "../../lib/same-origin";
 
 export const meta: MetaFunction = () => [
   { title: "Enquiries — Anyaparallax admin" },
@@ -43,6 +44,13 @@ export async function loader({ request, context }: { request: Request; context: 
 /** Handle a submission, reporting the real outcome rather than assuming success. */
 export async function action({ request, context }: { request: Request; context: unknown }) {
   await requireAdminAccess(request, context);
+  // An authenticated enquiry update is still refused when it did not come from this
+  // site, and the refusal precedes the body parse: a cross-site POST must not reach
+  // customer data at all (REPAIR-09E). Authorization stays first, so an
+  // unauthenticated request keeps its existing 401.
+  if (!isSameOriginRequest(request)) {
+    throw refuseCrossOriginRequest();
+  }
   const env = appEnvironmentFrom(context);
   const form = await request.formData();
   const result = await updateEnquiryStatus(

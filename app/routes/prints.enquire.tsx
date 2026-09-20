@@ -11,7 +11,7 @@ import { ENQUIRY_COPY } from "../enquiries/enquiry";
 import { submitEnquiry } from "../enquiries/enquiries.server";
 import { formValuesFrom, type EnquiryFieldErrors, type EnquiryFormValues } from "../enquiries/validation";
 import { metadataTags, pageMetadataFor } from "../engagement/metadata";
-import { isSameOriginRequest } from "../engagement/share";
+import { isSameOriginRequest } from "../lib/same-origin";
 import { checkRequestSize } from "../lib/request-bound";
 import { photoPath, printsEnquirePath, printsEnquireReceivedPath, printsPath } from "../lib/paths";
 

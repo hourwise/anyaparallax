@@ -119,6 +119,33 @@ const chromeForbidden = [
   ["the photo-figure credit element", /photo-figure__credit/i],
 ];
 
+// --- REPAIR-09E (APV1-02): the footer must not advertise unfinished work ---
+
+/**
+ * Wording that described the SITE's setup process rather than its content.
+ *
+ * The footer rendered "Anya's social accounts are added once the operator confirms
+ * the exact links. Nothing is linked here yet." unconditionally, outside the
+ * development-notice gate: it told every visitor that accounts were still being
+ * arranged, which is operator process and reads as an unfinished site. The block is
+ * now gated with the notices, so in the shipped configuration these shapes must not
+ * appear anywhere in the footer — and neither may an equivalent sentence.
+ *
+ * The scan is confined to the footer's own markup, because a seed record is allowed
+ * to be honest about its provenance: what a published page must not do is describe
+ * the site itself as unfinished.
+ */
+const footerForbidden = [
+  ["operator-confirmation wording", /operator confirms/i],
+  ["social-accounts-are-added wording", /social accounts are added/i],
+  ["nothing-is-linked-here-yet wording", /nothing is linked here yet/i],
+  ["awaiting-setup wording", /awaiting/i],
+  ["not-yet-added wording", /not (?:yet )?(?:added|linked|confirmed|finalis|finaliz)/i],
+  ["unfinished-site wording", /unfinished|work in progress|coming soon|still being (?:built|set up)/i],
+  ["placeholder wording", /placeholder/i],
+  ["development-preview wording", /development preview/i],
+];
+
 // --- Operator boundary (Slice 05) ----------------------------------------
 
 /** Header the application accepts on loopback while ALLOW_DEVELOPMENT_IDENTITY is on. */
@@ -341,6 +368,38 @@ try {
     }
   }
 
+  // REPAIR-09E (APV1-02): the public footer carries no unfinished-site process
+  // wording, on every representative page, and keeps truthful navigation.
+  for (const route of ["/", "/galleries", "/photo/closing-time", "/prints", "/about", "/contact"]) {
+    const html = await (await fetch(`${origin}${route}`)).text();
+    const footer = /<footer[\s\S]*?<\/footer>/i.exec(html)?.[0] ?? "";
+    if (footer.length === 0) {
+      failures.push(`${route} rendered no footer element, so the footer scan proves nothing`);
+      continue;
+    }
+    for (const [label, pattern] of footerForbidden) {
+      const match = pattern.exec(footer);
+      if (match) {
+        failures.push(
+          `${route}'s footer serves ${label} (${JSON.stringify(match[0])}); a published footer ` +
+            "must not describe the site's setup as unfinished",
+        );
+      }
+    }
+    // A heading with nothing under it would be the same defect in another shape:
+    // the social block is omitted entirely rather than left empty.
+    if (footer.includes("footer__social")) {
+      failures.push(`${route}'s footer still renders the social block with the notices off`);
+    }
+    // ...and the truthful navigation is retained, so removing the block cost the
+    // footer nothing a visitor needs.
+    for (const link of ['href="/contact"', 'href="/prints"']) {
+      if (!footer.includes(link)) {
+        failures.push(`${route}'s footer no longer links ${link}`);
+      }
+    }
+  }
+
   // REPAIR-09A: gallery-cover alternative text.
   //
   // The covers used to be announced as "Development placeholder for the {gallery}
@@ -443,7 +502,9 @@ if (failures.length > 0) {
 
 console.log(
   `Served-payload check passed: ${routes.length} public routes inspected, no private-master identifiers in served HTML and no ` +
-    `development placeholder/preview chrome; ${hiddenRoutes.length} hidden routes and ${notFoundRoutes.length} public 404s ` +
+    `development placeholder/preview chrome; the footer on six representative pages carried no operator-process or ` +
+    `unfinished-site wording, omitted the social block entirely rather than leaving an empty heading, and kept its ` +
+    `truthful contact and print links; ${hiddenRoutes.length} hidden routes and ${notFoundRoutes.length} public 404s ` +
     `returned 404 without preview wording; ` +
     `${protectedCases.length} operator-route cases enforced the expected 401/403/200 boundary.`,
 );

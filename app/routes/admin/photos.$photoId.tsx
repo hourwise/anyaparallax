@@ -23,6 +23,7 @@ import {
 } from "../../data/photo-management.server";
 import { listTagOptions } from "../../data/queries";
 import { photoPath } from "../../lib/paths";
+import { isSameOriginRequest, refuseCrossOriginRequest } from "../../lib/same-origin";
 
 export const meta: MetaFunction = () => [
   { title: "Edit photograph — Anyaparallax admin" },
@@ -111,6 +112,14 @@ export async function action({
   params: { photoId?: string };
 }) {
   await requireAdminAccess(request, context);
+  // Same-origin before anything else that costs work: an authenticated edit is still
+  // refused when it did not come from this site, and the refusal precedes the body
+  // parse so a hostile request never reaches field validation or the database
+  // (REPAIR-09E). Authorization stays first so an unauthenticated request keeps its
+  // existing 401.
+  if (!isSameOriginRequest(request)) {
+    throw refuseCrossOriginRequest();
+  }
   const env = appEnvironmentFrom(context);
   const photoId = params.photoId ?? "";
 

@@ -22,7 +22,7 @@ import { appEnvironmentFrom } from "../data/context.server";
 import { getPublishedPhoto } from "../data/queries";
 import { isSecureRequestUrl } from "../engagement/anonymous-browser.server";
 import { likePhoto, recordShare, unlikePhoto } from "../engagement/engagement.server";
-import { isSameOriginRequest } from "../engagement/share";
+import { isSameOriginRequest } from "../lib/same-origin";
 import { checkRequestSize } from "../lib/request-bound";
 
 /**

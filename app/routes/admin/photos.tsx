@@ -5,6 +5,7 @@ import { requireAdminAccess } from "../../auth/authorization.server";
 import { appEnvironmentFrom } from "../../data/context.server";
 import { parsePhotoIntent, targetStateFor, type ManagedPhotoSummary } from "../../data/photo-management";
 import { listManagedPhotos, photoManagerFor } from "../../data/photo-management.server";
+import { isSameOriginRequest, refuseCrossOriginRequest } from "../../lib/same-origin";
 
 export const meta: MetaFunction = () => [
   { title: "Photos — Anyaparallax admin" },
@@ -48,6 +49,14 @@ export async function loader({ request, context }: { request: Request; context: 
  */
 export async function action({ request, context }: { request: Request; context: unknown }) {
   await requireAdminAccess(request, context);
+  // Authentication says WHO is asking; it says nothing about where the request came
+  // from. Both must hold before the body is parsed, so a hostile page's cross-site
+  // POST — which the operator's browser would send with Access credentials attached
+  // — is refused here rather than after `formData()` has materialised it
+  // (REPAIR-09E). The refusal is thrown, so it cannot be mistaken for an outcome.
+  if (!isSameOriginRequest(request)) {
+    throw refuseCrossOriginRequest();
+  }
   const env = appEnvironmentFrom(context);
   const manager = photoManagerFor(env);
   if (!manager) {

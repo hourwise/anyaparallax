@@ -8,6 +8,7 @@ import {
   setPhotoPrintAvailable,
 } from "../../enquiries/print-eligibility.server";
 import { photoPath } from "../../lib/paths";
+import { isSameOriginRequest, refuseCrossOriginRequest } from "../../lib/same-origin";
 
 export const meta: MetaFunction = () => [
   { title: "Print eligibility — Anyaparallax admin" },
@@ -45,6 +46,12 @@ export async function loader({ request, context }: { request: Request; context: 
 
 export async function action({ request, context }: { request: Request; context: unknown }) {
   await requireAdminAccess(request, context);
+  // Marking a photograph print-eligible is a public consequence, so the request must
+  // have come from this site: authentication is checked first, the origin second, and
+  // the body is not parsed until both hold (REPAIR-09E).
+  if (!isSameOriginRequest(request)) {
+    throw refuseCrossOriginRequest();
+  }
   const env = appEnvironmentFrom(context);
   const form = await request.formData();
   // A checkbox sends "on" when it is checked and nothing when it is not, so the

@@ -148,7 +148,7 @@ const requiredMarkers = [
   ["app/engagement/anonymous-browser.server.ts", "SameSite=Lax"],
   ["app/engagement/engagement.server.ts", "likePhoto"],
   ["app/engagement/store.server.ts", "INSERT OR IGNORE"],
-  ["app/engagement/share.ts", "isSameOriginRequest"],
+  ["app/engagement/share.ts", "shareUrlFor"],
   ["app/engagement/metadata.ts", "webImagePath"],
   ["app/engagement/metadata.ts", "summary_large_image"],
   ["app/data/canonical-origin.ts", "DEFAULT_PUBLIC_SITE_ORIGIN"],
@@ -213,6 +213,18 @@ const requiredMarkers = [
   ["app/routes/robots.txt.ts", "Sitemap:"],
   ["app/routes/sitemap.xml.ts", "listPublishedPhotos"],
   ["app/routes/sitemap.xml.ts", "escapeXml"],
+  // REPAIR-09E: every MUTATING operator action carries the same-origin guard, and
+  // the guard has exactly one home. Authentication and CSRF are different concerns,
+  // so a new admin action that authenticates but forgets its origin check fails
+  // here as well as in the served check.
+  ["app/lib/same-origin.ts", "isSameOriginRequest"],
+  ["app/lib/same-origin.ts", "refuseCrossOriginRequest"],
+  ["app/routes/admin/photos.tsx", "isSameOriginRequest"],
+  ["app/routes/admin/photos.$photoId.tsx", "isSameOriginRequest"],
+  ["app/routes/admin/upload.tsx", "isSameOriginRequest"],
+  ["app/routes/admin/enquiries.tsx", "isSameOriginRequest"],
+  ["app/routes/admin/prints.tsx", "isSameOriginRequest"],
+  ["app/components/SiteFooter.tsx", "showDevelopmentNotices"],
 ];
 
 /**
