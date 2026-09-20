@@ -152,34 +152,165 @@ const distinctLike = database.failureOf(
 );
 check(distinctLike === null, `likes rejected a distinct browser token: ${distinctLike}`);
 
+// The fixture carries no likes; remove both probe rows before the leak checks.
+database.exec("DELETE FROM likes");
+
+// --- Foreign key integrity (D1 enforces foreign keys by default) ----------
+
+// The schema must declare both halves of the gallery/photograph relationship.
+const photoForeignKeys = database.query("PRAGMA foreign_key_list('photos')");
+const galleryForeignKey = photoForeignKeys.find(
+  (row) => row.from === "gallery_id" && row.table === "galleries" && row.to === "id",
+);
+check(
+  Boolean(galleryForeignKey),
+  "photos.gallery_id has no foreign key to galleries(id)",
+);
+check(
+  galleryForeignKey?.on_delete === "RESTRICT",
+  `photos.gallery_id delete policy should RESTRICT, got ${galleryForeignKey?.on_delete}`,
+);
+
+const galleryForeignKeys = database.query("PRAGMA foreign_key_list('galleries')");
+const coverForeignKey = galleryForeignKeys.find(
+  (row) => row.from === "cover_photo_id" && row.table === "photos" && row.to === "id",
+);
+check(
+  Boolean(coverForeignKey),
+  "galleries.cover_photo_id has no foreign key to photos(id)",
+);
+check(
+  coverForeignKey?.on_delete === "SET NULL",
+  `galleries.cover_photo_id delete policy should SET NULL, got ${coverForeignKey?.on_delete}`,
+);
+note(
+  `foreign keys on photos: ${photoForeignKeys.map((row) => `${row.from}->${row.table}(${row.on_delete})`).join(", ")}`,
+);
+note(
+  `foreign keys on galleries: ${galleryForeignKeys.map((row) => `${row.from}->${row.table}(${row.on_delete})`).join(", ")}`,
+);
+
+// Invalid relationships must be rejected.
+const [orphanPhoto] = database.probe([
+  "INSERT INTO photos (id, title, slug, description, gallery_id, width, height, " +
+    "original_storage_key, web_storage_key, thumbnail_storage_key, created_at, updated_at) " +
+    "VALUES ('p-orphan', 'Orphan', 'orphan', '', 'gallery-missing', 100, 100, " +
+    "'r2://masters/originals/p-orphan/master.tif', 'r2://images/web/p-orphan/web.jpg', " +
+    "'r2://images/thumbs/p-orphan/thumb.jpg', '2026-01-01', '2026-01-01')",
+]);
+check(
+  /FOREIGN KEY constraint failed/i.test(orphanPhoto ?? ""),
+  "a photograph citing a nonexistent gallery was accepted",
+);
+
+const [orphanGallery] = database.probe([
+  "INSERT INTO galleries (id, name, slug, description, cover_photo_id, display_order, published, created_at, updated_at) " +
+    "VALUES ('g-orphan', 'Orphan', 'orphan', '', 'no-such-photo', 99, 0, '2026-01-01', '2026-01-01')",
+]);
+check(
+  /FOREIGN KEY constraint failed/i.test(orphanGallery ?? ""),
+  "a gallery cover citing a nonexistent photograph was accepted",
+);
+
+const [orphanTagLink] = database.probe([
+  "INSERT INTO photo_tags (photo_id, tag_id) VALUES ('no-such-photo', 'tag-night')",
+]);
+check(
+  /FOREIGN KEY constraint failed/i.test(orphanTagLink ?? ""),
+  "foreign keys did not reject an orphaned photo_tags row",
+);
+
+// Valid relationships must be accepted.
+const validRelationship = database.probe([
+  "INSERT INTO galleries (id, name, slug, description, cover_photo_id, display_order, published, created_at, updated_at) " +
+    "VALUES ('g-valid', 'Valid', 'valid', '', NULL, 90, 0, '2026-01-01', '2026-01-01')",
+  "INSERT INTO photos (id, title, slug, description, gallery_id, width, height, " +
+    "original_storage_key, web_storage_key, thumbnail_storage_key, created_at, updated_at) " +
+    "VALUES ('p-valid', 'Valid', 'valid', '', 'g-valid', 100, 100, " +
+    "'r2://masters/originals/p-valid/master.tif', 'r2://images/web/p-valid/web.jpg', " +
+    "'r2://images/thumbs/p-valid/thumb.jpg', '2026-01-01', '2026-01-01')",
+  "UPDATE galleries SET cover_photo_id = 'p-valid' WHERE id = 'g-valid'",
+]);
+check(
+  validRelationship.every((outcome) => outcome === null),
+  `a valid gallery/photograph/cover relationship was rejected: ${validRelationship.find(Boolean)}`,
+);
+
+// The cover policy clears the reference when its photograph is deleted, rather
+// than deleting the gallery or failing.
+const coverCleared = database.probe([
+  "INSERT INTO galleries (id, name, slug, description, cover_photo_id, display_order, published, created_at, updated_at) " +
+    "VALUES ('g-cover', 'Cover', 'cover', '', NULL, 91, 0, '2026-01-01', '2026-01-01')",
+  "INSERT INTO photos (id, title, slug, description, gallery_id, width, height, " +
+    "original_storage_key, web_storage_key, thumbnail_storage_key, created_at, updated_at) " +
+    "VALUES ('p-cover', 'Cover', 'cover', '', 'g-cover', 100, 100, " +
+    "'r2://masters/originals/p-cover/master.tif', 'r2://images/web/p-cover/web.jpg', " +
+    "'r2://images/thumbs/p-cover/thumb.jpg', '2026-01-01', '2026-01-01')",
+  "UPDATE galleries SET cover_photo_id = 'p-cover' WHERE id = 'g-cover'",
+  "DELETE FROM photos WHERE id = 'p-cover'",
+  "SELECT 1",
+]);
+check(
+  coverCleared.every((outcome) => outcome === null),
+  `deleting a cover photograph was rejected: ${coverCleared.find(Boolean)}`,
+);
+
+// RESTRICT protects photographs: a gallery holding them cannot be deleted.
+const restricted = database.probe([
+  "INSERT INTO galleries (id, name, slug, description, cover_photo_id, display_order, published, created_at, updated_at) " +
+    "VALUES ('g-restrict', 'Restrict', 'restrict', '', NULL, 92, 0, '2026-01-01', '2026-01-01')",
+  "INSERT INTO photos (id, title, slug, description, gallery_id, width, height, " +
+    "original_storage_key, web_storage_key, thumbnail_storage_key, created_at, updated_at) " +
+    "VALUES ('p-restrict', 'Restrict', 'restrict', '', 'g-restrict', 100, 100, " +
+    "'r2://masters/originals/p-restrict/master.tif', 'r2://images/web/p-restrict/web.jpg', " +
+    "'r2://images/thumbs/p-restrict/thumb.jpg', '2026-01-01', '2026-01-01')",
+  "DELETE FROM galleries WHERE id = 'g-restrict'",
+]);
+check(
+  restricted[0] === null && restricted[1] === null,
+  `the setup for the RESTRICT probe failed: ${restricted[1] ?? restricted[0]}`,
+);
+check(
+  /FOREIGN KEY constraint failed/i.test(restricted[2] ?? ""),
+  "deleting a gallery that still holds photographs was allowed",
+);
+
 // Share events start unconfirmed: V1 only ever records that a share started.
+// The row is removed again so the fixture stays exactly as loaded.
+const shareProbe = database.probe([
+  "INSERT INTO share_events (id, photo_id, channel, created_at) " +
+    "VALUES ('share-probe', 'closing-time', 'copy-link', '2026-09-19T10:15:00.000Z')",
+]);
+check(shareProbe[0] === null, `recording a share initiation was rejected: ${shareProbe[0]}`);
+
 database.exec(
   "INSERT INTO share_events (id, photo_id, channel, created_at) " +
-    "VALUES ('share-1', 'closing-time', 'copy-link', '2026-09-19T10:15:00.000Z')",
+    "VALUES ('share-check', 'closing-time', 'copy-link', '2026-09-19T10:15:00.000Z')",
 );
 const shareRow = database.query(
-  "SELECT external_confirmed_at FROM share_events WHERE id = 'share-1'",
+  "SELECT external_confirmed_at FROM share_events WHERE id = 'share-check'",
 )[0];
+check(Boolean(shareRow), "the share event row was not written");
 check(
   shareRow?.external_confirmed_at === null,
   "share_events implied an external confirmation that never happened",
 );
+database.exec("DELETE FROM share_events WHERE id = 'share-check'");
 
-// Foreign keys are enforceable when the connection opts in (documented in the
-// migration header; D1 leaves them off by default).
-database.exec("PRAGMA foreign_keys = ON");
-const orphan = database.failureOf(
-  "INSERT INTO photo_tags (photo_id, tag_id) VALUES ('no-such-photo', 'tag-night')",
+check(
+  database.query("SELECT COUNT(*) AS total FROM likes")[0]?.total === 0,
+  "constraint probes leaked rows into the fixture",
 );
 check(
-  /FOREIGN KEY constraint failed/i.test(orphan ?? ""),
-  "foreign keys did not reject an orphaned photo_tags row",
+  database.query("SELECT COUNT(*) AS total FROM galleries WHERE id LIKE 'g-%'")[0]?.total === 0,
+  "gallery probes leaked rows into the fixture",
 );
-database.exec("PRAGMA foreign_keys = OFF");
+
 database.close();
 
 report(
-  `D1 check passed: schema, indexes and ${seed.photos.length} fixture photographs verified; ` +
+  `D1 check passed: schema, ${photoForeignKeys.length + galleryForeignKeys.length} foreign keys, ` +
+    `indexes and ${seed.photos.length} fixture photographs verified; ` +
     `repository returns ${visiblePhotos.length} published photographs and keeps ` +
     `${hiddenPhotoSlugs.length} hidden.`,
 );

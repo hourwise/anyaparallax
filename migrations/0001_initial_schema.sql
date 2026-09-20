@@ -1,7 +1,7 @@
 -- Anyaparallax V1 — initial schema (Slice 04).
 --
 -- Applies to Cloudflare D1. The TypeScript domain model in `app/data/model.ts`
--- maps to these tables through `app/data/d1-repository.server.ts`.
+-- maps to these tables through `app/data/repository.d1.server.ts`.
 --
 -- Conventions:
 --   * ids are TEXT and application-generated (stable slugs use a separate unique column)
@@ -9,9 +9,16 @@
 --   * dates are ISO `YYYY-MM-DD` TEXT
 --   * booleans are INTEGER 0/1
 --
--- Foreign keys are declared for documentation and local integrity checking.
--- D1 enforces them only when `PRAGMA foreign_keys = ON` is active for the
--- connection, so application code must not rely on them for business rules.
+-- Foreign keys are ENFORCED. D1 enables SQLite foreign key enforcement by
+-- default (equivalent to `PRAGMA foreign_keys = ON`), so the constraints below
+-- are real, not documentation. Application code may still check relationships
+-- itself to return friendly errors, but the database is the backstop.
+--
+-- `photos.gallery_id` and `galleries.cover_photo_id` reference each other. That
+-- circular relationship is valid: SQLite resolves foreign keys at run time, not
+-- at table-creation time, so both constraints can be declared inline. Seeding
+-- must therefore create galleries first with `cover_photo_id` NULL, insert the
+-- photographs, and then set the covers (see `scripts/checks/d1-harness.mjs`).
 --
 -- Storage keys: `photos.original_storage_key` locates the PRIVATE archival/print
 -- master in the private bucket. `web_storage_key` and `thumbnail_storage_key`
@@ -27,14 +34,9 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL
 );
 
--- Tables are created in dependency order: `photos` before `galleries` so the
--- gallery-cover reference exists.
---
--- `photos.gallery_id` intentionally has no FOREIGN KEY constraint: `galleries`
--- references `photos` for its cover, so declaring both would create a cycle that
--- SQLite cannot add after the fact. The photograph→gallery relationship is
--- enforced by the repository layer and covered by the data checks, and every
--- public query joins through `galleries` anyway.
+-- Slice 04 cycle note: `photos` is created first so its gallery reference is
+-- resolvable, then `galleries` declares the reciprocal cover reference. Both
+-- constraints are enforced by D1; neither is optional.
 
 CREATE TABLE IF NOT EXISTS photos (
   id TEXT PRIMARY KEY,
@@ -57,9 +59,14 @@ CREATE TABLE IF NOT EXISTS photos (
   print_available INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  published_at TEXT
+  published_at TEXT,
+  -- Deleting a gallery must not silently take its photographs with it, so the
+  -- gallery cannot be removed while photographs still reference it.
+  FOREIGN KEY (gallery_id) REFERENCES galleries (id) ON DELETE RESTRICT
 );
 
+-- The reciprocal reference: a gallery's cover is one of its photographs, and
+-- losing that photograph simply clears the cover rather than the gallery.
 CREATE TABLE IF NOT EXISTS galleries (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,

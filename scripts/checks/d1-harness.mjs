@@ -61,7 +61,9 @@ export function buildFixtureSql(seed) {
     name: gallery.name,
     slug: gallery.slug,
     description: gallery.description,
-    cover_photo_id: gallery.coverPhotoId,
+    // Cover references are applied after the photographs exist; foreign keys are
+    // enforced in D1, so a cover cannot point at a photograph that is not there yet.
+    cover_photo_id: null,
     display_order: gallery.displayOrder,
     published: gallery.published ? 1 : 0,
     created_at: gallery.createdAt,
@@ -95,23 +97,36 @@ export function buildFixtureSql(seed) {
   const photoTags = seed.photos.flatMap((photo) =>
     photo.tags.map((tagId) => ({ photo_id: photo.id, tag_id: tagId })),
   );
+  const covers = seed.galleries
+    .filter((gallery) => gallery.coverPhotoId !== null)
+    .map(
+      (gallery) =>
+        `UPDATE galleries SET cover_photo_id = ${sqlValue(gallery.coverPhotoId)} WHERE id = ${sqlValue(gallery.id)};`,
+    );
 
+  // Loading order matters because D1 enforces foreign keys:
+  //   1. galleries with no cover yet
+  //   2. photographs (they reference their gallery)
+  //   3. tags and tag links
+  //   4. covers, now that the photographs exist
   return [
     "-- Fixture data for the D1 checks and the local development database.",
     "-- Idempotent: clears previously fixtured rows so a rerun cannot collide.",
-    "-- Ordered so the deletes also succeed when foreign keys are enforced.",
+    "-- Ordered to satisfy the enforced foreign keys referenced in the schema.",
     "DELETE FROM photo_tags;",
     "DELETE FROM likes;",
     "DELETE FROM share_events;",
     "DELETE FROM enquiries;",
-    "DELETE FROM galleries;",
+    "UPDATE galleries SET cover_photo_id = NULL;",
     "DELETE FROM photos;",
+    "DELETE FROM galleries;",
     "DELETE FROM tags;",
     "DELETE FROM users;",
-    insert("photos", Object.keys(photos[0] ?? { id: "" }), photos),
     insert("galleries", Object.keys(galleries[0] ?? { id: "" }), galleries),
+    insert("photos", Object.keys(photos[0] ?? { id: "" }), photos),
     insert("tags", ["id", "name", "slug"], tags),
     insert("photo_tags", ["photo_id", "tag_id"], photoTags),
+    covers.join("\n"),
     "",
   ].join("\n");
 }
@@ -219,6 +234,10 @@ export async function createD1TestDatabase({ seed, label }) {
 
   const db = new DatabaseSync(sqlitePath);
 
+  // Foreign key enforcement is ON (D1's default) for every probe: a constraint
+  // violation must surface as an error rather than passing silently.
+  db.exec("PRAGMA foreign_keys = ON");
+
   return {
     stateDir,
     sqlitePath,
@@ -240,6 +259,28 @@ export async function createD1TestDatabase({ seed, label }) {
       } catch (error) {
         return error instanceof Error ? error.message : String(error);
       }
+    },
+    /**
+     * Run a probe in a transaction that is always rolled back, so constraint
+     * violations (or successes) cannot affect the fixtured rows other checks
+     * read. Returns null per statement that succeeded, or the error message.
+     */
+    probe(sql) {
+      const outcomes = [];
+      db.exec("BEGIN");
+      try {
+        for (const statement of sql) {
+          try {
+            db.exec(statement);
+            outcomes.push(null);
+          } catch (error) {
+            outcomes.push(error instanceof Error ? error.message : String(error));
+          }
+        }
+      } finally {
+        db.exec("ROLLBACK");
+      }
+      return outcomes;
     },
     close() {
       db.close();
