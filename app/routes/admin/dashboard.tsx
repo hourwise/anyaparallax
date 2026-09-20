@@ -3,6 +3,7 @@ import { Link, useLoaderData } from "react-router";
 
 import { requireAdminAccess } from "../../auth/authorization.server";
 import { appEnvironmentFrom } from "../../data/context.server";
+import { readEnquiryCounts } from "../../enquiries/enquiries.server";
 import { listPublishedGalleries, listPublishedPhotos } from "../../data/queries";
 
 export const meta: MetaFunction = () => [
@@ -18,11 +19,30 @@ export const meta: MetaFunction = () => [
 export async function loader({ request, context }: { request: Request; context: unknown }) {
   const user = await requireAdminAccess(request, context);
   const env = appEnvironmentFrom(context);
-  const [galleries, photos] = await Promise.all([
+  const [galleries, photos, enquiryCounts] = await Promise.all([
     listPublishedGalleries(env),
     listPublishedPhotos(env),
+    readEnquiryCounts(env),
   ]);
-  return { user, galleryCount: galleries.length, photoCount: photos.length };
+  /**
+   * Enquiries awaiting attention (REPAIR-09D).
+   *
+   * The count comes from the stored `status` column — `new` is the state an enquiry
+   * is created in and the one the operator clears by reading it — rather than from a
+   * timestamp. Two cases are deliberately not conflated:
+   *
+   *   * `enquiryCounts === null` means the counts could not be READ, and the page says
+   *     so rather than showing a zero it cannot support;
+   *   * a map without a `new` key means the read succeeded and there are none, which
+   *     is a truthful zero.
+   */
+  return {
+    user,
+    galleryCount: galleries.length,
+    photoCount: photos.length,
+    newEnquiryCount: enquiryCounts === null ? null : (enquiryCounts.get("new") ?? 0),
+    enquiriesAvailable: enquiryCounts !== null,
+  };
 }
 
 const areas = [
@@ -60,7 +80,8 @@ const areas = [
 ] as const;
 
 export default function AdminDashboardRoute() {
-  const { user, galleryCount, photoCount } = useLoaderData<typeof loader>();
+  const { user, galleryCount, photoCount, newEnquiryCount, enquiriesAvailable } =
+    useLoaderData<typeof loader>();
 
   return (
     <section className="page">
@@ -73,6 +94,33 @@ export default function AdminDashboardRoute() {
           enquiry list work; the remaining editing tools are listed below.
         </p>
       </header>
+
+      {/*
+        The enquiries needing attention come FIRST, and above the informational counts,
+        because they are the only thing on this page that is waiting for a person. The
+        wording says what the number means ("awaiting a reply") rather than leaving the
+        operator to infer it, and it states plainly when the count could not be read.
+      */}
+      <section className="status-card status-card--attention" aria-labelledby="enquiries-heading">
+        <p className="status-card__label" id="enquiries-heading">
+          Enquiries awaiting a reply
+        </p>
+        <p className="status-card__value">
+          {!enquiriesAvailable
+            ? "Unavailable"
+            : newEnquiryCount === 0
+              ? "No new enquiries"
+              : `${newEnquiryCount} new ${newEnquiryCount === 1 ? "enquiry" : "enquiries"}`}
+        </p>
+        <p className="status-card__note">
+          {enquiriesAvailable
+            ? "Print enquiries and contact messages that have not been marked as read yet."
+            : "The enquiry list could not be read in this environment."}{" "}
+          <Link className="text-link" to="/admin/enquiries">
+            Open the enquiry list
+          </Link>
+        </p>
+      </section>
 
       <div className="status-grid">
         <article className="status-card">

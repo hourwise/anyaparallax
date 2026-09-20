@@ -50,6 +50,9 @@ const requiredRouteEntries = [
   ],
   ["/admin/prints", /route\(\s*["']admin\/prints["']\s*,\s*["']routes\/admin\/prints\.tsx["']\s*\)/],
   ["/admin/settings", /route\(\s*["']admin\/settings["']\s*,\s*["']routes\/admin\/settings\.tsx["']\s*\)/],
+  // REPAIR-09D: crawler policy, as resource routes outside every layout.
+  ["/robots.txt", /route\(\s*["']robots\.txt["']\s*,\s*["']routes\/robots\.txt\.ts["']\s*\)/],
+  ["/sitemap.xml", /route\(\s*["']sitemap\.xml["']\s*,\s*["']routes\/sitemap\.xml\.ts["']\s*\)/],
   ["/admin/*", /route\(\s*["']admin\/\*["']\s*,\s*["']routes\/admin\/not-found\.tsx["']\s*\)/],
   ["/manager", /route\(\s*["']manager["']\s*,\s*["']routes\/manager\/dashboard\.tsx["']\s*\)/],
   [
@@ -196,6 +199,20 @@ const requiredMarkers = [
   ["app/routes/admin/photos.$photoId.tsx", "storageFieldsIn"],
   ["app/routes/admin/photos.$photoId.tsx", "updatePhoto"],
   ["app/layouts/admin.tsx", '"/admin/photos"'],
+  // REPAIR-09D: abuse resistance, enquiry visibility and crawler policy.
+  ["app/enquiries/abuse-guard.ts", "screenEnquirySubmission"],
+  ["app/enquiries/abuse-guard.ts", "FORM_TRAP_FIELD"],
+  ["app/enquiries/abuse-guard.ts", "MIN_FORM_FILL_MS"],
+  ["app/lib/request-bound.ts", "checkRequestSize"],
+  ["app/components/EnquiryForm.tsx", "FORM_TRAP_FIELD"],
+  ["app/components/EnquiryForm.tsx", "FORM_ISSUED_AT_FIELD"],
+  ["app/routes/contact.tsx", "screenEnquirySubmission"],
+  ["app/routes/prints.enquire.tsx", "screenEnquirySubmission"],
+  ["app/routes/engagement.$slug.tsx", "checkRequestSize"],
+  ["app/routes/admin/dashboard.tsx", "readEnquiryCounts"],
+  ["app/routes/robots.txt.ts", "Sitemap:"],
+  ["app/routes/sitemap.xml.ts", "listPublishedPhotos"],
+  ["app/routes/sitemap.xml.ts", "escapeXml"],
 ];
 
 /**

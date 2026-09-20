@@ -242,6 +242,15 @@ function postForm(path, fields, headers = {}) {
   });
 }
 
+/**
+ * A submission as the form now renders it (REPAIR-09D added the last two fields).
+ *
+ * The abuse guard is not this check's subject — `check-publication-readiness-served.mjs`
+ * owns it — but an enquiry is only a legitimate submission if it carries the fields the
+ * form actually issues: an empty trap field and a render time inside the completion
+ * window. Sending them keeps this suite testing what it was written to test rather
+ * than the guard that now sits in front of it.
+ */
 function printFields(token, overrides = {}) {
   return {
     name: CUSTOMER.name,
@@ -252,6 +261,8 @@ function printFields(token, overrides = {}) {
     printFormat: "fine-art-print",
     printSize: "about 40 × 50 cm",
     submissionToken: token,
+    website: "",
+    formIssuedAt: String(Date.now() - 2_000),
     ...overrides,
   };
 }
@@ -628,6 +639,8 @@ try {
     category: "car-photography",
     message: CONTACT_CUSTOMER.message,
     submissionToken: contactToken,
+    website: "",
+    formIssuedAt: String(Date.now() - 2_000),
   });
   check(contactPost.status === 303, `a valid contact message returned ${contactPost.status}`);
   check(
@@ -652,6 +665,8 @@ try {
     message: CONTACT_CUSTOMER.message,
     photoSlug: ELIGIBLE,
     submissionToken: crypto.randomUUID(),
+    website: "",
+    formIssuedAt: String(Date.now() - 2_000),
   });
   check(smuggled.status === 400, `a contact message carrying a photograph returned ${smuggled.status}`);
   const contactAck = await fetch(`${origin}/contact/received`);

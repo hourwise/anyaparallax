@@ -6,12 +6,22 @@ import { siteOriginFrom } from "../data/canonical-origin";
 import { appEnvironmentFrom } from "../data/context.server";
 import { getPublishedPhoto } from "../data/queries";
 import { site } from "../data/site";
+import { abuseEvidenceFrom, screenEnquirySubmission } from "../enquiries/abuse-guard";
 import { ENQUIRY_COPY } from "../enquiries/enquiry";
 import { submitEnquiry } from "../enquiries/enquiries.server";
 import { formValuesFrom, type EnquiryFieldErrors, type EnquiryFormValues } from "../enquiries/validation";
 import { metadataTags, pageMetadataFor } from "../engagement/metadata";
 import { isSameOriginRequest } from "../engagement/share";
+import { checkRequestSize } from "../lib/request-bound";
 import { photoPath, printsEnquirePath, printsEnquireReceivedPath, printsPath } from "../lib/paths";
+
+/**
+ * The largest body this form will parse (REPAIR-09D).
+ *
+ * Generous for the fields this form has and small enough that an oversized body is
+ * refused from its headers before `request.formData()` buffers it.
+ */
+const MAX_ENQUIRY_REQUEST_BYTES = 16 * 1024;
 
 const SITE_NAME = `${site.name} ${site.secondary}`;
 
@@ -78,6 +88,8 @@ export async function loader({ request, context }: { request: Request; context: 
       // Issued per render and never reused across visitors. It is an idempotency
       // key for the retry case, not an identifier for the visitor.
       submissionToken: crypto.randomUUID(),
+      // The timing half of the abuse guard: the moment this form was rendered.
+      formIssuedAt: String(Date.now()),
     },
     { headers: { "cache-control": "no-store" } },
   );
@@ -91,9 +103,13 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
 };
 
 /** HTTP 400 with the form re-rendered. Never indexable: it echoes the submission. */
-function rejected(errors: EnquiryFieldErrors, values: EnquiryFormValues) {
+function rejected(
+  errors: EnquiryFieldErrors,
+  values: EnquiryFormValues | null,
+  message: string | null = null,
+) {
   return data(
-    { errors, values, unavailable: null as string | null },
+    { errors, values, unavailable: message },
     {
       status: 400,
       headers: { "cache-control": "no-store", "x-robots-tag": "noindex, nofollow" },
@@ -116,6 +132,13 @@ function rejected(errors: EnquiryFieldErrors, values: EnquiryFormValues) {
  * Success REDIRECTS (303) to an acknowledgement that carries none of the
  * submission, so a refresh cannot resubmit and the result page holds no customer
  * detail to leak or index.
+ *
+ * REPAIR-09D adds two gates ahead of the service, in this order: a header-only size
+ * bound before the body is parsed, and a non-identifying abuse screen over the form
+ * VALUES. Neither touches the authority chain above — the photograph is still
+ * resolved against the database, so an unpublished, hidden-gallery or ineligible
+ * photograph remains impossible to enquire about whatever the abuse state is, and a
+ * refused submission writes no row.
  */
 export async function action({ request, context }: { request: Request; context: unknown }) {
   if (!isSameOriginRequest(request)) {
@@ -125,8 +148,35 @@ export async function action({ request, context }: { request: Request; context: 
     );
   }
 
+  const size = checkRequestSize(request, MAX_ENQUIRY_REQUEST_BYTES);
+  if (!size.ok) {
+    return rejected({}, null, ENQUIRY_COPY.submissionNotAccepted);
+  }
+
   const env = appEnvironmentFrom(context);
   const form = await request.formData();
+  const verdict = screenEnquirySubmission(abuseEvidenceFrom((name) => form.get(name)), Date.now());
+  if (!verdict.accepted) {
+    return rejected(
+      {},
+      formValuesFrom({
+        name: form.get("name"),
+        email: form.get("email"),
+        category: form.get("category"),
+        message: form.get("message"),
+        photoSlug: form.get("photoSlug"),
+        printFormat: form.get("printFormat"),
+        printSize: form.get("printSize"),
+        // Carried through `formValuesFrom` only because that shape includes it; the
+        // form itself always renders the LOADER's fresh token, never this one.
+        submissionToken: form.get("submissionToken"),
+      }),
+      verdict.refusal === "links"
+        ? ENQUIRY_COPY.linksNotAccepted
+        : ENQUIRY_COPY.submissionNotAccepted,
+    );
+  }
+
   const raw = {
     name: form.get("name"),
     email: form.get("email"),
@@ -153,7 +203,7 @@ export async function action({ request, context }: { request: Request; context: 
 }
 
 export default function PrintEnquiryRoute() {
-  const { photo, photoNotOffered, submissionToken } = useLoaderData<typeof loader>();
+  const { photo, photoNotOffered, submissionToken, formIssuedAt } = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const navigation = useNavigation();
   const busy = navigation.state === "submitting";
@@ -193,6 +243,7 @@ export default function PrintEnquiryRoute() {
             // Always the loader's token: a refused submission must be re-sent with
             // a token the server has not already seen.
             submissionToken={submissionToken}
+            formIssuedAt={formIssuedAt}
             photo={photo}
             photoNotOffered={photoNotOffered}
             unavailableMessage={result?.unavailable ?? null}

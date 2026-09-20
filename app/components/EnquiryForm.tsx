@@ -9,6 +9,7 @@ import {
   PRINT_FORMAT_LABELS,
   PRINT_FORMATS,
 } from "../enquiries/enquiry";
+import { FORM_ISSUED_AT_FIELD, FORM_TRAP_FIELD } from "../enquiries/abuse-guard";
 import type { EnquiryFieldErrors, EnquiryFormValues } from "../enquiries/validation";
 
 /**
@@ -38,6 +39,14 @@ export type EnquiryFormProps = {
   readonly errors: EnquiryFieldErrors;
   /** A fresh single-use token issued by the loader for this render. */
   readonly submissionToken: string;
+  /**
+   * When the loader rendered this form, in epoch milliseconds (REPAIR-09D).
+   *
+   * Always the LOADER's value, never one echoed back from a refused submission: a
+   * refusal re-renders immediately, and reusing the original time would make an
+   * honest second attempt fail the same interval check that the first one did.
+   */
+  readonly formIssuedAt: string;
   /** The photograph the server has accepted for this enquiry, or null. */
   readonly photo: { readonly slug: string; readonly title: string } | null;
   /** True when a photograph was asked for and the server will not offer it. */
@@ -51,6 +60,7 @@ export function EnquiryForm({
   values,
   errors,
   submissionToken,
+  formIssuedAt,
   photo,
   photoNotOffered,
   unavailableMessage,
@@ -61,6 +71,28 @@ export function EnquiryForm({
   return (
     <Form method="post" className="enquiry-form">
       <input type="hidden" name="submissionToken" value={submissionToken} />
+      <input type="hidden" name={FORM_ISSUED_AT_FIELD} value={formIssuedAt} />
+      {/*
+        The bot trap (REPAIR-09D). It is an ordinary text input that people cannot
+        see and cannot reach: the wrapper is `aria-hidden`, the input is removed from
+        the tab order and autofill is off, so a screen-reader or keyboard user never
+        encounters it, while a form-filling script sees a plausible optional field.
+        A non-empty value refuses the submission and is never stored. It is not
+        `type="hidden"`, because scripts that skip hidden inputs would skip the trap.
+      */}
+      <div aria-hidden="true" className="enquiry-form__trap">
+        <label htmlFor="enquiry-website">
+          Website
+          <input
+            id="enquiry-website"
+            name={FORM_TRAP_FIELD}
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            defaultValue=""
+          />
+        </label>
+      </div>
       {/*
         The print category is a constant of this form rather than a choice: a
         selector here would invite a visitor to file a print enquiry as "gig

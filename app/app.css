@@ -1710,6 +1710,42 @@ main:focus-visible {
   margin-bottom: var(--space-lg);
 }
 
+/* Enquiry form bot trap (REPAIR-09D) -------------------------------------- */
+
+/*
+ * The honeypot wrapper. `aria-hidden` and `tabIndex={-1}` already keep it away from
+ * people; this makes it invisible on screen too, using the same clipping approach as
+ * `.visually-hidden` rather than `display: none`, because a trap that is not rendered
+ * at all may be skipped by the automation it exists to catch.
+ */
+.enquiry-form__trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
+}
+
+/*
+ * The dashboard's enquiry card. It is the one thing on that page waiting for a
+ * person, so it carries the accent border the draft badge uses and spans the row
+ * above the informational counts.
+ */
+.status-card--attention {
+  margin-bottom: var(--space-lg);
+  border-left: 3px solid var(--accent);
+}
+
+.status-card__note {
+  margin: var(--space-xs) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--step--1);
+}
+
 /* Motion preferences ------------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {

@@ -29,6 +29,15 @@
  * prevent the allocation it existed to prevent.
  */
 import { assertBatchWithinPolicy, MAX_BATCH_BYTES, UploadError } from "./upload-validation";
+import { declaredContentLength } from "../lib/request-bound";
+
+/**
+ * `declaredContentLength` lives in `app/lib/request-bound.ts` (REPAIR-09D) because the
+ * public form endpoints need the same header-only reading, and one definition of "how
+ * a declared length is parsed" is what keeps them consistent. It is re-exported here
+ * so this module's surface — and every existing caller — is unchanged.
+ */
+export { declaredContentLength };
 
 /**
  * Allowance above the file budget for multipart framing and non-file fields.
@@ -51,21 +60,6 @@ export type UploadFileSource = {
   /** Read the bytes. Called at most once, sequentially, by the orchestration loop. */
   readBytes(): Promise<Uint8Array>;
 };
-
-/** The header value, or null when it is absent or not a usable length. */
-export function declaredContentLength(request: Request): number | null {
-  const header = request.headers.get("content-length");
-  if (header === null) {
-    return null;
-  }
-  const value = Number(header.trim());
-  // Reject NaN, negatives, fractions and infinities: anything that is not a
-  // plain non-negative integer length cannot bound the request.
-  if (!Number.isSafeInteger(value) || value < 0) {
-    return null;
-  }
-  return value;
-}
 
 /**
  * Refuse an upload request from its HEADERS alone, before the body is parsed.

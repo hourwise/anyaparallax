@@ -62,6 +62,17 @@ const { listPhotoPrintOptions, setPhotoPrintAvailable } = await import(
 const { D1PortfolioRepository } = await import("../../app/data/repository.d1.server.ts");
 const { SeedPortfolioRepository } = await import("../../app/data/repository.seed.server.ts");
 const { seed } = await import("../../app/data/seed.ts");
+const {
+  FORM_ISSUED_AT_FIELD,
+  FORM_TRAP_FIELD,
+  MAX_FORM_AGE_MS,
+  MAX_LINKS_IN_MESSAGE,
+  MIN_FORM_FILL_MS,
+  abuseEvidenceFrom,
+  countLinks,
+  screenEnquirySubmission,
+} = await import("../../app/enquiries/abuse-guard.ts");
+const { checkRequestSize, declaredContentLength } = await import("../../app/lib/request-bound.ts");
 const { createD1TestDatabase } = await import("./d1-harness.mjs");
 const { check, note, report } = await import("./report.mjs");
 const { readFileSync, readdirSync } = await import("node:fs");
@@ -427,6 +438,147 @@ check(
   "a control character survived being read from a form value",
 );
 note(`validation: ${ENQUIRY_CATEGORIES.length} categories, ${PRINT_FORMATS.length} formats, 18 email shapes`);
+
+// --- D2. The non-identifying abuse guard (REPAIR-09D) ---------------------
+//
+// The guard is pure, so its whole contract is exercised here without a request: the
+// point of the design is that it CANNOT see one.
+
+const NOW_MS = 1_800_000_000_000;
+const clean = { trap: "", issuedAt: String(NOW_MS - MIN_FORM_FILL_MS - 1_000), name: "Rowan Ellis", message: "I would like to ask about a print." };
+check(
+  screenEnquirySubmission(clean, NOW_MS).accepted === true,
+  "a clean, human-paced submission was refused by the abuse guard",
+);
+check(
+  screenEnquirySubmission({ ...clean, trap: "spam.example" }, NOW_MS).accepted === false,
+  "a filled trap field was accepted",
+);
+check(
+  screenEnquirySubmission({ ...clean, trap: "   " }, NOW_MS).accepted === true,
+  "a whitespace-only trap field was treated as filled",
+);
+for (const [label, issuedAt] of [
+  ["a missing value", undefined],
+  ["an empty value", ""],
+  ["a non-numeric value", "not-a-time"],
+  ["an implausibly short number", "12345"],
+  ["a null value", null],
+]) {
+  const verdict = screenEnquirySubmission({ ...clean, issuedAt }, NOW_MS);
+  check(
+    verdict.accepted === false,
+    `timing evidence with ${label} was accepted, so omitting it would bypass the interval`,
+  );
+}
+check(
+  screenEnquirySubmission({ ...clean, issuedAt: String(NOW_MS - MIN_FORM_FILL_MS + 1) }, NOW_MS).accepted === false,
+  "a submission faster than the minimum interval was accepted",
+);
+check(
+  screenEnquirySubmission({ ...clean, issuedAt: String(NOW_MS - MIN_FORM_FILL_MS) }, NOW_MS).accepted === true,
+  "a submission exactly at the minimum interval was refused",
+);
+check(
+  screenEnquirySubmission({ ...clean, issuedAt: String(NOW_MS - MAX_FORM_AGE_MS - 1) }, NOW_MS).accepted === false,
+  "a stale submission was accepted",
+);
+check(
+  screenEnquirySubmission({ ...clean, issuedAt: String(NOW_MS - MAX_FORM_AGE_MS) }, NOW_MS).accepted === true,
+  "a submission exactly at the maximum age was refused",
+);
+check(
+  screenEnquirySubmission({ ...clean, issuedAt: String(NOW_MS + 60_000) }, NOW_MS).accepted === false,
+  "a form timestamped in the future was accepted",
+);
+
+check(countLinks("no links here") === 0, "the link counter invented a link");
+check(countLinks("see https://example.test/a and www.example.test") === 2, "the link counter miscounted URLs");
+check(countLinks("mailto:someone@example.test") === 0, "the link counter counts a bare mailto (documented limitation)");
+const manyLinks = Array.from({ length: MAX_LINKS_IN_MESSAGE + 1 }, (_, index) => `https://example.test/${index}`).join(" ");
+check(
+  screenEnquirySubmission({ ...clean, message: manyLinks }, NOW_MS).accepted === false,
+  `${MAX_LINKS_IN_MESSAGE + 1} links in a message were accepted`,
+);
+check(
+  screenEnquirySubmission(
+    { ...clean, message: Array.from({ length: MAX_LINKS_IN_MESSAGE }, (_, index) => `https://example.test/${index}`).join(" ") },
+    NOW_MS,
+  ).accepted === true,
+  `a message with exactly ${MAX_LINKS_IN_MESSAGE} links was refused`,
+);
+check(
+  screenEnquirySubmission({ ...clean, name: "https://example.test" }, NOW_MS).accepted === false,
+  "a link in the name field was accepted",
+);
+
+// The guard reads exactly four fields, and only through the reader it is given.
+const evidenceForm = new FormData();
+evidenceForm.set(FORM_TRAP_FIELD, "trap-value");
+evidenceForm.set(FORM_ISSUED_AT_FIELD, "1234567890");
+evidenceForm.set("name", "A Name");
+evidenceForm.set("message", "A message");
+evidenceForm.set("email", "a@b.test");
+evidenceForm.set("submissionToken", "token");
+const evidence = abuseEvidenceFrom((name) => evidenceForm.get(name));
+check(
+  Object.keys(evidence).sort().join(",") === "issuedAt,message,name,trap",
+  `the guard reads unexpected evidence: ${Object.keys(evidence).join(", ")}`,
+);
+check(
+  evidence.trap === "trap-value" && evidence.issuedAt === "1234567890" && evidence.name === "A Name",
+  "the guard's evidence reader did not read the named fields",
+);
+check(
+  !JSON.stringify(evidence).includes("a@b.test") && !JSON.stringify(evidence).includes("token"),
+  "the guard's evidence carries a field it does not need",
+);
+
+// The constants themselves, so a future edit cannot quietly disable the control.
+check(MIN_FORM_FILL_MS >= 500 && MIN_FORM_FILL_MS <= 5_000, `the minimum interval is ${MIN_FORM_FILL_MS}ms`);
+check(
+  MAX_FORM_AGE_MS >= 60 * 60 * 1000 && MAX_FORM_AGE_MS <= 24 * 60 * 60 * 1000,
+  `the maximum form age is ${MAX_FORM_AGE_MS}ms`,
+);
+check(MAX_LINKS_IN_MESSAGE >= 1 && MAX_LINKS_IN_MESSAGE <= 5, `the link allowance is ${MAX_LINKS_IN_MESSAGE}`);
+check(FORM_TRAP_FIELD === "website", `the trap field name changed to ${FORM_TRAP_FIELD}`);
+
+// The header-only body bound the guard sits behind.
+check(
+  checkRequestSize(new Request("https://anyaparallax.co.uk/contact", { headers: { "content-length": "512" } }), 16 * 1024).ok === true,
+  "a small declared body was refused",
+);
+check(
+  checkRequestSize(new Request("https://anyaparallax.co.uk/contact", { headers: { "content-length": String(64 * 1024) } }), 16 * 1024).ok === false,
+  "an oversized declared body was accepted",
+);
+check(
+  checkRequestSize(new Request("https://anyaparallax.co.uk/contact"), 16 * 1024).ok === false,
+  "a body of undeclared size was accepted, so it has no ceiling",
+);
+check(
+  declaredContentLength(new Request("https://anyaparallax.co.uk/contact", { headers: { "content-length": "abc" } })) === null,
+  "a malformed declared length was read as a number",
+);
+
+/*
+ * The guard cannot reach request identity, and no abuse table was added.
+ *
+ * The module is already covered by the enquiry-module privacy scan below, which
+ * refuses any request or header access in `app/enquiries/*`; these two assertions
+ * state the extra REPAIR-09D properties directly.
+ */
+const abuseTables = database
+  .query(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND (name LIKE '%abuse%' OR name LIKE '%rate%' OR name LIKE '%throttle%' OR name LIKE '%block%' OR name LIKE '%spam%')",
+  )
+  .map((row) => row.name);
+check(abuseTables.length === 0, `the abuse guard added a table: ${abuseTables.join(", ")}`);
+check(
+  database.query("PRAGMA table_info('enquiries')").length === columns.length,
+  "the enquiries table gained a column for abuse tracking",
+);
+note(`abuse guard: trap, ${MIN_FORM_FILL_MS}ms minimum, ${MAX_FORM_AGE_MS / 3_600_000}h maximum, ${MAX_LINKS_IN_MESSAGE}-link allowance; no table, column or persisted evidence`);
 
 // --- E. Submission against real D1 ---------------------------------------
 

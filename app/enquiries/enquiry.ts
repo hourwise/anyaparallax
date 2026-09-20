@@ -209,6 +209,24 @@ export const ENQUIRY_COPY = {
   photoNotOffered:
     "That photograph is not currently offered for print enquiries. You can still register interest " +
     "below and Anya will let you know if that changes.",
+  /**
+   * Shown when a submission is refused by the abuse guard (REPAIR-09D).
+   *
+   * Deliberately general. A message that named the rule would let a script tune
+   * against it, and there is nothing a legitimate visitor needs to change: reloading
+   * the page and sending again is the fix for every refusal this wording covers.
+   */
+  submissionNotAccepted:
+    "That message could not be accepted. Please reload the page and send it again.",
+  /**
+   * Shown when the link count is the reason.
+   *
+   * This one IS specific, because it is the only refusal a real visitor can cause
+   * by accident: being told to remove the links is the difference between a
+   * retryable form and a dead end. It reveals a content rule, not the trap.
+   */
+  linksNotAccepted:
+    "Please send the message without links in it — Anya will ask if she needs to see one.",
 } as const;
 
 /**

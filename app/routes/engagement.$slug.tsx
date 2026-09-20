@@ -23,6 +23,17 @@ import { getPublishedPhoto } from "../data/queries";
 import { isSecureRequestUrl } from "../engagement/anonymous-browser.server";
 import { likePhoto, recordShare, unlikePhoto } from "../engagement/engagement.server";
 import { isSameOriginRequest } from "../engagement/share";
+import { checkRequestSize } from "../lib/request-bound";
+
+/**
+ * The largest body this endpoint will parse (REPAIR-09D).
+ *
+ * The endpoint's whole vocabulary is a short action name and, for a share, one
+ * channel from a fixed list — under a hundred bytes. 1 KiB is far above anything the
+ * page sends and far below anything worth buffering, and it is checked from the
+ * request HEADERS before `request.formData()` runs.
+ */
+const MAX_ENGAGEMENT_REQUEST_BYTES = 1024;
 
 /** JSON with the caching and indexing rules an operator endpoint needs. */
 function json(value: unknown, status = 200, headers: Record<string, string> = {}): Response {
@@ -77,6 +88,13 @@ export async function action({
   if (!isSameOriginRequest(request)) {
     // Cross-origin, or originating from somewhere this application cannot name.
     return json({ error: "cross-origin" }, 403);
+  }
+  // REPAIR-09D: the body is bounded from its headers before it is parsed. The other
+  // controls on this endpoint are unchanged — same-origin, POST-only, an allow-listed
+  // action and channel, and an existing UNIQUE (photo_id, browser_token) constraint
+  // behind likes — so this adds a ceiling rather than a new identity mechanism.
+  if (!checkRequestSize(request, MAX_ENGAGEMENT_REQUEST_BYTES).ok) {
+    return json({ error: "malformed" }, 400);
   }
 
   const form = await request.formData().catch(() => null);

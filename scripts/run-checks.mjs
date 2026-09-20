@@ -28,6 +28,8 @@ const checks = [
   "./checks/check-enquiries.mjs",
   // REPAIR-09B: bounded photograph management and the withdrawal mechanism.
   "./checks/check-photo-management.mjs",
+  // REPAIR-09D: publication readiness is verified over HTTP, not here; the abuse
+  // guard's own contract is pure, so it is covered by check-enquiries.mjs.
   "./checks/check-d1.mjs",
   "./checks/check-auth.mjs",
 ];

@@ -5,14 +5,25 @@ import { EnquiryForm } from "../components/EnquiryForm";
 import { siteOriginFrom } from "../data/canonical-origin";
 import { appEnvironmentFrom } from "../data/context.server";
 import { site } from "../data/site";
+import { abuseEvidenceFrom, screenEnquirySubmission } from "../enquiries/abuse-guard";
 import { ENQUIRY_COPY } from "../enquiries/enquiry";
 import { submitEnquiry } from "../enquiries/enquiries.server";
 import { formValuesFrom, type EnquiryFieldErrors, type EnquiryFormValues } from "../enquiries/validation";
 import { metadataTags, pageMetadataFor } from "../engagement/metadata";
 import { isSameOriginRequest } from "../engagement/share";
+import { checkRequestSize } from "../lib/request-bound";
 import { contactPath, contactReceivedPath, printsEnquirePath } from "../lib/paths";
 
 const SITE_NAME = `${site.name} ${site.secondary}`;
+
+/**
+ * The largest body this form will parse (REPAIR-09D).
+ *
+ * Generous for the fields the form has — a 4,000-character message is the biggest
+ * thing a visitor can send — and small enough that an oversized body is refused from
+ * its headers before `request.formData()` buffers it.
+ */
+const MAX_ENQUIRY_REQUEST_BYTES = 16 * 1024;
 
 /**
  * Contact (Slice 08).
@@ -51,6 +62,8 @@ export async function loader({ context }: { context: unknown }) {
         siteName: SITE_NAME,
       }),
       submissionToken: crypto.randomUUID(),
+      // The timing half of the abuse guard: the moment this form was rendered.
+      formIssuedAt: String(Date.now()),
     },
     { headers: { "cache-control": "no-store" } },
   );
@@ -64,9 +77,13 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
 };
 
 /** HTTP 400 with the form re-rendered. Never indexable: it echoes the submission. */
-function rejected(errors: EnquiryFieldErrors, values: EnquiryFormValues) {
+function rejected(
+  errors: EnquiryFieldErrors,
+  values: EnquiryFormValues | null,
+  message: string | null = null,
+) {
   return data(
-    { errors, values, unavailable: null as string | null },
+    { errors, values, unavailable: message },
     {
       status: 400,
       headers: { "cache-control": "no-store", "x-robots-tag": "noindex, nofollow" },
@@ -83,6 +100,18 @@ function rejected(errors: EnquiryFieldErrors, values: EnquiryFormValues) {
  * contact POST cannot become a print enquiry, and a print field cannot ride along
  * unnoticed. Success redirects (303) to an acknowledgement that holds none of the
  * submission.
+ *
+ * REPAIR-09D adds two gates ahead of that, in this order:
+ *
+ *   1. the request must declare a size this application is willing to parse, checked
+ *      from the headers BEFORE `request.formData()` materialises the body;
+ *   2. the submission must look like it came from the form rather than from a script
+ *      — an empty trap field, a plausible completion interval and an age inside the
+ *      window. That guard reads form values only and stores nothing.
+ *
+ * A refused submission writes no row, sends nothing and reports only that it was not
+ * accepted. The existing validation, token and idempotency rules are unchanged and
+ * still run after both gates.
  */
 export async function action({ request, context }: { request: Request; context: unknown }) {
   if (!isSameOriginRequest(request)) {
@@ -92,8 +121,34 @@ export async function action({ request, context }: { request: Request; context: 
     );
   }
 
+  const size = checkRequestSize(request, MAX_ENQUIRY_REQUEST_BYTES);
+  if (!size.ok) {
+    // Nothing about the rule is echoed: a refusal says only that the message was not
+    // accepted.
+    return rejected({}, null, ENQUIRY_COPY.submissionNotAccepted);
+  }
+
   const env = appEnvironmentFrom(context);
   const form = await request.formData();
+  const verdict = screenEnquirySubmission(abuseEvidenceFrom((name) => form.get(name)), Date.now());
+  if (!verdict.accepted) {
+    return rejected(
+      {},
+      formValuesFrom({
+        name: form.get("name"),
+        email: form.get("email"),
+        category: form.get("category"),
+        message: form.get("message"),
+        // Carried through `formValuesFrom` only because that shape includes it; the
+        // form itself always renders the LOADER's fresh token, never this one.
+        submissionToken: form.get("submissionToken"),
+      }),
+      verdict.refusal === "links"
+        ? ENQUIRY_COPY.linksNotAccepted
+        : ENQUIRY_COPY.submissionNotAccepted,
+    );
+  }
+
   const raw = {
     name: form.get("name"),
     email: form.get("email"),
@@ -122,7 +177,7 @@ export async function action({ request, context }: { request: Request; context: 
 }
 
 export default function ContactRoute() {
-  const { submissionToken } = useLoaderData<typeof loader>();
+  const { submissionToken, formIssuedAt } = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const navigation = useNavigation();
   const busy = navigation.state === "submitting";
@@ -164,6 +219,7 @@ export default function ContactRoute() {
             }
             errors={result?.errors ?? {}}
             submissionToken={submissionToken}
+            formIssuedAt={formIssuedAt}
             photo={null}
             photoNotOffered={false}
             unavailableMessage={result?.unavailable ?? null}

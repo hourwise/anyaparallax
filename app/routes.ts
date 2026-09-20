@@ -9,6 +9,12 @@ export default [
   // so `/media/...` returns image bytes and never an HTML document.
   route("media/*", "routes/media.ts"),
 
+  // Crawler policy (REPAIR-09D): also resource routes outside every layout, because
+  // neither is an HTML document. The sitemap's entries come from the public query
+  // boundary, so it follows the site's own publication state rather than restating it.
+  route("robots.txt", "routes/robots.txt.ts"),
+  route("sitemap.xml", "routes/sitemap.xml.ts"),
+
   // Engagement endpoint (Slice 07): also a resource route outside every layout.
   // It is public because likes need no account, but it is POST-only and
   // same-origin, and it returns JSON rather than a document.
