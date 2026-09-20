@@ -22,17 +22,28 @@ import {
   listRecentWithGallery,
   publishedPhotoCounts,
 } from "../data/queries";
+import { developmentNoticesEnabled } from "../data/site";
 
-export const meta: MetaFunction = () => [
+/**
+ * The page description is the production sentence, with the development wording
+ * appended ONLY while development notices are enabled (REPAIR-09A). The suffix
+ * comes from `homepageMeta`, so the two halves cannot drift apart.
+ */
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => [
   { title: homepageMeta.title },
-  { name: "description", content: homepageMeta.description },
+  {
+    name: "description",
+    content: loaderData?.showDevelopmentNotices
+      ? `${homepageMeta.description}${homepageMeta.previewSuffix}`
+      : homepageMeta.description,
+  },
 ];
 
 /**
  * Slice 02/03 homepage: image-first, editorial and restrained. Photography,
  * featured work and collections are loaded through the public query boundary
  * (D1, or the development seed when no binding is present), so unpublished work
- * can never reach this page. Page copy remains provisional.
+ * can never reach this page.
  */
 export async function loader({ context }: { context: unknown }) {
   const env = appEnvironmentFrom(context);
@@ -47,19 +58,20 @@ export async function loader({ context }: { context: unknown }) {
     featured: (await listFeaturedWithGallery(5, env)).map(toPhotoCard),
     latest: (await listRecentWithGallery(4, env)).map(toPhotoCard),
     galleries,
+    showDevelopmentNotices: developmentNoticesEnabled(env),
   };
 }
 
 export default function HomeRoute() {
-  const { featured, latest, galleries } = useLoaderData() as Awaited<
-    ReturnType<typeof loader>
-  >;
+  const { featured, latest, galleries, showDevelopmentNotices } = useLoaderData<
+    typeof loader
+  >();
 
   return (
     <>
-      <HeroSection hero={hero} />
+      <HeroSection hero={hero} showDevelopmentNotices={showDevelopmentNotices} />
       <FeaturedWorkSection photos={featured} />
-      <ExploreGalleriesSection galleries={galleries} />
+      <ExploreGalleriesSection galleries={galleries} showDevelopmentNotices={showDevelopmentNotices} />
       <LatestWorkSection photos={latest} />
       <AboutPreviewSection />
     </>

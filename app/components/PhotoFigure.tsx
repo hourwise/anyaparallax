@@ -44,6 +44,14 @@ type PhotoFigureProps = {
  * A photograph presented editorially: reserved-ratio image, optional caption and
  * optional links supplied by the caller. Composition only — data stays in
  * `app/data/home.ts` and, from Slice 03, in the database.
+ *
+ * NO CREDIT IS GENERATED HERE (REPAIR-09A). This component used to append a
+ * literal "Development placeholder image" credit to every photograph it
+ * rendered, with or without a caption, which meant the site described Anya's
+ * real photographs as placeholders in every grid on every page. A credit is not
+ * invented, substituted or guessed at: there is no credit data in the V1 model,
+ * so no credit is rendered. When a real credit exists it belongs on the record
+ * and to the callers below, not in a shared component's default.
  */
 export function PhotoFigure({
   src,
@@ -101,13 +109,8 @@ export function PhotoFigure({
               {galleryLink.label}
             </Link>
           ) : null}
-          <span className="photo-figure__credit">Development placeholder image</span>
         </figcaption>
-      ) : (
-        <p className="photo-figure__credit photo-figure__credit--outside">
-          Development placeholder image
-        </p>
-      )}
+      ) : null}
     </figure>
   );
 }

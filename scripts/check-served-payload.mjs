@@ -35,6 +35,7 @@ const origin = `http://[::1]:${port}`;
 register("./ts-extension-hooks.mjs", import.meta.url);
 const { seed } = await import("../app/data/seed.ts");
 const { migrateLocalD1, seedLocalD1 } = await import("./checks/local-d1.mjs");
+const { withWorkerVariables } = await import("./checks/dev-vars.mjs");
 
 // The operator routes read the authorised-user directory, so the local D1
 // database must actually hold the placeholder accounts. Local only: wrangler
@@ -65,9 +66,57 @@ const routes = [
 /** Routes that must not exist publicly, including deliberately unpublished rows. */
 const hiddenRoutes = ["/photo/studio-trial", "/photo/unreleased-edit", "/gallery/studio-work"];
 
+/**
+ * Public 404s a visitor can reach (REPAIR-09A). The catch-all render is chrome on
+ * a public page, so it is held to the same wording rule as every other route.
+ */
+const notFoundRoutes = ["/no-such-page", "/galleries/no-such-gallery"];
+
 const forbidden = [
   { label: "field name originalStorageKey", value: "originalStorageKey" },
   { label: "private masters storage scheme", value: "r2://masters/" },
+];
+
+// --- Development placeholder chrome (REPAIR-09A) --------------------------
+//
+// The audited finding was that the RUNNING SITE described real photographs and
+// the whole site as development placeholders: a literal caption on every card,
+// an injected prefix on every alt attribute, and unconditional preview notices in
+// the footer and page copy. Those strings are checked on SERVED HTML, because
+// every one of them reached the browser through markup and a helper-level test
+// could not see it.
+//
+// WHY THESE PHRASES AND NOT THE WORD "placeholder". The development seed set
+// truthfully describes itself as development material — its photograph
+// descriptions end with "Development placeholder." — and REPAIR-09A must not be
+// satisfied by sanitising that data. So the scan targets CHROME wording that the
+// application generates or hard-codes, and never a record's own description:
+//
+//   * "development placeholder image" is the PhotoFigure caption, which is gone;
+//   * the three notice phrases are hard-coded public copy, now gated behind
+//     SHOW_DEVELOPMENT_NOTICES, which the served configuration sets to "false";
+//   * `photo-figure__credit` is the element that carried the caption, so its
+//     absence is asserted directly rather than inferred from the wording.
+//
+// A production page is therefore allowed to contain a seed record that calls
+// itself development data (it is honest about its own provenance) and is not
+// allowed to contain a single line of chrome that says so about the site.
+const chromeForbidden = [
+  [
+    "injected development-placeholder alt wording or a caption",
+    // The three shapes the application itself generated: the PhotoFigure caption
+    // ("Development placeholder image"), the per-photograph alt prefix
+    // ("Development placeholder for “X”."), the homepage alt forms
+    // ("Development placeholder: …" / "Development placeholder photograph — …")
+    // and the gallery-cover template ("… for the X cover photograph."). A seed
+    // record's own sentence ends at "Development placeholder." and matches none
+    // of them, which is exactly the distinction the repair turns on.
+    /development placeholder (?:image|for|photograph)/i,
+  ],
+  ["development-preview wording", /development preview/i],
+  ["provisional-placeholder-content wording", /provisional placeholder content/i],
+  ["not-approved-final-content wording", /not approved final content/i],
+  ["the photo-figure credit element", /photo-figure__credit/i],
 ];
 
 // --- Operator boundary (Slice 05) ----------------------------------------
@@ -199,6 +248,14 @@ const protectedCases = [
 
 const failures = [];
 
+// REPAIR-09A: this check asserts the PRODUCTION state of the public chrome, so the
+// development-notice switch is forced OFF for its dev server rather than inherited.
+// Without this, a developer's own `.dev.vars` (which the shipped configuration
+// documents as the way to preview the notices locally) would make the gate fail
+// for a legitimate local setting. `.dev.vars` is gitignored, any existing file is
+// restored in the `finally` below, and nothing tracked is written.
+const restoreWorkerVariables = withWorkerVariables({ SHOW_DEVELOPMENT_NOTICES: "false" });
+
 const server = spawn(
   process.platform === "win32" ? "node.exe" : "node",
   [
@@ -247,6 +304,7 @@ try {
     console.error("Preview server did not become ready.");
     console.error(serverOutput.slice(-2000));
     shutdown();
+    restoreWorkerVariables();
     process.exit(1);
   }
 
@@ -261,6 +319,58 @@ try {
     if (!response.ok) {
       failures.push(`${route} returned unexpected status ${response.status}`);
     }
+
+    // REPAIR-09A: no development placeholder chrome in a served public page.
+    //
+    // The served configuration sets SHOW_DEVELOPMENT_NOTICES to "false", so this
+    // is the production state: no caption, no injected alt prefix and no preview
+    // notice may reach a visitor.
+    for (const [label, pattern] of chromeForbidden) {
+      const match = pattern.exec(body);
+      if (match) {
+        failures.push(
+          `${route} serves ${label} (${JSON.stringify(match[0])}); production output must not ` +
+            "describe the site or its photographs as placeholder or preview content",
+        );
+      }
+    }
+    // The scan above only means something if the chrome it looks for is actually
+    // rendered, so the footer is asserted present on the same response.
+    if (!body.includes("site-footer")) {
+      failures.push(`${route} rendered no footer, so the chrome scan proves nothing`);
+    }
+  }
+
+  // REPAIR-09A: gallery-cover alternative text.
+  //
+  // The covers used to be announced as "Development placeholder for the {gallery}
+  // cover photograph." — a generated string describing every collection cover on
+  // the site as a placeholder. The covers are now described with the cover
+  // photograph's own words, so the assertion is about the INJECTED PREFIX and the
+  // injected template, not about the words a record uses about itself.
+  const galleriesHtml = await (await fetch(`${origin}/galleries`)).text();
+  const coverAlts = [...galleriesHtml.matchAll(/<img[^>]*class="collection-card__image"[^>]*alt="([^"]*)"/gi)].map(
+    (match) => match[1] ?? "",
+  );
+  if (coverAlts.length === 0) {
+    failures.push("the galleries page rendered no cover images, so the cover alt scan proves nothing");
+  }
+  for (const alt of coverAlts) {
+    if (alt.length === 0) {
+      failures.push(
+        "a gallery cover has empty alternative text while its photograph has a description or title",
+      );
+    }
+    if (/^development placeholder/i.test(alt)) {
+      failures.push(
+        `a gallery-cover alt begins with the injected development placeholder prefix: ${JSON.stringify(alt)}`,
+      );
+    }
+    if (/cover photograph/i.test(alt)) {
+      failures.push(
+        `a gallery-cover alt still uses the generated cover template: ${JSON.stringify(alt)}`,
+      );
+    }
   }
 
   // Unpublished and unknown rows must stay indistinguishable publicly.
@@ -268,6 +378,23 @@ try {
     const response = await fetch(`${origin}${route}`);
     if (response.status !== 404) {
       failures.push(`${route} should be 404 but returned ${response.status}`);
+    }
+  }
+
+  // REPAIR-09A: the 404 a visitor actually reaches is public chrome too. It used
+  // to tell every visitor the site was a development preview, so it is scanned
+  // like any other served page.
+  for (const route of notFoundRoutes) {
+    const response = await fetch(`${origin}${route}`, { redirect: "manual" });
+    const body = await response.text();
+    if (response.status !== 404) {
+      failures.push(`${route} should be 404 but returned ${response.status}`);
+    }
+    for (const [label, pattern] of chromeForbidden) {
+      const match = pattern.exec(body);
+      if (match) {
+        failures.push(`${route} serves ${label} (${JSON.stringify(match[0])})`);
+      }
     }
   }
 
@@ -301,6 +428,9 @@ try {
   }
 } finally {
   shutdown();
+  // Restore the workspace even when an assertion failed: the check's own local
+  // override must not outlive it.
+  restoreWorkerVariables();
 }
 
 if (failures.length > 0) {
@@ -312,7 +442,8 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Served-payload check passed: ${routes.length} public routes inspected, no private-master identifiers in served HTML; ` +
-    `${hiddenRoutes.length} hidden routes return 404; ` +
+  `Served-payload check passed: ${routes.length} public routes inspected, no private-master identifiers in served HTML and no ` +
+    `development placeholder/preview chrome; ${hiddenRoutes.length} hidden routes and ${notFoundRoutes.length} public 404s ` +
+    `returned 404 without preview wording; ` +
     `${protectedCases.length} operator-route cases enforced the expected 401/403/200 boundary.`,
 );

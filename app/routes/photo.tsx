@@ -129,7 +129,10 @@ export default function PhotoRoute() {
             <img
               className="photo-detail__image"
               src={photo.webImagePath}
-              alt={`Development placeholder for “${photo.title}”.`}
+              // The photograph's own words, never an injected development prefix
+              // (REPAIR-09A): the record's description, or its title when it has
+              // none. Nothing is invented and no placeholder wording is added.
+              alt={photo.description || photo.title}
               loading="eager"
               decoding="async"
               sizes="(min-width: 75rem) 55vw, 100vw"
@@ -271,7 +274,7 @@ export default function PhotoRoute() {
                 className="latest-grid__item"
                 key={item.id}
                 src={item.thumbnailImagePath}
-                alt={`Development placeholder for “${item.title}”.`}
+                alt={item.description || item.title}
                 ratio={`${item.width} / ${item.height}`}
                 sizes="(min-width: 62rem) 25vw, (min-width: 40rem) 50vw, 100vw"
                 titleLink={{

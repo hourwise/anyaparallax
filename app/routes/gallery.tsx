@@ -3,7 +3,7 @@ import { Link, useLoaderData } from "react-router";
 
 import { PhotoFigure } from "../components/PhotoFigure";
 import { PlaceholderNotice } from "../components/PlaceholderNotice";
-import { site } from "../data/site";
+import { site, developmentNoticesEnabled } from "../data/site";
 import { getPublishedGallery } from "../data/queries";
 import { appEnvironmentFrom } from "../data/context.server";
 import { galleriesPath, photoPath } from "../lib/paths";
@@ -15,7 +15,7 @@ export async function loader({ context, params }: { context: unknown; params: { 
     // Unknown and unpublished galleries are indistinguishable publicly.
     throw new Response("Gallery not found", { status: 404, statusText: "Not Found" });
   }
-  return { gallery };
+  return { gallery, showDevelopmentNotices: developmentNoticesEnabled(env) };
 }
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
@@ -34,7 +34,7 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
  * column grid that lets portrait and landscape work keep their own proportions.
  */
 export default function GalleryRoute() {
-  const { gallery } = useLoaderData<typeof loader>();
+  const { gallery, showDevelopmentNotices } = useLoaderData<typeof loader>();
   const count = gallery.photos.length;
   return (
     <section className="page container">
@@ -49,10 +49,12 @@ export default function GalleryRoute() {
         </p>
       </header>
 
-      <PlaceholderNotice>
-        Development preview — photographs are placeholder assets and metadata is
-        provisional seed data.
-      </PlaceholderNotice>
+      {showDevelopmentNotices ? (
+        <PlaceholderNotice>
+          Development preview — photographs are placeholder assets and metadata is
+          provisional seed data.
+        </PlaceholderNotice>
+      ) : null}
 
       {count === 0 ? (
         <p className="muted">No photographs are published in this gallery yet.</p>
@@ -68,7 +70,10 @@ export default function GalleryRoute() {
               className="gallery-grid__item"
               key={photo.id}
               src={photo.thumbnailImagePath}
-              alt={`Development placeholder for “${photo.title}”.`}
+              // The photograph's own words, never an injected development prefix
+              // (REPAIR-09A). Every grid on the site used to announce each
+              // photograph as a development placeholder.
+              alt={photo.description || photo.title}
               ratio={`${photo.width} / ${photo.height}`}
               sizes="(min-width: 56.25rem) 33vw, (min-width: 34rem) 50vw, 100vw"
               titleLink={{

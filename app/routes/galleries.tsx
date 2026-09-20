@@ -5,14 +5,24 @@ import { PlaceholderNotice } from "../components/PlaceholderNotice";
 import { appEnvironmentFrom } from "../data/context.server";
 import { site } from "../data/site";
 import { galleryCover, listPublishedGalleries, publishedPhotoCounts } from "../data/queries";
+import { developmentNoticesEnabled } from "../data/site";
 import { galleryPath } from "../lib/paths";
 
-export const meta: MetaFunction = () => [
+/**
+ * The page description is the production sentence, with the development wording
+ * appended ONLY while development notices are enabled (REPAIR-09A).
+ */
+const DESCRIPTION =
+  "Browse the Anyaparallax photography collections — nightlife, live music, cityscapes, cars, people and monochrome work.";
+const DESCRIPTION_PREVIEW_SUFFIX = " Development preview with placeholder imagery.";
+
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => [
   { title: `Galleries — ${site.name} ${site.secondary}` },
   {
     name: "description",
-    content:
-      "Browse the Anyaparallax photography collections — nightlife, live music, cityscapes, cars, people and monochrome work. Development preview with placeholder imagery.",
+    content: loaderData?.showDevelopmentNotices
+      ? `${DESCRIPTION}${DESCRIPTION_PREVIEW_SUFFIX}`
+      : DESCRIPTION,
   },
 ];
 
@@ -27,6 +37,7 @@ export async function loader({ context }: { context: unknown }) {
     covers: await Promise.all(
       galleries.map(async (gallery) => [gallery.id, await galleryCover(gallery, env)] as const),
     ),
+    showDevelopmentNotices: developmentNoticesEnabled(env),
   };
 }
 
@@ -35,7 +46,7 @@ export async function loader({ context }: { context: unknown }) {
  * an unpublished gallery can never appear here.
  */
 export default function GalleriesRoute() {
-  const { galleries, counts, covers } = useLoaderData<typeof loader>();
+  const { galleries, counts, covers, showDevelopmentNotices } = useLoaderData<typeof loader>();
   const countById = new Map(counts);
   const coverById = new Map(covers);
 
@@ -50,11 +61,12 @@ export default function GalleriesRoute() {
         </p>
       </header>
 
-      <PlaceholderNotice>
-        Development preview — gallery names and metadata are provisional seed data, not
-        approved final content. Real photography and the administrator-managed gallery
-        system arrive with the storage and upload slices.
-      </PlaceholderNotice>
+      {showDevelopmentNotices ? (
+        <PlaceholderNotice>
+          Development preview — gallery names and metadata are provisional seed data, not
+          approved final content.
+        </PlaceholderNotice>
+      ) : null}
 
       <ul className="collections">
         {galleries.map((gallery) => {
@@ -70,10 +82,17 @@ export default function GalleriesRoute() {
               >
                 {cover && cover.thumbnailImagePath ? (
                   <span className="collection-card__media">
+                    {/*
+                      The cover's alternative text is the cover PHOTOGRAPH's own
+                      words (REPAIR-09A): its description, or its title when it has
+                      none. The generated "Development placeholder for the …
+                      cover photograph." string is gone — every collection cover on
+                      the site used to be announced as a placeholder.
+                    */}
                     <img
                       className="collection-card__image"
                       src={cover.thumbnailImagePath}
-                      alt={`Development placeholder for the ${gallery.name} cover photograph.`}
+                      alt={cover.description || cover.title}
                       loading="lazy"
                       decoding="async"
                       sizes="(min-width: 56.25rem) 33vw, (min-width: 34rem) 50vw, 100vw"

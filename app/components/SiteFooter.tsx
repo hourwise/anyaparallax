@@ -2,7 +2,17 @@ import { Link } from "react-router";
 
 import { primaryNav, site } from "../data/site";
 
-export function SiteFooter() {
+/**
+ * The public footer.
+ *
+ * REPAIR-09A: the two provisional/preview notices it used to render
+ * unconditionally are now shown only when the caller says development notices are
+ * enabled — the single switch in `app/data/site.ts`. With notices off the footer
+ * keeps its brand, navigation, social and copyright blocks and simply states
+ * nothing about the site being unfinished, which is what a published site must
+ * do. No substitute wording is invented to fill the gap.
+ */
+export function SiteFooter({ showDevelopmentNotices = false }: { showDevelopmentNotices?: boolean }) {
   const year = new Date().getFullYear();
 
   return (
@@ -12,7 +22,9 @@ export function SiteFooter() {
           <p className="footer__title">
             {site.name} {site.secondary}
           </p>
-          <p className="footer__note">{site.provisionalNote}</p>
+          {showDevelopmentNotices ? (
+            <p className="footer__note">{site.provisionalNote}</p>
+          ) : null}
         </div>
 
         <nav className="footer__nav" aria-label="Footer">
@@ -42,7 +54,9 @@ export function SiteFooter() {
           <p>
             &copy; {year} {site.name} {site.secondary}
           </p>
-          <p className="footer__note">Development preview. Not approved final content.</p>
+          {showDevelopmentNotices ? (
+            <p className="footer__note">{site.provisionalFooterNote}</p>
+          ) : null}
         </div>
       </div>
     </footer>

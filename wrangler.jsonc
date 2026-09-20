@@ -75,9 +75,21 @@
   // never redefine it. The value is the operator-supplied production origin; it
   // is correct for local development too, because a canonical URL should point
   // at the real site even when the page is being previewed.
+  //
+  // SHOW_DEVELOPMENT_NOTICES (REPAIR-09A) decides whether the site renders its
+  // development/preview notices: the "Development preview" and "provisional
+  // placeholder" wording in the footer, on the gallery and homepage sections, the
+  // hero note, the About portrait label and the meta-description suffixes. It is
+  // set to "false" here so the PUBLICATION-SAFE state is the one a deployment
+  // gets by accident: only the exact string "true" enables the notices, and any
+  // other value (or none) leaves them out. To see them while working locally,
+  // create a gitignored `.dev.vars` beside this file containing
+  //   SHOW_DEVELOPMENT_NOTICES="true"
+  // which overrides this value for `pnpm dev` without changing shipped config.
   "vars": {
     "ALLOW_DEVELOPMENT_SEED": "true",
     "ALLOW_DEVELOPMENT_IDENTITY": "true",
-    "PUBLIC_SITE_ORIGIN": "https://anyaparallax.co.uk"
+    "PUBLIC_SITE_ORIGIN": "https://anyaparallax.co.uk",
+    "SHOW_DEVELOPMENT_NOTICES": "false"
   }
 }

@@ -116,7 +116,9 @@ export default function PrintsRoute() {
                   className="gallery-grid__item"
                   key={photo.id}
                   src={photo.thumbnailImagePath}
-                  alt={`Development placeholder for “${photo.title}”.`}
+                  // The photograph's own words (REPAIR-09A), exactly as every other
+                  // public grid derives them.
+                  alt={photo.description || photo.title}
                   ratio={`${photo.width} / ${photo.height}`}
                   sizes="(min-width: 56.25rem) 33vw, (min-width: 34rem) 50vw, 100vw"
                   caption={

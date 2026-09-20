@@ -9,18 +9,23 @@ import {
 } from "react-router";
 
 import "./app.css";
+import { site } from "./data/site";
 
 export const links: LinksFunction = () => [
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
 ];
 
+/**
+ * The default document metadata.
+ *
+ * REPAIR-09A: the description is the site's own truthful description, with no
+ * development/preview wording. Root metadata is the fallback for any route that
+ * does not set its own description, so a preview sentence here would reach pages
+ * that have nothing to do with the preview state.
+ */
 export const meta: MetaFunction = () => [
   { title: "Anyaparallax Photography" },
-  {
-    name: "description",
-    content:
-      "Anyaparallax photography — night cities, live music and the moments after dark. Development preview.",
-  },
+  { name: "description", content: site.description },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -53,10 +58,16 @@ export function ErrorBoundary({ error }: { error: unknown }) {
       <main className="page container" id="main" tabIndex={-1}>
         <p className="eyebrow">{isNotFound ? "404" : "Error"}</p>
         <h1>{isNotFound ? "Page not found" : "Something went wrong"}</h1>
+        {/*
+          REPAIR-09A: stage-neutral wording. This boundary is the last resort when a
+          loader has already failed, so it has no configuration to read and must not
+          guess at the preview state; "this development preview" described the whole
+          site as unfinished on every error a visitor could reach.
+        */}
         <p className="lede">
           {isNotFound
-            ? "That address does not exist in this development preview."
-            : "This development preview could not render the page you asked for."}
+            ? "That address does not exist."
+            : "The page you asked for could not be rendered."}
         </p>
         {!isNotFound && import.meta.env.DEV && error instanceof Error ? (
           <pre className="error-detail">{error.message}</pre>

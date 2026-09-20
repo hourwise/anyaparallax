@@ -379,6 +379,43 @@ try {
       `the detail image src is ${JSON.stringify(detailSrc)}, expected ${JSON.stringify(expectedWeb)}`,
     );
 
+    // (2b) REPAIR-09A: the REAL photograph's own alternative text and metadata.
+    //
+    // This page is the representative DB-backed photograph the repair is verified
+    // against: its description comes from the upload pipeline, not from the
+    // development seed set, so any development wording on it can only have been
+    // injected by the application. The assertions are therefore exact rather than
+    // a blanket word scan — a RELATED photograph in the same gallery is a seed
+    // record whose own description legitimately mentions that it is development
+    // material, and a scan that forbade the word outright would only pass by
+    // rewriting the seed data.
+    const detailAlt = /<img[^>]*class="photo-detail__image"[^>]*alt="([^"]*)"/i.exec(dbHtml)?.[1] ?? null;
+    check(
+      detailAlt === "platform verification",
+      `the DB-backed photograph's alt is ${JSON.stringify(detailAlt)}, expected the record's own description`,
+    );
+    for (const [label, value] of [
+      ["the alt attribute", detailAlt],
+      ["the document title", documentTitle(dbHtml)],
+      ["the meta description", metaContent(dbHtml, "name", "description")],
+      ["og:description", metaContent(dbHtml, "property", "og:description")],
+      ["twitter:description", metaContent(dbHtml, "name", "twitter:description")],
+    ]) {
+      check(
+        typeof value !== "string" ||
+          !/development placeholder|development preview|provisional|placeholder/i.test(value),
+        `${label} of the DB-backed photograph carries injected development wording: ${JSON.stringify(value)}`,
+      );
+    }
+    check(
+      !/photo-figure__credit/.test(dbHtml),
+      "the DB-backed photograph page still renders the development-placeholder credit",
+    );
+    check(
+      !detailAlt?.startsWith("Development placeholder"),
+      "the DB-backed photograph's alt still begins with the injected placeholder prefix",
+    );
+
     // (3) The URL it names actually serves a real image, so "loadable" is proved
     //     rather than assumed. The fetch is guarded so that a regression produces
     //     a readable failure instead of a URL-parse crash: when the projection is

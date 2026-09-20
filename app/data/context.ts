@@ -42,6 +42,14 @@ export type AppBindings = {
    * the documented production origin is used.
    */
   readonly PUBLIC_SITE_ORIGIN?: string;
+  /**
+   * REPAIR-09A: render the site's development/preview notices. Defaults to OFF —
+   * only the exact string "true" enables them — so a deployment that forgets the
+   * value publishes no placeholder chrome. It is deliberately separate from the
+   * two development flags above: those enable local FACILITIES, this one labels
+   * content as provisional, and a site can need either without the other.
+   */
+  readonly SHOW_DEVELOPMENT_NOTICES?: string;
 };
 
 export type AppRequestContext = {

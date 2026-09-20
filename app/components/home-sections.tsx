@@ -6,13 +6,16 @@ import { aboutPreview } from "../data/home";
 import type { HomepageGalleryCard, HomepagePhotoCard } from "../data/home";
 
 /**
- * Homepage sections (slices 02-03). Presentational only: photographs and
- * galleries arrive as view objects mapped from the public query boundary, so
- * the same records back the homepage, gallery pages and photo pages.
+ * Homepage sections (slices 02-03; development notices gated in REPAIR-09A).
+ * Presentational only: photographs and galleries arrive as view objects mapped
+ * from the public query boundary, so the same records back the homepage, gallery
+ * pages and photo pages. Whether the development notices render is decided by the
+ * caller, from the single switch in `app/data/site.ts`.
  */
 
 export function HeroSection({
   hero,
+  showDevelopmentNotices = false,
 }: {
   hero: {
     headline: readonly string[];
@@ -21,6 +24,7 @@ export function HeroSection({
     photo: { photo: string; alt: string; ratio: string };
     note: string;
   };
+  showDevelopmentNotices?: boolean;
 }) {
   return (
     <section className="hero">
@@ -38,7 +42,9 @@ export function HeroSection({
       </div>
       <div className="hero__scrim" aria-hidden="true" />
       <div className="container hero__content">
-        <p className="eyebrow hero__note">{hero.note}</p>
+        {showDevelopmentNotices && hero.note ? (
+          <p className="eyebrow hero__note">{hero.note}</p>
+        ) : null}
         <p className="hero__headline" aria-hidden="true">
           {hero.headline.map((word) => (
             <span key={word} className="hero__headline-word">
@@ -101,8 +107,10 @@ export function FeaturedWorkSection({ photos }: { photos: readonly HomepagePhoto
 
 export function ExploreGalleriesSection({
   galleries,
+  showDevelopmentNotices = false,
 }: {
   galleries: readonly HomepageGalleryCard[];
+  showDevelopmentNotices?: boolean;
 }) {
   if (galleries.length === 0) {
     return null;
@@ -119,10 +127,12 @@ export function ExploreGalleriesSection({
         </p>
       </header>
 
-      <PlaceholderNotice>
-        Provisional collections, counts and imagery. Galleries are administrator-managed
-        once the storage slices land, and no name or count here is approved final content.
-      </PlaceholderNotice>
+      {showDevelopmentNotices ? (
+        <PlaceholderNotice>
+          Provisional collections, counts and imagery. Galleries are administrator-managed
+          once the storage slices land, and no name or count here is approved final content.
+        </PlaceholderNotice>
+      ) : null}
 
       <ul className="collections">
         {galleries.map((gallery) => (

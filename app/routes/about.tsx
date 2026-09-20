@@ -6,41 +6,54 @@ import { PlaceholderNotice } from "../components/PlaceholderNotice";
 import { siteOriginFrom } from "../data/canonical-origin";
 import { appEnvironmentFrom } from "../data/context.server";
 import { listPublishedGalleries } from "../data/queries";
-import { site } from "../data/site";
+import { developmentNoticesEnabled, site } from "../data/site";
 import { metadataTags, pageMetadataFor } from "../engagement/metadata";
 import { contactPath, galleriesPath } from "../lib/paths";
 
 const SITE_NAME = `${site.name} ${site.secondary}`;
 
 /**
- * About (Slice 08).
+ * The page description is the production sentence, with the development wording
+ * appended ONLY while development notices are enabled (REPAIR-09A).
+ */
+const DESCRIPTION =
+  "About Anyaparallax: night cities, live music, cars and the moments after dark.";
+const DESCRIPTION_PREVIEW_SUFFIX =
+  " Provisional introduction and development preview — final biography and photography are supplied by the photographer before publication.";
+
+/**
+ * About (Slice 08; development notices gated in REPAIR-09A).
  *
  * NO BIOGRAPHY IS INVENTED HERE. The operator has not supplied approved copy,
- * portrait or supporting photographs, so the page is deliberately SCAFFOLDING:
- * it states plainly that the words and images are provisional, keeps the build
- * sheet's own provisional introduction rather than writing a new one, and claims
- * nothing about Anya's history, training, awards, clients, exhibitions or
- * locations.
+ * portrait or supporting photographs, so the page states plainly — while
+ * development notices are enabled — that the words and images are provisional,
+ * keeps the build sheet's own provisional introduction rather than writing a new
+ * one, and claims nothing about Anya's history, training, awards, clients,
+ * exhibitions or locations.
+ *
+ * With notices off, the page carries no placeholder wording at all: the reserved
+ * portrait space becomes an unlabelled stand-in and the provisional notice is
+ * simply absent. What it does NOT do is pretend approved copy exists.
  *
  * The one factual, non-invented section is the list of the site's own published
  * collections, read through the public query boundary. Those names are the site's
- * data rather than a claim about a person, and they give the page a real purpose
- * until approved copy arrives.
+ * data rather than a claim about a person.
  */
 export async function loader({ context }: { context: unknown }) {
   const env = appEnvironmentFrom(context);
   const origin = siteOriginFrom(env);
   const galleries = await listPublishedGalleries(env);
+  const showDevelopmentNotices = developmentNoticesEnabled(env);
 
   return {
     galleries,
+    showDevelopmentNotices,
     metadata: pageMetadataFor(origin, {
       path: "/about",
       title: "About",
-      description:
-        "About Anyaparallax: night cities, live music, cars and the moments after dark. " +
-        "Provisional introduction and development preview — final biography and photography are " +
-        "supplied by the photographer before publication.",
+      description: showDevelopmentNotices
+        ? `${DESCRIPTION}${DESCRIPTION_PREVIEW_SUFFIX}`
+        : DESCRIPTION,
       siteName: SITE_NAME,
     }),
   };
@@ -54,7 +67,7 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
 };
 
 export default function AboutRoute() {
-  const { galleries } = useLoaderData<typeof loader>();
+  const { galleries, showDevelopmentNotices } = useLoaderData<typeof loader>();
 
   return (
     <section className="page container">
@@ -63,12 +76,14 @@ export default function AboutRoute() {
         <h1>About</h1>
       </header>
 
-      <PlaceholderNotice>
-        Provisional wording. The biography below is the placeholder from the build sheet, not
-        approved final copy, and the portrait is reserved space rather than a photograph. Nothing
-        about Anya&rsquo;s history, training, clients or credentials is stated here because none has
-        been supplied.
-      </PlaceholderNotice>
+      {showDevelopmentNotices ? (
+        <PlaceholderNotice>
+          Provisional wording. The biography below is the placeholder from the build sheet, not
+          approved final copy, and the portrait is reserved space rather than a photograph. Nothing
+          about Anya&rsquo;s history, training, clients or credentials is stated here because none has
+          been supplied.
+        </PlaceholderNotice>
+      ) : null}
 
       <div className="split">
         <div className="split__copy prose">
@@ -78,7 +93,7 @@ export default function AboutRoute() {
           </p>
           <p>
             The final biography, portrait and selected supporting photographs are supplied by the
-            photographer before publication. Nothing on this page is final content.
+            photographer before publication.
           </p>
           <p>
             The work on this site is arranged into collections rather than a single stream, so it
@@ -87,7 +102,16 @@ export default function AboutRoute() {
           </p>
         </div>
         <div className="split__media">
-          <PlaceholderFrame label="Portrait placeholder" ratio="4 / 5" />
+          {/*
+            The reserved portrait space. It carries the "Portrait placeholder"
+            label only while development notices are enabled (REPAIR-09A): with
+            notices off it is an unlabelled stand-in, not a description of the
+            site's imagery as placeholder content.
+          */}
+          <PlaceholderFrame
+            label={showDevelopmentNotices ? "Portrait placeholder" : undefined}
+            ratio="4 / 5"
+          />
         </div>
       </div>
 
