@@ -26,6 +26,7 @@ import {
   toPublicPhotoWithGallery,
 } from "./project";
 import type { PortfolioRepository, PublicPhotoDetail } from "./repository";
+import { slugify, suffixedSlug, type NewPhotoInput } from "./repository";
 
 /** The D1 binding surface used here. */
 export type D1DatabaseBinding = {
@@ -386,5 +387,114 @@ export class D1PortfolioRepository implements PortfolioRepository {
       result.push(toPublicPhotoWithGallery(record, gallery));
     });
     return result;
+  }
+
+  /**
+   * A slug no photograph holds yet.
+   *
+   * Uniqueness is ultimately the database's job (`photos.slug` is UNIQUE), but
+   * this asks first so the common case produces `title` rather than a suffix.
+   * Existing suffixes are counted rather than guessed, so a base that already
+   * ends in `-2` cannot collide with a generated `-2`.
+   */
+  async availablePhotoSlug(preferred: string): Promise<string> {
+    const base = slugify(preferred) ?? "photo";
+    const rows = await this.#all<{ slug: string }>(
+      this.#db
+        .prepare("SELECT slug FROM photos WHERE slug = ?1 OR slug LIKE ?2")
+        .bind(base, `${base}-%`),
+    );
+    const taken = new Set(rows.map((row) => row.slug));
+    if (!taken.has(base)) {
+      return base;
+    }
+    // Bounded: the loop stops at the first free suffix, and the UNIQUE column
+    // still refuses a duplicate if two uploads race for the same name.
+    for (let attempt = 2; attempt <= 1000; attempt += 1) {
+      const candidate = suffixedSlug(base, attempt);
+      if (!taken.has(candidate)) {
+        return candidate;
+      }
+    }
+    return `${base}-${Date.now()}`;
+  }
+
+  /**
+   * Record a photograph from an accepted upload.
+   *
+   * Two statements: the photograph, then its tag links. They are issued in that
+   * order because `photo_tags` has foreign keys to both `photos` and `tags`, so
+   * a link cannot legally precede the row it describes. Duplicate tag ids are
+   * collapsed first — the junction table's primary key would reject a repeat,
+   * and a repeated tag is an operator slip, not a reason to fail the upload.
+   */
+  async createPhoto(input: NewPhotoInput): Promise<PhotoRecord> {
+    const now = new Date().toISOString();
+    await this.#db
+      .prepare(
+        `INSERT INTO photos (
+           id, title, slug, description, gallery_id, location, capture_date,
+           width, height, original_storage_key, web_storage_key, thumbnail_storage_key,
+           watermark_enabled, watermark_position, featured, published, print_available,
+           created_at, updated_at, published_at
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)`,
+      )
+      .bind(
+        input.id,
+        input.title,
+        input.slug,
+        input.description,
+        input.galleryId,
+        input.location,
+        input.captureDate,
+        input.width,
+        input.height,
+        input.originalStorageKey,
+        input.webStorageKey,
+        input.thumbnailStorageKey,
+        input.watermarkEnabled ? 1 : 0,
+        input.watermarkPosition,
+        input.featured ? 1 : 0,
+        input.published ? 1 : 0,
+        input.printAvailable ? 1 : 0,
+        now,
+        now,
+        input.published ? now : null,
+      )
+      .run();
+
+    const tagIds = [...new Set(input.tags)];
+    for (const tagId of tagIds) {
+      await this.#db
+        .prepare("INSERT INTO photo_tags (photo_id, tag_id) VALUES (?1, ?2)")
+        .bind(input.id, tagId)
+        .run();
+    }
+
+    return {
+      id: input.id,
+      title: input.title,
+      slug: input.slug,
+      description: input.description,
+      galleryId: input.galleryId,
+      tags: tagIds,
+      location: input.location,
+      captureDate: input.captureDate,
+      width: input.width,
+      height: input.height,
+      orientation: orientationOf(input.width, input.height),
+      originalStorageKey: input.originalStorageKey,
+      webStorageKey: input.webStorageKey,
+      thumbnailStorageKey: input.thumbnailStorageKey,
+      watermarkEnabled: input.watermarkEnabled,
+      watermarkPosition: input.watermarkPosition,
+      featured: input.featured,
+      featuredVariant: "a",
+      published: input.published,
+      printAvailable: input.printAvailable,
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: input.published ? now : null,
+    };
   }
 }

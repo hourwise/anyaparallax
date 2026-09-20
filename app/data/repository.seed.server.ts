@@ -20,11 +20,13 @@ import type {
 } from "./model";
 import {
   editorialSlotForIndex,
+  orientationOf,
   toPublicGallery,
   toPublicPhoto,
   toPublicPhotoWithGallery,
 } from "./project";
 import type { PortfolioRepository, PublicPhotoDetail } from "./repository";
+import { slugify, suffixedSlug, type NewPhotoInput } from "./repository";
 import { seed } from "./seed";
 
 /** Newest first, then stable alphabetical slug order. */
@@ -175,5 +177,71 @@ export class SeedPortfolioRepository implements PortfolioRepository {
       );
     });
     return result;
+  }
+
+  /**
+   * A slug no seed photograph holds yet.
+   *
+   * Mirrors the D1 implementation's shape (`base`, `base-2`, `base-3`, …) so a
+   * local upload and a production upload of the same title name the photograph
+   * identically. Uniqueness covers ALL seed photographs, published or not,
+   * because `photos.slug` is unique in the table regardless of visibility.
+   */
+  async availablePhotoSlug(preferred: string): Promise<string> {
+    const base = slugify(preferred) ?? "photo";
+    const taken = new Set(seed.photos.map((photo) => photo.slug));
+    if (!taken.has(base)) {
+      return base;
+    }
+    for (let attempt = 2; attempt <= 1000; attempt += 1) {
+      const candidate = suffixedSlug(base, attempt);
+      if (!taken.has(candidate)) {
+        return candidate;
+      }
+    }
+    return `${base}-${Date.now()}`;
+  }
+
+  /**
+   * Record a photograph in the in-memory seed set.
+   *
+   * The development seed is not a database, so this appends to the process's
+   * seed array: the upload appears for the life of the dev server and is gone
+   * after a restart. That is deliberate — writing uploads into shipped source
+   * data would be worse — and the admin page says so when it runs on the seed
+   * source.
+   */
+  async createPhoto(input: NewPhotoInput): Promise<PhotoRecord> {
+    const now = new Date().toISOString();
+    const record: PhotoRecord = {
+      id: input.id,
+      title: input.title,
+      slug: input.slug,
+      description: input.description,
+      galleryId: input.galleryId,
+      tags: [...new Set(input.tags)],
+      location: input.location,
+      captureDate: input.captureDate,
+      width: input.width,
+      height: input.height,
+      orientation: orientationOf(input.width, input.height),
+      originalStorageKey: input.originalStorageKey,
+      webStorageKey: input.webStorageKey,
+      thumbnailStorageKey: input.thumbnailStorageKey,
+      watermarkEnabled: input.watermarkEnabled,
+      watermarkPosition: input.watermarkPosition,
+      featured: input.featured,
+      featuredVariant: "a",
+      published: input.published,
+      printAvailable: input.printAvailable,
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: input.published ? now : null,
+    };
+    // The seed set is `readonly` to every consumer; this one write path is the
+    // deliberate exception, so the cast is narrowed to the array itself rather
+    // than widening the exported type.
+    (seed.photos as PhotoRecord[]).push(record);
+    return record;
   }
 }

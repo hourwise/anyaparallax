@@ -261,6 +261,82 @@ main:focus-visible {
   margin-top: var(--space-2xs);
 }
 
+/*
+ * Operator upload form (Slice 06).
+ *
+ * Grouped in fieldsets so the shape of a submission is visible at a glance, and
+ * laid out in a single column: this is a form an operator fills in occasionally,
+ * and a dense multi-column grid would only make the watermark and publication
+ * choices easier to misread.
+ */
+.upload-form {
+  max-width: var(--content-narrow);
+  margin: 0 0 var(--space-xl);
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.upload-form fieldset {
+  margin: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-raised);
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.upload-form legend {
+  padding: 0 var(--space-2xs);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.upload-form label {
+  display: grid;
+  gap: var(--space-2xs);
+  color: var(--text-secondary);
+  font-size: var(--step--1);
+}
+
+.upload-form label.checkbox {
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.upload-form input[type="text"],
+.upload-form input[type="date"],
+.upload-form select,
+.upload-form textarea {
+  width: 100%;
+  padding: var(--space-2xs) var(--space-xs);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.upload-form button[type="submit"] {
+  justify-self: start;
+  padding: var(--space-xs) var(--space-lg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-raised);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.upload-form button[type="submit"][disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .notice {
   max-width: var(--content-narrow);
   margin: 0 0 var(--space-lg);

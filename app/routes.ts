@@ -1,6 +1,10 @@
 import { type RouteConfig, index, layout, route } from "@react-router/dev/routes";
 
 export default [
+  // Public derivative serving (Slice 06): a resource route outside every layout,
+  // so `/media/...` returns image bytes and never an HTML document.
+  route("media/*", "routes/media.ts"),
+
   // Public site: shared header, footer and mobile navigation.
   layout("layouts/public.tsx", [
     index("routes/home.tsx"),

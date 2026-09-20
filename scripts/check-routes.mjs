@@ -90,6 +90,16 @@ const requiredMarkers = [
   ["app/auth/accounts.ts", "ACCOUNT_BY_EMAIL_SQL"],
   ["app/auth/accounts.ts", "soleAccount"],
   ["app/auth/accounts.server.ts", "ACCOUNT_BY_EMAIL_SQL"],
+  // Slice 06: upload pipeline and public derivative serving.
+  ["app/images/upload-validation.ts", "validateUpload"],
+  ["app/images/codecs.ts", "decodeImage"],
+  ["app/images/watermark.ts", "applyWatermark"],
+  ["app/images/process.ts", "processUpload"],
+  ["app/images/upload.server.ts", "ingestUploads"],
+  ["app/images/media.server.ts", "serveMedia"],
+  ["app/routes/media.ts", "serveMedia"],
+  ["app/routes/admin/upload.tsx", "ingestUploads"],
+  ["app/data/storage.ts", "PUBLIC_MEDIA_PREFIX"],
 ];
 
 /**

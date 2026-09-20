@@ -52,24 +52,38 @@ const d1Repositories = new WeakMap<object, PortfolioRepository>();
 let seedRepository: PortfolioRepository | null = null;
 
 async function repositoryFor(env: AppEnvironment | undefined): Promise<PortfolioRepository> {
+  return (await repositoryBundleFor(env)).repository;
+}
+
+/**
+ * The repository plus whether it actually persists.
+ *
+ * Writer surfaces need the second fact: the development seed source accepts a
+ * write and keeps it only for the life of the process, so the admin upload page
+ * must be able to say "this was not stored" instead of implying durability. The
+ * read paths do not care and keep using {@link repositoryFor}.
+ */
+export async function repositoryBundleFor(
+  env: AppEnvironment | undefined,
+): Promise<{ readonly repository: PortfolioRepository; readonly persisted: boolean }> {
   const db = env?.DB;
   if (db && typeof db === "object" && typeof (db as { prepare?: unknown }).prepare === "function") {
     const key = db as object;
     const cached = d1Repositories.get(key);
     if (cached) {
-      return cached;
+      return { repository: cached, persisted: true };
     }
     const { D1PortfolioRepository } = await import("./repository.d1.server");
     const repository: PortfolioRepository = new D1PortfolioRepository(
       db as ConstructorParameters<typeof D1PortfolioRepository>[0],
     );
     d1Repositories.set(key, repository);
-    return repository;
+    return { repository, persisted: true };
   }
 
   if (env?.ALLOW_DEVELOPMENT_SEED === "true") {
     seedRepository ??= new (await import("./repository.seed.server")).SeedPortfolioRepository();
-    return seedRepository;
+    return { repository: seedRepository, persisted: false };
   }
 
   throw new Error(
@@ -163,4 +177,42 @@ export async function galleryCover(
   env?: AppEnvironment,
 ): Promise<PublicPhoto | null> {
   return (await repositoryFor(env)).getGalleryCover(gallery);
+}
+
+/** A tag as an operator form needs it: the id that goes into `photo_tags`, plus labels. */
+export type TagOption = {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+};
+
+/**
+ * Every tag in the registry, A–Z.
+ *
+ * Operator surfaces need tag IDS, which the public `PublicTag` projection
+ * deliberately omits: a visitor never needs one, and the public projection is
+ * kept minimal on purpose. Rather than infer an id from a slug (a convention the
+ * seed happens to follow but the `tags` table does not promise), this reads the
+ * registry directly — published or not, because filing an unpublished photograph
+ * under an existing tag is legitimate.
+ */
+export async function listTagOptions(env?: AppEnvironment): Promise<readonly TagOption[]> {
+  const db = env?.DB;
+  if (db && typeof db === "object" && typeof (db as { prepare?: unknown }).prepare === "function") {
+    const statement = (
+      db as {
+        prepare(query: string): { all<T>(): Promise<{ results?: readonly T[] }> };
+      }
+    ).prepare("SELECT id, name, slug FROM tags ORDER BY name ASC");
+    const result = await statement.all<TagOption>();
+    return result.results ?? [];
+  }
+  if (env?.ALLOW_DEVELOPMENT_SEED === "true") {
+    return [...(await import("./seed")).seed.tags]
+      .map((tag) => ({ id: tag.id, name: tag.name, slug: tag.slug }))
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }
+  throw new Error(
+    "No D1 binding is available and ALLOW_DEVELOPMENT_SEED is not enabled.",
+  );
 }

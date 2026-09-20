@@ -81,7 +81,6 @@ export class R2ObjectStorage {
     asMasterRef(key);
     await this.#masters.put(objectKeyOf(key), bytes, { httpMetadata: { contentType } });
   }
-
   /** Read a private master, or null when it does not exist. */
   async readMaster(key: string): Promise<{ bytes: ArrayBuffer; contentType: string } | null> {
     asMasterRef(key);
@@ -129,6 +128,38 @@ export class R2ObjectStorage {
     asPublicImageRef(key);
     await this.#images.delete(objectKeyOf(key));
   }
+}
+
+/**
+ * Read one PUBLIC derivative directly from a bucket.
+ *
+ * Exists for the media route, which needs exactly this and nothing else: the
+ * route must not be able to construct objects, delete objects, or reach the
+ * private bucket, so it is not handed a storage instance with those powers. The
+ * key is validated here, so a master key passed by a confused caller throws
+ * instead of reading anything.
+ *
+ * Returns null when the object does not exist.
+ */
+export async function readPublicImageFrom(
+  bucket: R2BucketBinding,
+  key: string,
+): Promise<{ bytes: ArrayBuffer; contentType: string } | null> {
+  asPublicImageRef(key);
+  const object = await bucket.get(objectKeyOf(key));
+  if (!object) {
+    return null;
+  }
+  return { bytes: await object.arrayBuffer(), contentType: contentTypeOf(object) };
+}
+
+/** True when a binding looks like an R2 bucket, so a route can fail closed. */
+export function isR2Bucket(value: unknown): value is R2BucketBinding {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    typeof (value as { get?: unknown }).get === "function"
+  );
 }
 
 /** In-memory bucket used by the storage checks; implements the R2 surface used here. */

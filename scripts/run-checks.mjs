@@ -15,6 +15,9 @@ const checks = [
   "./checks/check-seed-integrity.mjs",
   "./checks/check-seed-repository.mjs",
   "./checks/check-storage.mjs",
+  "./checks/check-upload-pipeline.mjs",
+  "./checks/check-upload-server.mjs",
+  "./checks/check-media-route.mjs",
   "./checks/check-d1.mjs",
   "./checks/check-auth.mjs",
 ];

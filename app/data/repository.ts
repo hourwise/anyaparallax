@@ -16,11 +16,13 @@
  * indistinguishable from unpublished ones.
  */
 import type {
+  PhotoRecord,
   PublicGallery,
   PublicGalleryWithPhotos,
   PublicPhoto,
   PublicPhotoWithGallery,
   PublicTag,
+  WatermarkPosition,
 } from "./model";
 
 /** A photograph page's data: the photograph, its gallery and its neighbours. */
@@ -30,6 +32,52 @@ export type PublicPhotoDetail = {
   readonly previous: PublicPhoto | null;
   readonly next: PublicPhoto | null;
 };
+
+/**
+ * A new photograph recorded from an accepted upload (Slice 06).
+ *
+ * Storage keys are already resolved by the upload pipeline before this is
+ * called, so the repository stores decisions rather than making them. Geometry
+ * is the ORIGINAL's, because that is what the archival record must state.
+ */
+export type NewPhotoInput = {
+  /** Application-generated photo id; also the storage-key segment for its objects. */
+  readonly id: string;
+  readonly title: string;
+  readonly slug: string;
+  readonly description: string;
+  readonly galleryId: string;
+  readonly tags: readonly string[];
+  readonly location: string | null;
+  readonly captureDate: string | null;
+  readonly width: number;
+  readonly height: number;
+  readonly originalStorageKey: string;
+  readonly webStorageKey: string;
+  readonly thumbnailStorageKey: string;
+  readonly watermarkEnabled: boolean;
+  readonly watermarkPosition: WatermarkPosition;
+  readonly published: boolean;
+  readonly featured: boolean;
+  readonly printAvailable: boolean;
+};
+
+/** Turn an operator's title into a slug candidate, or null when nothing usable remains. */
+export function slugify(value: string): string | null {
+  const slug = value
+    .normalize("NFKD")
+    // Drop combining marks so an accented title still yields an ASCII slug.
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug.length > 0 ? slug.slice(0, 80) : null;
+}
+
+/** Append a numeric suffix to a slug candidate: `slug`, `slug-2`, `slug-3`, … */
+export function suffixedSlug(base: string, attempt: number): string {
+  return attempt <= 1 ? base : `${base}-${attempt}`;
+}
 
 export interface PortfolioRepository {
   /** Published galleries, configured display order. */
@@ -67,4 +115,22 @@ export interface PortfolioRepository {
 
   /** The cover photograph for a gallery: the configured cover when published, otherwise the newest member. */
   getGalleryCover(gallery: PublicGallery): Promise<PublicPhoto | null>;
+
+  /**
+   * A slug not yet taken by any photograph, derived from the preferred base.
+   *
+   * Lives on the repository because only the store knows what is taken; the two
+   * implementations must agree on the shape (`base`, `base-2`, `base-3`, …) so a
+   * local upload and a production upload name the same photograph the same way.
+   */
+  availablePhotoSlug(preferred: string): Promise<string>;
+
+  /**
+   * Record a photograph from an accepted upload.
+   *
+   * The stored record is returned so the caller can report the real slug. The
+   * row is created unpublished only when asked; nothing here decides visibility
+   * beyond what the operator requested.
+   */
+  createPhoto(input: NewPhotoInput): Promise<PhotoRecord>;
 }
