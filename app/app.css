@@ -353,14 +353,16 @@ main:focus-visible {
  * and a dense multi-column grid would only make the watermark and publication
  * choices easier to misread.
  */
-.upload-form {
+.upload-form,
+.photo-form {
   max-width: var(--content-narrow);
   margin: 0 0 var(--space-xl);
   display: grid;
   gap: var(--space-lg);
 }
 
-.upload-form fieldset {
+.upload-form fieldset,
+.photo-form fieldset {
   margin: 0;
   padding: var(--space-md);
   border: 1px solid var(--border-subtle);
@@ -370,7 +372,8 @@ main:focus-visible {
   gap: var(--space-sm);
 }
 
-.upload-form legend {
+.upload-form legend,
+.photo-form legend {
   padding: 0 var(--space-2xs);
   color: var(--text-muted);
   font-size: var(--step--1);
@@ -378,14 +381,16 @@ main:focus-visible {
   text-transform: uppercase;
 }
 
-.upload-form label {
+.upload-form label,
+.photo-form label {
   display: grid;
   gap: var(--space-2xs);
   color: var(--text-secondary);
   font-size: var(--step--1);
 }
 
-.upload-form label.checkbox {
+.upload-form label.checkbox,
+.photo-form label.checkbox {
   grid-auto-flow: column;
   justify-content: start;
   align-items: center;
@@ -395,7 +400,11 @@ main:focus-visible {
 .upload-form input[type="text"],
 .upload-form input[type="date"],
 .upload-form select,
-.upload-form textarea {
+.upload-form textarea,
+.photo-form input[type="text"],
+.photo-form input[type="date"],
+.photo-form select,
+.photo-form textarea {
   width: 100%;
   padding: var(--space-2xs) var(--space-xs);
   border: 1px solid var(--border-subtle);
@@ -405,7 +414,8 @@ main:focus-visible {
   font: inherit;
 }
 
-.upload-form button[type="submit"] {
+.upload-form button[type="submit"],
+.photo-form button[type="submit"] {
   justify-self: start;
   padding: var(--space-xs) var(--space-lg);
   border: 1px solid var(--border-strong);
@@ -416,7 +426,8 @@ main:focus-visible {
   cursor: pointer;
 }
 
-.upload-form button[type="submit"][disabled] {
+.upload-form button[type="submit"][disabled],
+.photo-form button[type="submit"][disabled] {
   opacity: 0.6;
   cursor: progress;
 }
@@ -1622,6 +1633,81 @@ main:focus-visible {
   gap: var(--space-2xs);
   color: var(--text-secondary);
   font-size: var(--step--1);
+}
+
+/* Photograph management (REPAIR-09B) -------------------------------------- */
+
+/*
+ * The public-state badge. Publication state is what an operator must be able to
+ * read at a glance in the library table — it decides whether a photograph is on the
+ * site — so it gets a bordered badge rather than plain text, and the two directions
+ * are visually distinct.
+ */
+.state-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: var(--step--1);
+  letter-spacing: 0.04em;
+}
+
+.state-badge--live {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.state-badge--draft {
+  border-color: var(--accent);
+  background-color: var(--accent-wash);
+  color: var(--text-primary);
+}
+
+/*
+ * Row actions: an edit link plus two small forms, wrapped so a narrow viewport
+ * stacks them instead of overflowing the table cell.
+ */
+.photo-table__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-xs);
+  align-items: center;
+}
+
+.photo-table__actions form {
+  margin: 0;
+}
+
+.photo-table__actions button,
+.photo-table__actions .button {
+  padding: var(--space-2xs) var(--space-sm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-raised);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--step--1);
+  cursor: pointer;
+}
+
+.photo-table__actions button[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* A list of per-field refusals above the editor form. */
+.field-error-list {
+  margin: 0 0 var(--space-lg);
+  padding-left: var(--space-md);
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-primary);
+  font-size: var(--step--1);
+}
+
+.photo-meta--admin {
+  margin-bottom: var(--space-lg);
 }
 
 /* Motion preferences ------------------------------------------------------ */

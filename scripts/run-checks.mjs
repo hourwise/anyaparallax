@@ -26,6 +26,8 @@ const checks = [
   "./checks/check-privacy.mjs",
   // Slice 08: print eligibility and the enquiry path.
   "./checks/check-enquiries.mjs",
+  // REPAIR-09B: bounded photograph management and the withdrawal mechanism.
+  "./checks/check-photo-management.mjs",
   "./checks/check-d1.mjs",
   "./checks/check-auth.mjs",
 ];

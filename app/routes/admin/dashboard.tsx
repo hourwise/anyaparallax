@@ -29,7 +29,8 @@ const areas = [
   {
     to: "/admin/photos",
     label: "Photos",
-    description: "Photo metadata, tags, publishing state and featured work — not built yet.",
+    description:
+      "Correct metadata, gallery and tags, and publish, withdraw or feature a photograph (REPAIR-09B).",
   },
   {
     to: "/admin/upload",

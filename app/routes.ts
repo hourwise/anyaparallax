@@ -41,6 +41,10 @@ export default [
   layout("layouts/admin.tsx", [
     route("admin", "routes/admin/dashboard.tsx"),
     route("admin/photos", "routes/admin/photos.tsx"),
+    // REPAIR-09B: the per-photograph editor. Metadata, tags, gallery and both
+    // state fields are corrected here after upload, and unpublishing from the
+    // library or from this screen is how a published photograph is withdrawn.
+    route("admin/photos/:photoId", "routes/admin/photos.$photoId.tsx"),
     route("admin/upload", "routes/admin/upload.tsx"),
     route("admin/galleries", "routes/admin/galleries.tsx"),
     // Slice 08: the two operator surfaces the print/enquiry feature needs.

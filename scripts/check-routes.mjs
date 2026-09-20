@@ -37,6 +37,11 @@ const requiredRouteEntries = [
   ],
   ["/admin", /route\(\s*["']admin["']\s*,\s*["']routes\/admin\/dashboard\.tsx["']\s*\)/],
   ["/admin/photos", /route\(\s*["']admin\/photos["']\s*,\s*["']routes\/admin\/photos\.tsx["']\s*\)/],
+  // REPAIR-09B: the per-photograph editor.
+  [
+    "/admin/photos/:photoId",
+    /route\(\s*["']admin\/photos\/:photoId["']\s*,\s*["']routes\/admin\/photos\.\$photoId\.tsx["']\s*\)/,
+  ],
   ["/admin/upload", /route\(\s*["']admin\/upload["']\s*,\s*["']routes\/admin\/upload\.tsx["']\s*\)/],
   ["/admin/galleries", /route\(\s*["']admin\/galleries["']\s*,\s*["']routes\/admin\/galleries\.tsx["']\s*\)/],
   [
@@ -174,6 +179,23 @@ const requiredMarkers = [
   ["app/routes/admin/prints.tsx", "requireAdminAccess"],
   ["app/routes/admin/prints.tsx", "setPhotoPrintAvailable"],
   ["app/layouts/admin.tsx", "/admin/enquiries"],
+  // REPAIR-09B: bounded photograph management and the withdrawal mechanism. The
+  // vocabulary and validation are pure so the operator screens can import them; the
+  // database layer is separate, which is what the build enforces.
+  ["app/data/photo-management.ts", "PHOTO_FIELD_LIMITS"],
+  ["app/data/photo-management.ts", "REFUSED_STORAGE_FIELDS"],
+  ["app/data/photo-management.ts", "validatePhotoMetadata"],
+  ["app/data/photo-management.server.ts", "updatePhoto"],
+  ["app/data/photo-management.server.ts", "setPublication"],
+  ["app/data/photo-management.server.ts", "setFeatured"],
+  ["app/data/photo-management.server.ts", "photoManagerFor"],
+  ["app/routes/admin/photos.tsx", "requireAdminAccess"],
+  ["app/routes/admin/photos.tsx", "setPublication"],
+  ["app/routes/admin/photos.tsx", "parsePhotoIntent"],
+  ["app/routes/admin/photos.$photoId.tsx", "requireAdminAccess"],
+  ["app/routes/admin/photos.$photoId.tsx", "storageFieldsIn"],
+  ["app/routes/admin/photos.$photoId.tsx", "updatePhoto"],
+  ["app/layouts/admin.tsx", '"/admin/photos"'],
 ];
 
 /**
