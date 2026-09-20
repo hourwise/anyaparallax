@@ -280,6 +280,27 @@ export class D1PortfolioRepository implements PortfolioRepository {
     return this.#attachGalleries(rows);
   }
 
+  /**
+   * Published photographs offered for print enquiries.
+   *
+   * The eligibility condition is ADDED to the publication conditions rather than
+   * replacing them, and the two are separate predicates in the same WHERE clause
+   * so neither can be satisfied by the other: a row must be published, its gallery
+   * must be published, AND `print_available` must be 1. That is what makes
+   * "marking a draft print-eligible" unable to publish it.
+   */
+  async listPrintEligible(limit?: number): Promise<readonly PublicPhotoWithGallery[]> {
+    const rows = await this.#all<PhotoRow>(
+      this.#db.prepare(
+        `SELECT p.* FROM photos p
+           JOIN galleries g ON g.id = p.gallery_id
+          WHERE ${PUBLISHED_PHOTO} AND ${PUBLISHED_GALLERY} AND p.print_available = 1
+          ORDER BY ${PHOTO_ORDER}${typeof limit === "number" ? " LIMIT ?1" : ""}`,
+      ).bind(...(typeof limit === "number" ? [limit] : [])),
+    );
+    return this.#attachGalleries(rows);
+  }
+
   async resolveTags(tagIds: readonly string[]): Promise<readonly PublicTag[]> {
     const unique = [...new Set(tagIds)];
     if (unique.length === 0) {

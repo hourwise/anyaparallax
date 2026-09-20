@@ -25,16 +25,26 @@ export async function loader({ request, context }: { request: Request; context: 
   return { user, galleryCount: galleries.length, photoCount: photos.length };
 }
 
-const plannedAreas = [
+const areas = [
   {
     to: "/admin/photos",
     label: "Photos",
-    description: "Photo metadata, tags, publishing state and featured work (Slice 06).",
+    description: "Photo metadata, tags, publishing state and featured work — not built yet.",
   },
   {
     to: "/admin/upload",
     label: "Upload photos",
-    description: "Upload originals, generate derivatives and watermarks (Slice 06).",
+    description: "Upload originals, generate derivatives and watermarks.",
+  },
+  {
+    to: "/admin/enquiries",
+    label: "Enquiries",
+    description: "Print enquiries and contact messages, and their handled state (Slice 08).",
+  },
+  {
+    to: "/admin/prints",
+    label: "Print eligibility",
+    description: "Choose which photographs may be enquired about as prints (Slice 08).",
   },
   {
     to: "/admin/galleries",
@@ -58,8 +68,8 @@ export default function AdminDashboardRoute() {
         <h1>Photography workspace</h1>
         <p className="lede">
           This dashboard is real: the identity above was verified server-side and looked up
-          in the authorised-user directory on this request. The editing tools arrive in the
-          upload slice.
+          in the authorised-user directory on this request. Uploading, watermarking and the
+          enquiry list work; the remaining editing tools are listed below.
         </p>
       </header>
 
@@ -74,9 +84,9 @@ export default function AdminDashboardRoute() {
         </article>
       </div>
 
-      <h2>Planned areas</h2>
+      <h2>Operator areas</h2>
       <ul className="plain-list">
-        {plannedAreas.map((area) => (
+        {areas.map((area) => (
           <li key={area.to}>
             <Link className="text-link" to={area.to}>
               {area.label}
@@ -87,8 +97,8 @@ export default function AdminDashboardRoute() {
       </ul>
 
       <p className="muted">
-        Unpublished photographs and galleries stay hidden from the public site; this area
-        does not change that until the publishing tools arrive.
+        Unpublished photographs and galleries stay hidden from the public site. Marking a
+        photograph as available for print enquiries does not publish it.
       </p>
     </section>
   );

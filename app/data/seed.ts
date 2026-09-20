@@ -463,6 +463,12 @@ const photoSeeds: readonly PhotoRecord[] = [
     publishedAt: "2026-09-02",
   }),
   // Deliberately unpublished: exercises the photo visibility rule.
+  //
+  // BOTH unpublished photographs are also marked PRINT-ELIGIBLE (Slice 08), which
+  // is the second half of that rule: print availability is an editorial decision
+  // that is independent of publication, so a draft can carry it and must STILL be
+  // invisible publicly, unlistable on /prints, and unreachable through the
+  // enquiry form. Without a fixture in this state the rule could not be verified.
   toPhoto({
     slug: "studio-trial",
     title: "Studio trial — not published",
@@ -474,6 +480,7 @@ const photoSeeds: readonly PhotoRecord[] = [
     captureDate: "2026-09-14",
     publishedAt: "2026-09-15",
     published: false,
+    printAvailable: true,
   }),
   toPhoto({
     slug: "unreleased-edit",
@@ -486,6 +493,7 @@ const photoSeeds: readonly PhotoRecord[] = [
     captureDate: "2026-09-15",
     publishedAt: "2026-09-16",
     published: false,
+    printAvailable: true,
   }),
 ];
 

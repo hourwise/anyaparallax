@@ -21,11 +21,29 @@ const requiredRouteEntries = [
   ["/photo/:slug", /route\(\s*["']photo\/:slug["']\s*,\s*["']routes\/photo\.tsx["']\s*\)/],
   ["/about", /route\(\s*["']about["']\s*,\s*["']routes\/about\.tsx["']\s*\)/],
   ["/prints", /route\(\s*["']prints["']\s*,\s*["']routes\/prints\.tsx["']\s*\)/],
+  // Slice 08: the print enquiry path and its separate acknowledgement routes.
+  [
+    "/prints/enquire",
+    /route\(\s*["']prints\/enquire["']\s*,\s*["']routes\/prints\.enquire\.tsx["']\s*\)/,
+  ],
+  [
+    "/prints/enquire/received",
+    /route\(\s*["']prints\/enquire\/received["']\s*,\s*["']routes\/prints\.enquire\.received\.tsx["']\s*\)/,
+  ],
   ["/contact", /route\(\s*["']contact["']\s*,\s*["']routes\/contact\.tsx["']\s*\)/],
+  [
+    "/contact/received",
+    /route\(\s*["']contact\/received["']\s*,\s*["']routes\/contact\.received\.tsx["']\s*\)/,
+  ],
   ["/admin", /route\(\s*["']admin["']\s*,\s*["']routes\/admin\/dashboard\.tsx["']\s*\)/],
   ["/admin/photos", /route\(\s*["']admin\/photos["']\s*,\s*["']routes\/admin\/photos\.tsx["']\s*\)/],
   ["/admin/upload", /route\(\s*["']admin\/upload["']\s*,\s*["']routes\/admin\/upload\.tsx["']\s*\)/],
   ["/admin/galleries", /route\(\s*["']admin\/galleries["']\s*,\s*["']routes\/admin\/galleries\.tsx["']\s*\)/],
+  [
+    "/admin/enquiries",
+    /route\(\s*["']admin\/enquiries["']\s*,\s*["']routes\/admin\/enquiries\.tsx["']\s*\)/,
+  ],
+  ["/admin/prints", /route\(\s*["']admin\/prints["']\s*,\s*["']routes\/admin\/prints\.tsx["']\s*\)/],
   ["/admin/settings", /route\(\s*["']admin\/settings["']\s*,\s*["']routes\/admin\/settings\.tsx["']\s*\)/],
   ["/admin/*", /route\(\s*["']admin\/\*["']\s*,\s*["']routes\/admin\/not-found\.tsx["']\s*\)/],
   ["/manager", /route\(\s*["']manager["']\s*,\s*["']routes\/manager\/dashboard\.tsx["']\s*\)/],
@@ -130,6 +148,32 @@ const requiredMarkers = [
   ["app/routes/engagement.$slug.tsx", "recordShare"],
   ["app/routes/photo.tsx", "EngagementControls"],
   ["wrangler.jsonc", "PUBLIC_SITE_ORIGIN"],
+  // Slice 08: print eligibility, the enquiry path, and the honest no-commerce rule.
+  ["migrations/0003_enquiry_preferences.sql", "idx_enquiries_submission_token"],
+  ["migrations/0003_enquiry_preferences.sql", "print_format"],
+  ["app/data/repository.ts", "listPrintEligible"],
+  ["app/data/repository.d1.server.ts", "print_available = 1"],
+  ["app/data/queries.ts", "listPrintEligiblePhotos"],
+  ["app/enquiries/enquiry.ts", "PRINT_ENQUIRY_CATEGORY"],
+  ["app/enquiries/enquiry.ts", "FORBIDDEN_COMMERCE_CLAIMS"],
+  ["app/enquiries/validation.ts", "validateEnquiry"],
+  ["app/enquiries/store.server.ts", "eligiblePhotoFor"],
+  ["app/enquiries/store.server.ts", "INSERT OR IGNORE"],
+  ["app/enquiries/enquiries.server.ts", "submitEnquiry"],
+  ["app/enquiries/print-eligibility.server.ts", "setPhotoPrintAvailable"],
+  ["app/components/EnquiryForm.tsx", "submissionToken"],
+  ["app/components/EnquiryAcknowledgement.tsx", "acknowledgementBody"],
+  ["app/routes/prints.enquire.received.tsx", "noindex, nofollow"],
+  ["app/routes/contact.received.tsx", "noindex, nofollow"],
+  ["app/routes/prints.tsx", "listPrintEligiblePhotos"],
+  ["app/routes/prints.enquire.tsx", "submitEnquiry"],
+  ["app/routes/contact.tsx", "submitEnquiry"],
+  ["app/routes/photo.tsx", "printEnquiryPathForPhoto"],
+  ["app/routes/admin/enquiries.tsx", "requireAdminAccess"],
+  ["app/routes/admin/enquiries.tsx", "readEnquiries"],
+  ["app/routes/admin/prints.tsx", "requireAdminAccess"],
+  ["app/routes/admin/prints.tsx", "setPhotoPrintAvailable"],
+  ["app/layouts/admin.tsx", "/admin/enquiries"],
 ];
 
 /**
@@ -146,6 +190,27 @@ const privateFreeModules = [
   // Slice 07A: the public projection is the boundary that converts stored
   // references, so it must contain no private vocabulary of its own.
   ["app/data/project.ts", /r2:\/\/masters|originalStorageKey|original_storage_key/],
+  // Slice 08: every new public surface that renders a photograph is held to the
+  // same rule, so the print page cannot acquire a private reference either.
+  ["app/routes/prints.tsx", /r2:\/\/masters|originalStorageKey|original_storage_key/],
+  ["app/components/EnquiryForm.tsx", /r2:\/\/masters|originalStorageKey|original_storage_key/],
+];
+
+/**
+ * Slice 08: features that exist only for a signed-in operator.
+ *
+ * The enquiry list contains customers' names and email addresses, and the print
+ * eligibility list is an editorial tool. Neither may be reachable from a public
+ * route module, so no route outside `admin/` may name them at all. This is the
+ * structural half of "customer details never appear in public loader data": a
+ * public loader that cannot call the reader cannot return what it reads.
+ */
+const operatorOnlySymbols = [
+  "readEnquiries",
+  "updateEnquiryStatus",
+  "readEnquiryCounts",
+  "listPhotoPrintOptions",
+  "setPhotoPrintAvailable",
 ];
 
 /**
@@ -168,6 +233,9 @@ const forbiddenContent = [
   ["app/routes/galleries.tsx", /"(Nightlife|Live Music|Cityscapes|Black & White)"/],
   ["app/routes/gallery.tsx", /\/images\/dev\//],
   ["app/routes/photo.tsx", /\/images\/dev\//],
+  // Slice 08: the print page renders photographs through the projection too, so it
+  // must not carry a development asset path of its own.
+  ["app/routes/prints.tsx", /\/images\/dev\//],
 ];
 
 /**
@@ -283,6 +351,26 @@ for (const [file, pattern] of forbiddenContent) {
     failures.push(
       `${file} embeds content that must come from the data layer (${pattern.source})`,
     );
+  }
+}
+
+// --- Slice 08: the operator-only enquiry features stay operator-only --------
+
+for (const directory of ["app/routes"]) {
+  for (const entry of readdirSync(resolve(root, directory), { recursive: true })) {
+    const name = String(entry).replace(/\\/g, "/");
+    if (!/\.tsx?$/.test(name) || name.startsWith("admin/")) {
+      continue;
+    }
+    const source = stripComments(readFileSync(resolve(root, directory, name), "utf8"));
+    for (const symbol of operatorOnlySymbols) {
+      if (new RegExp(`\\b${symbol}\\b`).test(source)) {
+        failures.push(
+          `${directory}/${name} names the operator-only enquiry feature ${symbol}; ` +
+            "customer enquiry data must not be reachable from a public route",
+        );
+      }
+    }
   }
 }
 

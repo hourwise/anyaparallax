@@ -52,6 +52,14 @@ const routes = [
   "/photo/closing-time",
   "/photo/stage-haze",
   "/photo/blue-hour",
+  // Slice 08: the new public surfaces carry the same photograph projection, so a
+  // private-master leak there would be the same defect in a fourth place.
+  "/prints",
+  "/contact",
+  "/about",
+  "/prints/enquire",
+  "/prints/enquire/received",
+  "/contact/received",
 ];
 
 /** Routes that must not exist publicly, including deliberately unpublished rows. */
@@ -115,6 +123,24 @@ const protectedCases = [
   { path: "/admin/photos", expect: 200, label: "photographer", identity: PHOTOGRAPHER },
   { path: "/admin/upload", expect: 200, label: "photographer", identity: PHOTOGRAPHER },
   { path: "/admin/galleries", expect: 200, label: "photographer", identity: PHOTOGRAPHER },
+  // Slice 08: the enquiry list holds customers' details, so its boundary is
+  // checked here as well as in the Slice 08 served check.
+  { path: "/admin/enquiries", expect: 401, label: "anonymous" },
+  { path: "/admin/prints", expect: 401, label: "anonymous" },
+  {
+    path: "/admin/enquiries",
+    expect: 403,
+    label: "unknown account",
+    identity: UNKNOWN,
+  },
+  { path: "/admin/enquiries", expect: 200, label: "photographer", identity: PHOTOGRAPHER },
+  { path: "/admin/prints", expect: 200, label: "photographer", identity: PHOTOGRAPHER },
+  {
+    path: "/admin/enquiries",
+    expect: 200,
+    label: "manager using the shared /admin area",
+    identity: MANAGER,
+  },
   { path: "/admin/settings", expect: 200, label: "photographer", identity: PHOTOGRAPHER },
   {
     path: "/admin/unknown-path",

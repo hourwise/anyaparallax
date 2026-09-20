@@ -33,7 +33,8 @@ export function SiteFooter() {
             links. Nothing is linked here yet.
           </p>
           <p className="footer__note">
-            <Link to="/contact">Contact</Link> for enquiries — the form arrives later.
+            <Link to="/contact">Contact</Link> for enquiries, or <Link to="/prints">prints</Link> to
+            register interest. Both are answered personally.
           </p>
         </div>
 

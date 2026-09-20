@@ -22,7 +22,14 @@ export default [
     route("photo/:slug", "routes/photo.tsx"),
     route("about", "routes/about.tsx"),
     route("prints", "routes/prints.tsx"),
+    // Slice 08 print enquiry path. The form and its acknowledgement are separate
+    // routes so a successful submission can REDIRECT (303) to a page that holds
+    // none of the submission: a refresh cannot resend the enquiry, and the result
+    // page carries no customer detail to leak or index.
+    route("prints/enquire", "routes/prints.enquire.tsx"),
+    route("prints/enquire/received", "routes/prints.enquire.received.tsx"),
     route("contact", "routes/contact.tsx"),
+    route("contact/received", "routes/contact.received.tsx"),
     route("*", "routes/not-found.tsx"),
   ]),
 
@@ -36,6 +43,9 @@ export default [
     route("admin/photos", "routes/admin/photos.tsx"),
     route("admin/upload", "routes/admin/upload.tsx"),
     route("admin/galleries", "routes/admin/galleries.tsx"),
+    // Slice 08: the two operator surfaces the print/enquiry feature needs.
+    route("admin/enquiries", "routes/admin/enquiries.tsx"),
+    route("admin/prints", "routes/admin/prints.tsx"),
     route("admin/settings", "routes/admin/settings.tsx"),
     route("admin/*", "routes/admin/not-found.tsx"),
   ]),

@@ -104,6 +104,21 @@ export interface PortfolioRepository {
   /** Featured published photographs with gallery context, newest first. */
   listFeatured(limit?: number): Promise<readonly PublicPhotoWithGallery[]>;
 
+  /**
+   * Published photographs explicitly offered for print enquiries, newest first.
+   *
+   * PRINT ELIGIBILITY IS AN EDITORIAL DECISION, SO IT IS QUERIED, NOT INFERRED.
+   * A photograph appears here only when `printAvailable` is true — never because
+   * an original exists, a master key is present, or the photograph is featured.
+   *
+   * Publication remains authoritative and is applied FIRST: this list adds the
+   * eligibility condition to the same published-photograph and published-gallery
+   * rules every other public read uses, so marking a draft print-eligible cannot
+   * make it discoverable. Both implementations must agree, which is why the rule
+   * lives in the shared projection rather than in a route.
+   */
+  listPrintEligible(limit?: number): Promise<readonly PublicPhotoWithGallery[]>;
+
   /** Recent published photographs with gallery context, newest first. */
   listRecent(limit: number): Promise<readonly PublicPhotoWithGallery[]>;
 

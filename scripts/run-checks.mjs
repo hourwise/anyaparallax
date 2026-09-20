@@ -24,6 +24,8 @@ const checks = [
   "./checks/check-metadata.mjs",
   "./checks/check-engagement.mjs",
   "./checks/check-privacy.mjs",
+  // Slice 08: print eligibility and the enquiry path.
+  "./checks/check-enquiries.mjs",
   "./checks/check-d1.mjs",
   "./checks/check-auth.mjs",
 ];

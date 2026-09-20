@@ -377,12 +377,18 @@ check(
 );
 note(`users indexes: ${userIndexes.join(", ")}`);
 
-// Migrations 0001 and 0002 applied from an empty state, in order.
+// Migrations 0001, 0002 and 0003 applied from an empty state, in order.
+//
+// The list is asserted in full rather than by count: a migration applied out of
+// order, or a rewritten earlier migration, would change the schema the fixture was
+// loaded against. Slice 08 adds 0003 (enquiry preferences and the duplicate
+// submission token), which widens `enquiries` additively.
 const appliedMigrations = database
   .query("SELECT name FROM d1_migrations ORDER BY id")
   .map((row) => row.name);
 check(
-  appliedMigrations.join(",") === "0001_initial_schema.sql,0002_user_email_identity_uniqueness.sql",
+  appliedMigrations.join(",") ===
+    "0001_initial_schema.sql,0002_user_email_identity_uniqueness.sql,0003_enquiry_preferences.sql",
   `migrations applied out of order or incomplete: ${appliedMigrations.join(", ")}`,
 );
 

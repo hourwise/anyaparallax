@@ -158,6 +158,22 @@ export async function listRecentWithGallery(
   return (await repositoryFor(env)).listRecent(limit);
 }
 
+/**
+ * Published photographs explicitly offered for print enquiries, newest first.
+ *
+ * Slice 08's `/prints` surface reads through this function and no other, so the
+ * eligibility condition and the publication conditions are applied once, by the
+ * same projection every other public read uses. Nothing here can expose a draft:
+ * the repository adds `printAvailable` to the existing published rules rather
+ * than substituting for them.
+ */
+export async function listPrintEligiblePhotos(
+  limit?: number,
+  env?: AppEnvironment,
+): Promise<readonly PublicPhotoWithGallery[]> {
+  return (await repositoryFor(env)).listPrintEligible(limit);
+}
+
 /** Resolve tag ids to their public registry entries, preserving input order. */
 export async function resolveTags(
   tagIds: readonly string[],

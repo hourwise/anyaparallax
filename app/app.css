@@ -1504,6 +1504,126 @@ main:focus-visible {
   color: var(--text-primary);
 }
 
+/* Enquiry forms (Slice 08) ------------------------------------------------- */
+
+/*
+ * The public enquiry form. Deliberately a narrower measure than the operator
+ * upload form: this one is filled in by a visitor who has never seen the site
+ * before, so it is a single column of labelled controls with generous spacing
+ * rather than a dense grid of fieldsets.
+ */
+.enquiry-form {
+  max-width: var(--content-narrow);
+  margin: 0 0 var(--space-xl);
+  display: grid;
+  gap: var(--space-md);
+}
+
+.enquiry-form label {
+  display: grid;
+  gap: var(--space-2xs);
+  color: var(--text-secondary);
+  font-size: var(--step--1);
+}
+
+.enquiry-form input[type="text"],
+.enquiry-form input[type="email"],
+.enquiry-form select,
+.enquiry-form textarea {
+  width: 100%;
+  padding: var(--space-2xs) var(--space-xs);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.enquiry-form button[type="submit"] {
+  justify-self: start;
+  padding: var(--space-xs) var(--space-lg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-raised);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.enquiry-form button[type="submit"][disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.enquiry-form__subject {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+/*
+ * A per-field message. Distinct from `.notice`, which is a block-level statement
+ * about the whole form: an error sits directly under the control it belongs to so
+ * the association is positional as well as programmatic.
+ */
+.field-error {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--step--1);
+  border-left: 2px solid var(--border-strong);
+  padding-left: var(--space-xs);
+}
+
+/* Enquiry and print-eligibility operator tables (Slice 08) ----------------- */
+
+/*
+ * The message column is the reason the operator opened the page, so it gets the
+ * remaining width and wraps; every other column stays as narrow as its heading.
+ */
+.enquiry-table__message {
+  min-width: 18rem;
+  white-space: pre-wrap;
+}
+
+.enquiry-table__state,
+.print-table__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-xs);
+  align-items: center;
+  margin: 0;
+}
+
+.enquiry-table__state select,
+.print-table__form select {
+  padding: var(--space-2xs) var(--space-xs);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.enquiry-table__state button[type="submit"],
+.print-table__form button[type="submit"] {
+  padding: var(--space-2xs) var(--space-sm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-raised);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.print-table__form label.checkbox {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+  gap: var(--space-2xs);
+  color: var(--text-secondary);
+  font-size: var(--step--1);
+}
+
 /* Motion preferences ------------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {

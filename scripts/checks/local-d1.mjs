@@ -36,3 +36,31 @@ export async function seedLocalD1(seed) {
     fixturePath,
   ]);
 }
+
+/**
+ * Run one read query against the local D1 database and return its rows.
+ *
+ * Used by the served checks to assert on what the database actually HOLDS, rather
+ * than inferring it from the page that wrote it. `--json` keeps the result
+ * machine-readable; the banner Wrangler prints first is skipped by starting at the
+ * first line that opens the JSON array.
+ */
+export async function queryLocalD1(sql) {
+  const { stdout } = await runWrangler([
+    "d1",
+    "execute",
+    "anyaparallax",
+    "--local",
+    "--yes",
+    "--json",
+    "--command",
+    sql,
+  ]);
+  const lines = stdout.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trim() === "[");
+  if (start === -1) {
+    throw new Error(`Wrangler did not return JSON for: ${sql}\n${stdout.slice(-2000)}`);
+  }
+  const parsed = JSON.parse(lines.slice(start).join("\n"));
+  return parsed[0]?.results ?? [];
+}

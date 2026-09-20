@@ -129,6 +129,20 @@ export class SeedPortfolioRepository implements PortfolioRepository {
     return this.#withGalleries(this.#publishedPhotos().slice(0, limit));
   }
 
+  /**
+   * Published photographs offered for print enquiries.
+   *
+   * The local equivalent of the D1 query, and it applies the same two rules in the
+   * same order: the photograph must already be publicly visible (#publishedPhotos
+   * excludes drafts and photographs in unpublished galleries), and only THEN must
+   * it carry the editorial print flag. A seed draft marked print-eligible is
+   * therefore still invisible here, which is what the checks assert.
+   */
+  async listPrintEligible(limit?: number): Promise<readonly PublicPhotoWithGallery[]> {
+    const eligible = this.#publishedPhotos().filter((photo) => photo.printAvailable);
+    return this.#withGalleries(typeof limit === "number" ? eligible.slice(0, limit) : eligible);
+  }
+
   async resolveTags(tagIds: readonly string[]): Promise<readonly PublicTag[]> {
     const resolved: PublicTag[] = [];
     for (const tagId of tagIds) {

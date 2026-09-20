@@ -13,12 +13,14 @@ export const meta: MetaFunction = () => [
   { name: "robots", content: "noindex, nofollow" },
 ];
 
-/** Anya's workspace. Photo work is added in later slices; the boundary is here. */
+/** Anya's workspace: photography above, and the enquiries that need answering. */
 const navItems: readonly AreaNavItem[] = [
   { to: "/admin", label: "Dashboard", end: true },
   { to: "/admin/photos", label: "Photos" },
   { to: "/admin/upload", label: "Upload photos" },
   { to: "/admin/galleries", label: "Galleries" },
+  { to: "/admin/enquiries", label: "Enquiries" },
+  { to: "/admin/prints", label: "Print eligibility" },
   { to: "/admin/settings", label: "Settings" },
 ];
 

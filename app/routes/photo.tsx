@@ -9,7 +9,7 @@ import { site } from "../data/site";
 import { getPhotoDetail, getPublishedGallery, resolveTags } from "../data/queries";
 import { readEngagement } from "../engagement/engagement.server";
 import { metadataTags, photoMetadataFor } from "../engagement/metadata";
-import { galleriesPath, galleryPath, photoPath } from "../lib/paths";
+import { galleriesPath, galleryPath, photoPath, printEnquiryPathForPhoto } from "../lib/paths";
 
 export async function loader({
   request,
@@ -149,7 +149,14 @@ export default function PhotoRoute() {
       </figure>
 
       <div className="photo-detail__meta">
-        <dl className="photo-meta">
+        {/*
+          The facts and the print action share one column of the two-column meta
+          grid, so adding the action does not push the engagement controls onto a
+          second row. The wrapper is structural only and carries no styling of its
+          own.
+        */}
+        <div>
+          <dl className="photo-meta">
           <div className="photo-meta__row">
             <dt>Gallery</dt>
             <dd>
@@ -181,6 +188,28 @@ export default function PhotoRoute() {
             </div>
           ) : null}
         </dl>
+
+          {/*
+            PRINT ENQUIRY STATE (Slice 08), shown only when the photograph is
+            explicitly offered for print — `printAvailable` is an editorial decision
+            stored on the row, not an inference from the presence of an original.
+            A photograph that is not offered shows NO action here, because a
+            disabled or ambiguous button would imply a capability the site does not
+            have, and inviting an enquiry about something that is not offered would
+            waste the visitor's time.
+          */}
+          {photo.printAvailable ? (
+            <div className="photo-actions">
+              <Link className="button button--accent" to={printEnquiryPathForPhoto(photo.slug)}>
+                Enquire about a print
+              </Link>
+              <span className="photo-actions__note">
+                Print enquiries are answered personally. There is no basket, checkout or payment on
+                this site.
+              </span>
+            </div>
+          ) : null}
+        </div>
 
         <EngagementControls
           slug={photo.slug}

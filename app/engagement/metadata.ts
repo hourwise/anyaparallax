@@ -1,16 +1,22 @@
 /**
- * Canonical and social metadata (Slice 07) — pure and server-usable.
+ * Canonical and social metadata (Slice 07; static pages added in Slice 08) — pure
+ * and server-usable.
  *
- * One function decides what a photograph page claims about itself, so the same
- * values drive the document tags, the OpenGraph block and anything else that
- * needs them. Two rules are baked in here rather than left to a component:
+ * One module decides what a page claims about itself, so the same values drive the
+ * document tags, the OpenGraph block and anything else that needs them. A
+ * photograph page and an ordinary content page therefore cannot drift into two
+ * metadata systems: they differ only in the OpenGraph type and in whether a public
+ * preview image exists.
  *
- *   1. THE PREVIEW IMAGE COMES FROM THE PUBLIC MEDIA BOUNDARY. The caller passes
- *      the stored derivative key, and it is converted with `publicRefUrl`, which
- *      returns a path ONLY for an `r2://images/` key. A private master key yields
- *      null, and when that happens the preview image is OMITTED rather than
- *      falling back to the private object. A social card must never be able to
- *      name a print-quality original.
+ * Two rules are baked in here rather than left to a component:
+ *
+ *   1. THE PREVIEW IMAGE CAN ONLY BE A PUBLIC PATH. The caller passes
+ *      `PublicPhoto.webImagePath` — already converted at the public projection by
+ *      `publicImagePathFrom()`, which refuses a private master, an unknown storage
+ *      domain and an `originals/` path. This module never sees a storage key at
+ *      all, so it has no way to reach one; a null means no public preview exists,
+ *      and the image tags are then OMITTED rather than substituted. A social card
+ *      must never be able to name a print-quality original.
  *
  *   2. THE CANONICAL URL COMES FROM THE CONFIGURED ORIGIN, never from the
  *      request. A `Host` header must not be able to redefine what the site says
@@ -32,6 +38,39 @@ export type PhotoMetadata = {
   readonly image: string | null;
   /** OpenGraph object type for a photograph. */
   readonly type: "article";
+};
+
+/**
+ * The document and social metadata for an ordinary content page (Slice 08).
+ *
+ * Deliberately the SAME shape and the SAME tag builder as a photograph page, so
+ * `/prints`, `/contact` and `/about` cannot drift into a second metadata system:
+ * only the OpenGraph type differs, and `image` is null because a static page has
+ * no single public preview derivative of its own. A page that has one may pass it
+ * and gets the large-image card.
+ */
+export type PageMetadata = {
+  readonly title: string;
+  readonly description: string;
+  readonly canonical: string;
+  readonly image: string | null;
+  readonly type: "article" | "website";
+};
+
+/** What a static page's metadata needs to know. */
+export type PageMetadataInput = {
+  /** Site-relative path, e.g. `/prints`. */
+  readonly path: string;
+  readonly title: string;
+  readonly description: string;
+  /** Site name, appended to the document title. */
+  readonly siteName: string;
+  /**
+   * An absolute PUBLIC preview image URL already resolved against the canonical
+   * origin, or null. Never a storage key: the conversion happens at the public
+   * projection, not here, so this module still has no way to reach a master.
+   */
+  readonly image?: string | null;
 };
 
 /** What the metadata needs to know about a photograph. */
@@ -75,6 +114,24 @@ export function photoMetadataFor(origin: string, input: PhotoMetadataInput): Pho
 }
 
 /**
+ * Build a static page's metadata.
+ *
+ * The canonical URL is built from the CONFIGURED origin exactly as a photograph's
+ * is, so a request's `Host` header cannot redefine what `/prints` says its
+ * address is. A page with no public preview image passes none, and the image tags
+ * are then omitted rather than pointed at something unrelated.
+ */
+export function pageMetadataFor(origin: string, input: PageMetadataInput): PageMetadata {
+  return {
+    title: `${input.title} — ${input.siteName}`,
+    description: input.description,
+    canonical: canonicalUrl(origin, input.path),
+    image: input.image ?? null,
+    type: "website",
+  };
+}
+
+/**
  * The metadata as document tags.
  *
  * Typed as React Router's own descriptor list so a route can return it directly
@@ -83,9 +140,12 @@ export function photoMetadataFor(origin: string, input: PhotoMetadataInput): Pho
  *
  * `og:image` and `twitter:image` are emitted only when a public preview image
  * exists. Omitting a tag is the correct behaviour here: a card without an image
- * is honest, whereas a card pointing at a private object would be a leak.
+ * is honest, whereas a card pointing at a private object would be a leak. The
+ * Twitter card type follows the same rule — the large-image card is claimed only
+ * when there is an image to fill it, so a page is never described as something it
+ * is not.
  */
-export function metadataTags(metadata: PhotoMetadata): MetaDescriptor[] {
+export function metadataTags(metadata: PageMetadata): MetaDescriptor[] {
   const tags: MetaDescriptor[] = [
     { title: metadata.title },
     { name: "description", content: metadata.description },
@@ -94,7 +154,10 @@ export function metadataTags(metadata: PhotoMetadata): MetaDescriptor[] {
     { property: "og:title", content: metadata.title },
     { property: "og:description", content: metadata.description },
     { property: "og:url", content: metadata.canonical },
-    { name: "twitter:card", content: "summary_large_image" },
+    {
+      name: "twitter:card",
+      content: metadata.image === null ? "summary" : "summary_large_image",
+    },
     { name: "twitter:title", content: metadata.title },
     { name: "twitter:description", content: metadata.description },
   ];
