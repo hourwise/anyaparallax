@@ -7,7 +7,7 @@
  * repair makes "the object exists" insufficient authority, so this suite is
  * built around publication state rather than around keys:
  *
- *   published photo + published gallery + exact derivative   -> 200
+ *   published photo + published gallery + exact derivative   -> 200, indexable
  *   unpublished photo                                        -> 404
  *   photo in an unpublished gallery                          -> 404
  *   a key belonging to no photograph                         -> 404
@@ -15,9 +15,12 @@
  *   traversal and malformed paths                            -> 404
  *
  * Every refusal must be the SAME bare 404 with no body, so the response cannot
- * be used to discover whether an unpublished object exists. A real D1 database
- * holds the fixture rows, so the SQL that decides publication is the production
- * SQL.
+ * be used to discover whether an unpublished object exists, and every refusal
+ * stays `noindex`. The served derivative, by contrast, carries no crawler
+ * prohibition at all (REPAIR-09D2): it is a public photograph in a published
+ * gallery, and the specification says public photographs may be indexed. A real
+ * D1 database holds the fixture rows, so the SQL that decides publication is the
+ * production SQL.
  */
 import { register } from "node:module";
 
@@ -100,6 +103,15 @@ insertPhoto({
   thumbKey: HIDDEN_WEB,
 });
 
+/** True when a response tells crawlers not to index it, by any spelling. */
+function indexingProhibited(response) {
+  const tokens = (response.headers.get("x-robots-tag") ?? "")
+    .toLowerCase()
+    .split(",")
+    .map((token) => token.trim());
+  return tokens.some((token) => token === "noindex" || token === "noimageindex" || token === "none");
+}
+
 /** The refusal shape every denial must share. */
 async function refusal(path, label) {
   const response = await serveMedia(path, env);
@@ -109,6 +121,10 @@ async function refusal(path, label) {
   check(
     response.headers.get("cache-control") === "no-store",
     `${label} must not be cacheable`,
+  );
+  check(
+    indexingProhibited(response),
+    `${label} must not be indexable, saw x-robots-tag: ${response.headers.get("x-robots-tag")}`,
   );
   return response;
 }
@@ -137,7 +153,18 @@ check(
   "a served derivative still claims to be immutable",
 );
 check(served.headers.get("x-content-type-options") === "nosniff", "sniffing must be disabled");
-check(served.headers.get("x-robots-tag") === "noindex", "derivatives must not be indexed");
+// The served derivative is public content the site wants found, so it must carry
+// no crawler prohibition — and no crawl directive at all, which is the smallest
+// way to say that (REPAIR-09D2). Crawlability came from the robots policy;
+// indexability comes from this response's silence.
+check(
+  !indexingProhibited(served),
+  `a published derivative must be indexable, saw x-robots-tag: ${served.headers.get("x-robots-tag")}`,
+);
+check(
+  served.headers.get("x-robots-tag") === null,
+  `a published derivative carries a crawler directive: ${served.headers.get("x-robots-tag")}`,
+);
 const servedBytes = new Uint8Array(await served.arrayBuffer());
 check(servedBytes.byteLength === derivative.byteLength, "the wrong object was served");
 

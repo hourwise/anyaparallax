@@ -106,9 +106,15 @@ export async function serveMedia(splat: string, environment: unknown): Promise<R
         "content-type": object.contentType,
         "content-length": String(object.bytes.byteLength),
         "cache-control": CACHE_CONTROL,
-        // Derivatives are images, never documents: no sniffing, no indexing.
+        // Derivatives are images, never documents: no sniffing.
         "x-content-type-options": "nosniff",
-        "x-robots-tag": "noindex",
+        // No `x-robots-tag` (REPAIR-09D2). This is a photograph in a published
+        // gallery, and the specification says public photographs may be indexed, so
+        // the response that has something to show carries no crawler prohibition.
+        // The bare 404 above keeps its `noindex`, which is where a prohibition
+        // belongs. Nothing is granted to a crawler by leaving this out: every
+        // client, bot or not, receives the same decision, and the publication gate
+        // is the only authority that produced it.
       },
     });
   } catch {

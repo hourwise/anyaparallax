@@ -21,6 +21,13 @@
  *   unpublished one must still be refused by the publication gate rather than by a
  *   robots rule.
  *
+ *   INDEXABILITY — crawlable is not the same as indexable. The identical derivative
+ *   URL is followed through the real publication path (draft, published, withdrawn)
+ *   for a browser, Googlebot-Image, Bingbot and an arbitrary client alike: the 200
+ *   carries no crawler prohibition at all — no `noindex`, no `noimageindex`, no
+ *   `none` — while every refusal stays `noindex` and bare (REPAIR-09D2, because the
+ *   specification says public photographs may be indexed).
+ *
  *   PUBLICATION AUTHORITY — the sitemap follows the 09B management path: withdrawing
  *   a photograph removes it, republishing restores it, and moving a still-published
  *   photograph into a draft gallery removes it too.
@@ -637,6 +644,29 @@ try {
     return best === null ? true : best.allow;
   }
 
+  /** True when a response tells crawlers not to index it, by any spelling. */
+  function indexingProhibited(response) {
+    const tokens = (response.headers.get("x-robots-tag") ?? "")
+      .toLowerCase()
+      .split(",")
+      .map((token) => token.trim());
+    return tokens.some(
+      (token) => token === "noindex" || token === "noimageindex" || token === "none",
+    );
+  }
+
+  // Four client identities, none special-cased anywhere in the application: the
+  // publication gate decides, and it never reads a user agent (REPAIR-09D2).
+  const CLIENTS = [
+    [
+      "a browser",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    ],
+    ["Googlebot-Image", "Googlebot-Image/1.0"],
+    ["Bingbot", "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)"],
+    ["an arbitrary client", "some-unrecognised-client/9.9"],
+  ];
+
   for (const path of ["/media/web/probe/web.webp", "/media/thumbs/probe/thumb.webp"]) {
     check(policyAllows(plainRobots, path), `the served policy would not let a crawler fetch ${path}`);
   }
@@ -687,49 +717,96 @@ try {
     `the served policy would not let a crawler fetch /photo/${crawlRow.slug}`,
   );
 
-  // An unpublished derivative: the policy permits the URL and the gate still refuses
-  // it. This is the assertion that makes dropping the disallow safe — the refusal is
-  // the publication check, not a line in a text file.
+  // (1-5) The DRAFT state. The policy permits the URL and the gate still refuses it,
+  // and the refusal stays non-indexable. This is the assertion that makes dropping the
+  // `/media/` disallow safe — the refusal is the publication check, not a line in a
+  // text file, and it is the same refusal for every client.
   check(
     policyAllows(plainRobots, crawlMedia),
     `the served policy would not let a crawler fetch ${crawlMedia}`,
   );
-  const draftDerivative = await fetch(`${origin}${crawlMedia}`, { redirect: "manual" });
-  check(
-    draftDerivative.status === 404,
-    `an unpublished derivative returned ${draftDerivative.status} with no robots rule in the way`,
-  );
-  await draftDerivative.arrayBuffer();
-
-  await (
-    await postForm(
-      "/admin/photos",
-      { photoId: crawlRow.id, intent: "publish" },
-      { [IDENTITY_HEADER]: PHOTOGRAPHER },
-    )
-  ).text();
-
-  // Published: the same URL now serves, to an ordinary client and to an image crawler.
-  const publishedDerivative = await fetch(`${origin}${crawlMedia}`, { redirect: "manual" });
-  const derivativeBytes = new Uint8Array(await publishedDerivative.arrayBuffer());
-  check(
-    publishedDerivative.status === 200,
-    `a published derivative returned ${publishedDerivative.status}`,
-  );
-  check(
-    (publishedDerivative.headers.get("content-type") ?? "").startsWith("image/"),
-    `a published derivative has content type ${publishedDerivative.headers.get("content-type")}`,
-  );
-  check(derivativeBytes.byteLength > 0, `a published derivative served ${derivativeBytes.byteLength} bytes`);
-  const crawlerDerivative = await fetch(`${origin}${crawlMedia}`, {
+  for (const [label, agent] of CLIENTS) {
+    const draft = await fetch(`${origin}${crawlMedia}`, {
+      redirect: "manual",
+      headers: { "user-agent": agent },
+    });
+    check(
+      draft.status === 404,
+      `an unpublished derivative returned ${draft.status} to ${label} with no robots rule in the way`,
+    );
+    check(
+      indexingProhibited(draft),
+      `the refusal served to ${label} carries x-robots-tag: ${draft.headers.get("x-robots-tag")}`,
+    );
+    check(
+      draft.headers.get("cache-control") === "no-store",
+      `the refusal served to ${label} carries cache-control: ${draft.headers.get("cache-control")}`,
+    );
+    await draft.arrayBuffer();
+  }
+  const draftMaster = await fetch(`${origin}/media/originals/${crawlRow.id}/master.jpg`, {
     redirect: "manual",
-    headers: { "user-agent": "Googlebot-Image/1.0" },
   });
   check(
-    crawlerDerivative.status === 200,
-    `a published derivative returned ${crawlerDerivative.status} to an image crawler`,
+    draftMaster.status === 404,
+    `a draft photograph's private master returned ${draftMaster.status} through the public boundary`,
   );
-  await crawlerDerivative.arrayBuffer();
+  await draftMaster.arrayBuffer();
+
+  // (6) Publish through the real REPAIR-09B admin action, not a database write.
+  const crawlPublish = await postForm(
+    "/admin/photos",
+    { photoId: crawlRow.id, intent: "publish" },
+    { [IDENTITY_HEADER]: PHOTOGRAPHER },
+  );
+  const crawlPublishHtml = await crawlPublish.text();
+  const publishConfirmed = /is now published/i.test(crawlPublishHtml);
+  check(crawlPublish.status === 200, `the publish action returned ${crawlPublish.status}`);
+  check(publishConfirmed, `the publish action reported the confirmed new state: ${publishConfirmed}`);
+  const publishedFlag = (
+    await queryLocalD1(`SELECT published FROM photos WHERE id = '${crawlRow.id}'`)
+  )[0]?.published;
+  check(publishedFlag === 1, `the stored published flag after publishing is ${publishedFlag}`);
+
+  // (7-13) The PUBLISHED state: the identical URL now serves a real image to every
+  // client, and it carries no crawler prohibition at all — not `noindex`, not
+  // `noimageindex`, not `none`. Crawlability came from the robots policy; indexability
+  // comes from this response's silence (REPAIR-09D2: public photographs may be indexed).
+  for (const [label, agent] of CLIENTS) {
+    const response = await fetch(`${origin}${crawlMedia}`, {
+      redirect: "manual",
+      headers: { "user-agent": agent },
+    });
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const webpSignature =
+      String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
+    check(response.status === 200, `a published derivative returned ${response.status} to ${label}`);
+    check(
+      response.headers.get("content-type") === "image/webp",
+      `${label} received content type ${response.headers.get("content-type")}`,
+    );
+    check(
+      webpSignature,
+      `${label} received ${bytes.byteLength} bytes, WebP signature present: ${webpSignature}`,
+    );
+    check(
+      !indexingProhibited(response),
+      `${label} received x-robots-tag: ${response.headers.get("x-robots-tag")}`,
+    );
+    check(
+      response.headers.get("x-robots-tag") === null,
+      `${label} received a crawler directive: ${response.headers.get("x-robots-tag")}`,
+    );
+    check(
+      response.headers.get("x-content-type-options") === "nosniff",
+      `${label} received x-content-type-options: ${response.headers.get("x-content-type-options")}`,
+    );
+    check(
+      response.headers.get("cache-control") === "no-store",
+      `${label} received cache-control: ${response.headers.get("cache-control")}`,
+    );
+  }
 
   // The private master is refused by the public-reference boundary, and the page that
   // embeds the derivative never names a master key.
@@ -747,15 +824,53 @@ try {
     "the published page leaked a storage key",
   );
 
-  // Recorded, not endorsed: the derivative 200 still carries `x-robots-tag: noindex`,
-  // so these URLs are fetchable but not INDEXABLE. Removing the disallow is what makes
-  // them crawlable; indexing additionally needs that header to go, and that is a
-  // separate decision. Printed rather than asserted so the state is visible in every
-  // gate run without a check endorsing it.
-  console.log(
-    `note | a published derivative carries x-robots-tag: ${publishedDerivative.headers.get("x-robots-tag")} ` +
-      "(crawlable; indexing would also need that header removed)",
+  // (14-17) WITHDRAWAL through the same real path: the identical URL that served a
+  // moment ago must stop serving, for every client, and the page and the master must go
+  // with it. Publication state, never crawler identity, is the authority.
+  const crawlWithdraw = await postForm(
+    "/admin/photos",
+    { photoId: crawlRow.id, intent: "unpublish" },
+    { [IDENTITY_HEADER]: PHOTOGRAPHER },
   );
+  const crawlWithdrawHtml = await crawlWithdraw.text();
+  const draftReported = /is now a draft/i.test(crawlWithdrawHtml);
+  const stoppedServingReported = /no longer served through \/media/i.test(crawlWithdrawHtml);
+  check(crawlWithdraw.status === 200, `the withdraw action returned ${crawlWithdraw.status}`);
+  check(
+    draftReported && stoppedServingReported,
+    `the withdraw action reported a draft: ${draftReported}, and that the image stops being served: ${stoppedServingReported}`,
+  );
+  const withdrawnFlag = (
+    await queryLocalD1(`SELECT published FROM photos WHERE id = '${crawlRow.id}'`)
+  )[0]?.published;
+  check(withdrawnFlag === 0, `the stored published flag after withdrawal is ${withdrawnFlag}`);
+  for (const [label, agent] of CLIENTS) {
+    const withdrawn = await fetch(`${origin}${crawlMedia}`, {
+      redirect: "manual",
+      headers: { "user-agent": agent },
+    });
+    check(
+      withdrawn.status === 404,
+      `the URL that served a moment ago returned ${withdrawn.status} to ${label} after withdrawal`,
+    );
+    check(
+      indexingProhibited(withdrawn),
+      `the refusal served to ${label} carries x-robots-tag: ${withdrawn.headers.get("x-robots-tag")}`,
+    );
+    await withdrawn.arrayBuffer();
+  }
+  check(
+    (await fetch(`${origin}/photo/${crawlRow.slug}`, { redirect: "manual" })).status === 404,
+    "the withdrawn photograph's page is still served",
+  );
+  const withdrawnMaster = await fetch(`${origin}/media/originals/${crawlRow.id}/master.jpg`, {
+    redirect: "manual",
+  });
+  check(
+    withdrawnMaster.status === 404,
+    `a withdrawn photograph's private master returned ${withdrawnMaster.status} through the public boundary`,
+  );
+  await withdrawnMaster.arrayBuffer();
 
   // --- H. sitemap.xml ----------------------------------------------------
 
@@ -952,7 +1067,10 @@ console.log(
     "redirected to another host by forged Host or X-Forwarded-Host headers; the served robots policy, evaluated " +
     "the way a crawler evaluates it, permitted the published /media derivative of a real uploaded photograph and " +
     "refused every operator, development, engagement and acknowledgement path, while an unpublished derivative " +
-    "was still refused by the publication gate rather than by a robots rule; and the sitemap followed the real " +
+    "was still refused by the publication gate rather than by a robots rule; the identical derivative URL then " +
+    "followed the real publication path from draft (404, non-indexable) to published (200 image/webp and no " +
+    "crawler prohibition at all) back to 404 after withdrawal, for a browser, Googlebot-Image, Bingbot and an " +
+    "arbitrary client alike, with the private master unreachable throughout; and the sitemap followed the real " +
     "management path by dropping a withdrawn photograph, restoring it on republication, and dropping a " +
     "still-published photograph moved into a draft gallery.",
 );
