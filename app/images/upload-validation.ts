@@ -77,7 +77,9 @@ export type UploadRejection =
   | "dimensions-out-of-range"
   | "unsafe-filename"
   | "too-many-files"
-  | "batch-too-large";
+  | "batch-too-large"
+  | "length-required"
+  | "request-too-large";
 
 /**
  * Enforce the batch policy BEFORE any bytes are read or transformed.

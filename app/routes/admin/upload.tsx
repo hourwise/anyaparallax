@@ -62,27 +62,55 @@ function readOptions(form: FormData) {
 /**
  * The write path.
  *
- * `request.formData()` is used rather than a streaming parser because the
- * pipeline needs whole images anyway: it hashes nothing, but it must sniff magic
- * bytes, read the frame header and then decode, all of which want the bytes in
- * memory. The size ceiling is enforced by `validateUpload` before any decode, so
- * a hostile upload cannot make the Worker allocate a decoded frame it should not.
+ * The order here is the memory policy, and each step exists because the previous
+ * one cannot bound what the next one allocates:
+ *
+ *   1. the admin guard;
+ *   2. `assertRequestWithinLimit` — the request is refused from its
+ *      `Content-Length` HEADER, before the body is parsed at all. A request whose
+ *      size is undeclared is refused here too: an unbounded request cannot be
+ *      given a memory ceiling;
+ *   3. `request.formData()` — the only step that buffers the multipart body;
+ *   4. `fileSourcesFrom` — the batch policy is applied to the parsed Files'
+ *      METADATA, still before any file body is read;
+ *   5. `ingestUploads` — reads and processes ONE file at a time.
+ *
+ * What this does NOT claim: that the body is never buffered. `formData()` holds
+ * the file parts. The claim is that an oversized or unbounded request never
+ * reaches that point, and that file bodies are materialised one at a time.
  */
 export async function action({ request, context }: { request: Request; context: unknown }) {
   await requireAdminAccess(request, context);
-  const form = await request.formData();
-  const { hasUploadStorage, ingestUploads } = await import("../../images/upload.server");
-
-  const entries = form.getAll("photos").filter((entry): entry is File => entry instanceof File);
-  const files = await Promise.all(
-    entries
-      .filter((file) => file.size > 0)
-      .map(async (file) => ({
-        filename: file.name,
-        declaredType: file.type,
-        bytes: new Uint8Array(await file.arrayBuffer()),
-      })),
+  const { assertRequestWithinLimit, fileSourcesFrom } = await import(
+    "../../images/upload-request.server"
   );
+  const { hasUploadStorage, ingestUploads } = await import("../../images/upload.server");
+  const { UploadError } = await import("../../images/upload-validation");
+
+  // 2. Header-only gate. Nothing is parsed and no binding is touched yet.
+  try {
+    assertRequestWithinLimit(request);
+  } catch (error) {
+    return {
+      report: null,
+      message:
+        error instanceof UploadError
+          ? error.message
+          : "The upload could not be accepted.",
+    };
+  }
+
+  // 3. Parse. 4. Apply the batch policy to metadata before reading any body.
+  const form = await request.formData();
+  let files;
+  try {
+    files = fileSourcesFrom(form);
+  } catch (error) {
+    return {
+      report: null,
+      message: error instanceof UploadError ? error.message : "The upload could not be accepted.",
+    };
+  }
 
   if (files.length === 0) {
     return {
@@ -103,6 +131,7 @@ export async function action({ request, context }: { request: Request; context: 
     };
   }
 
+  // 5. Read and process the files one at a time.
   const report = await ingestUploads({
     env,
     files,

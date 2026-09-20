@@ -121,9 +121,20 @@ check(
   served.headers.get("content-type") === "image/webp",
   `content type was ${served.headers.get("content-type")}`,
 );
+// The publication decision is MUTABLE while the object key is not, so a served
+// derivative must be revalidated on every request. An immutable one-year policy
+// would let a withdrawn photograph keep being served from a warm cache.
 check(
-  served.headers.get("cache-control")?.includes("max-age=") === true,
-  "a served derivative must be cacheable",
+  served.headers.get("cache-control") === "no-store",
+  `a served derivative must be no-store, saw ${served.headers.get("cache-control")}`,
+);
+check(
+  served.headers.get("etag") === null,
+  "a no-store response must not carry an ETag, which only has a purpose when a representation may be reused",
+);
+check(
+  !(served.headers.get("cache-control") ?? "").includes("immutable"),
+  "a served derivative still claims to be immutable",
 );
 check(served.headers.get("x-content-type-options") === "nosniff", "sniffing must be disabled");
 check(served.headers.get("x-robots-tag") === "noindex", "derivatives must not be indexed");
@@ -132,6 +143,46 @@ check(servedBytes.byteLength === derivative.byteLength, "the wrong object was se
 
 const servedThumb = await serveMedia("thumbs/published-photo/thumb.webp", env);
 check(servedThumb.status === 200, `a published THUMBNAIL returned ${servedThumb.status}, expected 200`);
+check(
+  servedThumb.headers.get("cache-control") === "no-store",
+  "a served thumbnail must be no-store",
+);
+
+// --- Unpublication takes effect immediately -------------------------------
+
+// The same URL, with no cache involved, must stop being served the moment the
+// photograph is unpublished. This is the behaviour the no-store policy exists to
+// make meaningful: nothing may outlive the permission that allowed it.
+const url = "web/published-photo/web.webp";
+const thumbUrl = "thumbs/published-photo/thumb.webp";
+const beforeUnpublish = await serveMedia(url, env);
+check(beforeUnpublish.status === 200, "the derivative was not served before unpublishing");
+
+database.exec("UPDATE photos SET published = 0, published_at = NULL WHERE id = 'published-photo'");
+const afterUnpublish = await serveMedia(url, env);
+check(
+  afterUnpublish.status === 404,
+  `after unpublishing, the SAME url returned ${afterUnpublish.status}, expected 404`,
+);
+const afterUnpublishThumb = await serveMedia(thumbUrl, env);
+check(
+  afterUnpublishThumb.status === 404,
+  `after unpublishing, the thumbnail returned ${afterUnpublishThumb.status}, expected 404`,
+);
+check(
+  afterUnpublish.headers.get("cache-control") === "no-store",
+  "the refusal after unpublishing must not be cacheable",
+);
+check((await afterUnpublish.text()).length === 0, "the refusal after unpublishing returned a body");
+
+// Re-publishing restores service, so the refusal tracks the decision rather than
+// having permanently poisoned the key.
+database.exec(
+  "UPDATE photos SET published = 1, published_at = '2026-09-01T00:00:00.000Z' WHERE id = 'published-photo'",
+);
+const afterRepublish = await serveMedia(url, env);
+check(afterRepublish.status === 200, `after re-publishing, the url returned ${afterRepublish.status}`);
+note("unpublication verified: the same derivative URL returned 200, then 404, then 200 again");
 
 // --- The publication boundary --------------------------------------------
 
@@ -201,30 +252,114 @@ check(
 // --- The platform verification route stays inert --------------------------
 
 // It exists so the real Cloudflare binding can be measured, and it must be
-// unable to do anything in a deployment that has disabled its development
-// switches. It performs no privileged action of its own — it calls the same
-// production pipeline as the admin form — but the guard is what keeps it from
-// being reachable at all.
+// unable to do anything anywhere except the operator's own machine: repair 01
+// checked only the development flag, and since that flag is "true" in this
+// repository's own Wrangler configuration, a deployment inheriting it would have
+// exposed an unauthenticated path into the real upload pipeline.
 const verification = await import("../../app/routes/dev-verification.ts");
-const offLoader = await verification.loader({ context: undefined });
-check(
-  offLoader.status === 404,
-  `the verification route responded ${offLoader.status} without the development switch`,
-);
-const offAction = await verification.action({
-  request: new Request("http://localhost/dev-verification", { method: "POST", body: new FormData() }),
-  context: undefined,
+const { RouterContextProvider } = await import("react-router");
+const { appContext } = await import("../../app/data/context.ts");
+
+/** A loader/action context carrying an environment, exactly as the Worker builds it. */
+function contextFor(env) {
+  const context = new RouterContextProvider();
+  context.set(appContext, { env });
+  return context;
+}
+
+/** A POST with a throwaway multipart body, which the gate must refuse to parse. */
+function verificationRequest(hostname) {
+  const form = new FormData();
+  form.append("photos", new Blob([new Uint8Array([1, 2, 3])], { type: "image/jpeg" }), "x.jpg");
+  return new Request(`http://${hostname}/dev-verification`, { method: "POST", body: form });
+}
+
+/**
+ * The development flag exactly as a local run sets it, PLUS the real bindings,
+ * so the loopback case is genuinely able to reach the pipeline and the public-host
+ * case is genuinely able to mutate state if the gate were absent. Without the
+ * bindings the inertness proof below would be vacuous: nothing could mutate
+ * anything whether or not the gate worked.
+ */
+const devEnv = {
+  ALLOW_DEVELOPMENT_IDENTITY: "true",
+  MASTERS: masters,
+  IMAGES: images,
+  DB: database.binding,
+};
+const loopbackHosts = ["localhost", "127.0.0.1", "[::1]"];
+const publicHosts = ["public.example", "localhost.attacker.example", "example.com", "127.0.0.1.example"];
+
+// Loopback with the exact flag: available.
+for (const host of loopbackHosts) {
+  const response = await verification.loader({
+    request: new Request(`http://${host}/dev-verification`),
+    context: contextFor(devEnv),
+  });
+  check(response.status === 200, `the verification loader refused loopback host ${host} (${response.status})`);
+}
+// A public hostname with the exact flag: the same bare 404 as when it is off.
+for (const host of publicHosts) {
+  const loaderResponse = await verification.loader({
+    request: new Request(`http://${host}/dev-verification`),
+    context: contextFor(devEnv),
+  });
+  check(
+    loaderResponse.status === 404,
+    `the verification loader allowed public host ${host} (${loaderResponse.status})`,
+  );
+  check(
+    loaderResponse.headers.get("cache-control") === "no-store",
+    `the refusal for ${host} must not be cacheable`,
+  );
+  const actionResponse = await verification.action({
+    request: verificationRequest(host),
+    context: contextFor(devEnv),
+  });
+  check(
+    actionResponse.status === 404,
+    `the verification ACTION allowed public host ${host} (${actionResponse.status})`,
+  );
+}
+// The flag itself: absent, differently cased or otherwise not exactly "true".
+for (const flag of [undefined, "TRUE", "1", "true "]) {
+  const response = await verification.loader({
+    request: new Request("http://localhost/dev-verification"),
+    context: contextFor(flag === undefined ? {} : { ALLOW_DEVELOPMENT_IDENTITY: flag }),
+  });
+  check(
+    response.status === 404,
+    `the verification route accepted flag ${JSON.stringify(flag)} (${response.status})`,
+  );
+}
+
+// THE INERTNESS PROOF: a public hostname must cause ZERO database or bucket
+// mutation. Counted around the call, so "it returned 404" is not the evidence —
+// "nothing changed" is.
+const mutationsBefore = {
+  photos: database.query("SELECT COUNT(*) AS total FROM photos")[0]?.total,
+  photoTags: database.query("SELECT COUNT(*) AS total FROM photo_tags")[0]?.total,
+  masters: masters.size,
+  images: images.size,
+};
+const deniedAction = await verification.action({
+  request: verificationRequest("public.example"),
+  context: contextFor(devEnv),
 });
+check(deniedAction.status === 404, "a public hostname was not refused");
+const mutationsAfter = {
+  photos: database.query("SELECT COUNT(*) AS total FROM photos")[0]?.total,
+  photoTags: database.query("SELECT COUNT(*) AS total FROM photo_tags")[0]?.total,
+  masters: masters.size,
+  images: images.size,
+};
 check(
-  offAction.status === 404,
-  `the verification route's action responded ${offAction.status} without the development switch`,
+  JSON.stringify(mutationsBefore) === JSON.stringify(mutationsAfter),
+  `a denied verification request mutated state: ${JSON.stringify(mutationsBefore)} -> ${JSON.stringify(mutationsAfter)}`,
 );
-const wrongFlag = await verification.loader({
-  context: { env: { ALLOW_DEVELOPMENT_IDENTITY: "TRUE" } },
-});
-check(
-  wrongFlag.status === 404,
-  `the verification route accepted a case-variant development flag (${wrongFlag.status})`,
+note(
+  `public-hostname denial left state untouched: ${mutationsAfter.photos} photos, ` +
+    `${mutationsAfter.photoTags} tag links, ${mutationsAfter.masters + mutationsAfter.images} objects`,
 );
 
 database.close();

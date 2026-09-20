@@ -27,8 +27,28 @@ import { refFromPublicUrl } from "../data/storage";
 import { isR2Bucket, readPublicImageFrom } from "../data/storage.server";
 import { isPublishedDerivative } from "./media-publication.server";
 
-/** A derivative's key never changes, so the response may be cached for a year. */
-const CACHE_CONTROL = "public, max-age=31536000, immutable";
+/**
+ * Cache policy for a served derivative (Slice 06 repair 02).
+ *
+ * `no-store`, and NOT the immutable one-year policy this route used to send.
+ *
+ * The reason is that the publication decision is MUTABLE while the object key is
+ * not. A photograph can be unpublished, or its gallery can be, and that change
+ * has to take effect for the very next request to the same URL. A response
+ * cached for a year would outlive the database permission that allowed it: a
+ * visitor holding a warm cache — or a CDN edge holding one — would keep being
+ * served an image the operator has withdrawn, and nothing in this slice can
+ * purge it.
+ *
+ * V1 has no publication-aware cache invalidation or key versioning, so the only
+ * honest policy is to revalidate on every request. When versioned derivative
+ * keys arrive, this can become immutable again *because the key itself would
+ * change on unpublish*, which is the condition that is missing today.
+ *
+ * The ETag is gone with it: an entity tag only has a purpose when something may
+ * reuse a stored representation, and `no-store` forbids exactly that.
+ */
+const CACHE_CONTROL = "no-store";
 
 /** A bare 404: no body, and no hint about which rule refused the request. */
 function notFound(): Response {
@@ -89,7 +109,6 @@ export async function serveMedia(splat: string, environment: unknown): Promise<R
         // Derivatives are images, never documents: no sniffing, no indexing.
         "x-content-type-options": "nosniff",
         "x-robots-tag": "noindex",
-        etag: `"${key}"`,
       },
     });
   } catch {

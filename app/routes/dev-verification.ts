@@ -1,36 +1,34 @@
 /**
- * Platform verification route (Slice 06 repair 01).
+ * Platform verification route (Slice 06 repairs 01–02).
  *
  * The Cloudflare Images binding, the R2 buckets and D1 exist only inside the
  * Worker runtime, so the only way to verify the REAL image adapter against them
  * is to drive the running app. This route is that driver — and nothing else.
  *
- * It is deliberately inert outside local development:
+ * It is deliberately inert outside a local development machine, and the gate is
+ * TWO conditions, both required:
  *
- *   * it refuses every request unless `ALLOW_DEVELOPMENT_IDENTITY` is exactly
- *     "true", the same development-only switch the local sign-in header uses, so
- *     a deployment that has not disabled its development switches is the only
- *     place this can respond at all;
- *   * it performs no privileged action of its own: it calls the SAME production
- *     pipeline (`ingestUploads`) that `/admin/upload` calls, with the same
- *     validation, the same buckets and the same atomic commit. It cannot store
- *     anything the admin form could not.
+ *   1. `ALLOW_DEVELOPMENT_IDENTITY` is exactly "true" (the same development-only
+ *      switch the local sign-in header uses; a case variant is not a match);
+ *   2. the request's hostname is LOOPBACK, judged by `isLoopbackHostname()` — the
+ *      SAME rule the authentication boundary uses, not a second implementation.
  *
- * It is a verification surface, not a second upload path: the route adds no new
- * capability, which is why it is safe to keep in the tree rather than deleting
- * it and losing the ability to measure the platform on demand.
+ * The second condition is what makes this safe. Repair 01 checked only the flag,
+ * and since `pnpm dev` sets that flag to "true" in `wrangler.jsonc`, a deployment
+ * that inherited the development configuration would have exposed an
+ * unauthenticated path into the real upload pipeline: it would mutate D1 and R2
+ * without ever calling `requireAdminAccess`. Loopback-only means a request must
+ * already have arrived on the operator's own machine.
+ *
+ * The gate runs BEFORE `request.formData()` and before any binding or database
+ * work, so a refused request cannot parse a body, read a bucket or touch a row.
+ *
+ * It is a verification surface, not a second upload path: it adds no capability,
+ * because it calls the same production pipeline as `/admin/upload` with the same
+ * validation and the same atomic commit.
  */
 import { appEnvironmentFrom } from "../data/context.server";
-
-type Bindings = {
-  ALLOW_DEVELOPMENT_IDENTITY?: string;
-};
-
-function json(value: unknown): Response {
-  return new Response(JSON.stringify(value, null, 2), {
-    headers: { "content-type": "application/json", "cache-control": "no-store" },
-  });
-}
+import { isLoopbackHostname } from "../auth/identity";
 
 /** The same bare 404 the media route uses, so the route is indistinguishable when off. */
 function unavailable(): Response {
@@ -40,14 +38,40 @@ function unavailable(): Response {
   });
 }
 
-function flagsOf(context: unknown): Bindings {
-  return (appEnvironmentFrom(context) ?? {}) as Bindings;
+function json(value: unknown): Response {
+  return new Response(JSON.stringify(value, null, 2), {
+    headers: { "content-type": "application/json", "cache-control": "no-store" },
+  });
+}
+
+/**
+ * True when this request may use the verification surface.
+ *
+ * Exported so the rule itself is testable, and so both the loader and the action
+ * are provably using the same decision rather than two copies of it.
+ */
+export function isVerificationRequest(request: Request, environment: unknown): boolean {
+  const flag = (environment as { ALLOW_DEVELOPMENT_IDENTITY?: unknown } | undefined)
+    ?.ALLOW_DEVELOPMENT_IDENTITY;
+  if (flag !== "true") {
+    return false;
+  }
+  try {
+    // The SAME loopback rule as the authentication boundary: localhost, 127.0.0.1
+    // and ::1 only. A lookalike such as `localhost.attacker.example` is not
+    // loopback, and `URL` lower-cases and brackets IPv6 consistently.
+    return isLoopbackHostname(new URL(request.url).hostname);
+  } catch {
+    // An unparseable URL cannot be shown to be loopback, so it is not.
+    return false;
+  }
 }
 
 /** Report which platform pieces this environment has. */
-export async function loader({ context }: { context: unknown }) {
+export async function loader({ request, context }: { request: Request; context: unknown }) {
   const env = appEnvironmentFrom(context);
-  if (flagsOf(context).ALLOW_DEVELOPMENT_IDENTITY !== "true") {
+  // Gate FIRST: no body parsing, no binding access, no database work.
+  if (!isVerificationRequest(request, env)) {
     return unavailable();
   }
   // The readiness check lives in the server module: a route must not name a
@@ -63,24 +87,20 @@ export async function loader({ context }: { context: unknown }) {
  */
 export async function action({ request, context }: { request: Request; context: unknown }) {
   const env = appEnvironmentFrom(context);
-  if (flagsOf(context).ALLOW_DEVELOPMENT_IDENTITY !== "true") {
+  // Gate FIRST, and before `request.formData()`: a request that is not from the
+  // operator's own machine must not cause this route to parse a body, read a
+  // bucket or touch a row. The same rule the loader uses, from one function.
+  if (!isVerificationRequest(request, env)) {
     return unavailable();
   }
 
+  const { fileSourcesFrom } = await import("../images/upload-request.server");
   const url = new URL(request.url);
   const form = await request.formData();
-  const files: { filename: string; declaredType: string; bytes: Uint8Array }[] = [];
-  for (const entry of form.getAll("photos")) {
-    if (typeof entry === "string") {
-      continue;
-    }
-    const file = entry as File;
-    files.push({
-      filename: file.name,
-      declaredType: file.type,
-      bytes: new Uint8Array(await file.arrayBuffer()),
-    });
-  }
+  // Lazy sources: the batch policy is applied to the parsed metadata here, and
+  // the bodies are read one at a time inside `ingestUploads`. This route never
+  // builds an array of byte arrays.
+  const files = fileSourcesFrom(form);
   if (files.length === 0) {
     return json({ error: "no files" });
   }

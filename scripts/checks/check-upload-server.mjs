@@ -42,6 +42,29 @@ for (const required of ["photo.jpg", "greyscale.jpg", "large.jpg"]) {
 const photoJpeg = new Uint8Array(readFileSync(resolve(fixtures, "photo.jpg")));
 const greyJpeg = new Uint8Array(readFileSync(resolve(fixtures, "greyscale.jpg")));
 
+/**
+ * Wrap bytes as the pipeline's LAZY file source.
+ *
+ * The orchestration now takes metadata plus a reader rather than materialised
+ * bytes, so a check must supply the same shape. `reads` records every call, which
+ * is how the sequencing assertions below prove that bodies are read one at a time
+ * rather than all at once.
+ */
+/** Every `readBytes()` call, in order, so sequencing can be asserted. */
+const reads = [];
+
+function lazyFile(filename, declaredType, bytes, reads) {
+  return {
+    filename,
+    declaredType,
+    size: bytes.byteLength,
+    readBytes: async () => {
+      reads.push(filename);
+      return bytes;
+    },
+  };
+}
+
 const database = await createD1TestDatabase({ seed, label: "upload" });
 const repository = new D1PortfolioRepository(database.binding);
 void repository;
@@ -148,7 +171,7 @@ const baseOptions = {
 
 const single = await ingestUploads({
   env,
-  files: [{ filename: "harbour lights.jpg", declaredType: "image/jpeg", bytes: photoJpeg }],
+  files: [lazyFile("harbour lights.jpg", "image/jpeg", photoJpeg, reads)],
   options: baseOptions,
   processorFactory: async () => fakeProcessor(),
 });
@@ -204,7 +227,7 @@ check(tagRows.length === 2, `expected the duplicate tag to collapse to two links
 // The photograph must therefore not exist either: the batch is one transaction.
 const atomic = await ingestUploads({
   env,
-  files: [{ filename: "atomic.jpg", declaredType: "image/jpeg", bytes: photoJpeg }],
+  files: [lazyFile("atomic.jpg", "image/jpeg", photoJpeg, reads)],
   options: { ...baseOptions, title: "Atomic failure", tags: ["tag-night", "tag-does-not-exist"] },
   processorFactory: async () => fakeProcessor(),
 });
@@ -231,7 +254,7 @@ note(
 
 const unpublished = await ingestUploads({
   env,
-  files: [{ filename: "draft.jpg", declaredType: "image/jpeg", bytes: greyJpeg }],
+  files: [lazyFile("draft.jpg", "image/jpeg", greyJpeg, reads)],
   options: { ...baseOptions, title: "Draft frame", published: false, featured: true },
   processorFactory: async () => fakeProcessor(),
 });
@@ -244,13 +267,13 @@ check(draftRow?.published_at === null, "an unpublished upload carries a publishe
 
 const collisionA = await ingestUploads({
   env,
-  files: [{ filename: "a.jpg", declaredType: "image/jpeg", bytes: photoJpeg }],
+  files: [lazyFile("a.jpg", "image/jpeg", photoJpeg, reads)],
   options: { ...baseOptions, title: "Repeated name" },
   processorFactory: async () => fakeProcessor(),
 });
 const collisionB = await ingestUploads({
   env,
-  files: [{ filename: "b.jpg", declaredType: "image/jpeg", bytes: photoJpeg }],
+  files: [lazyFile("b.jpg", "image/jpeg", photoJpeg, reads)],
   options: { ...baseOptions, title: "Repeated name" },
   processorFactory: async () => fakeProcessor(),
 });
@@ -261,17 +284,26 @@ check(collisionB.outcomes[0]?.photo?.slug === "repeated-name-2", `second slug wa
 
 const beforeMasters = buckets.masters.size;
 const beforeImages = buckets.images.size;
+const readsBefore = reads.length;
 const mixed = await ingestUploads({
   env,
   files: [
-    { filename: "good-one.jpg", declaredType: "image/jpeg", bytes: photoJpeg },
-    { filename: "not-an-image.jpg", declaredType: "image/jpeg", bytes: new Uint8Array([1, 2, 3, 4]) },
-    { filename: "good-two.jpg", declaredType: "image/jpeg", bytes: greyJpeg },
+    { ...lazyFile("good-one.jpg", "image/jpeg", photoJpeg, reads) },
+    { ...lazyFile("not-an-image.jpg", "image/jpeg", new Uint8Array([1, 2, 3, 4]), reads) },
+    { ...lazyFile("good-two.jpg", "image/jpeg", greyJpeg, reads) },
   ],
   options: { ...baseOptions, title: "Batch" },
   processorFactory: async () => fakeProcessor(),
 });
 check(mixed.accepted === 2 && mixed.rejected === 1, `batch reported ${mixed.accepted}/${mixed.rejected}`);
+check(
+  reads.length === readsBefore + 3,
+  `a three-file batch performed ${reads.length - readsBefore} reads, expected 3`,
+);
+check(
+  reads.slice(readsBefore).join(",") === "good-one.jpg,not-an-image.jpg,good-two.jpg",
+  `files were read out of order: ${reads.slice(readsBefore).join(", ")}`,
+);
 const refusedOutcome = mixed.outcomes.find((outcome) => !outcome.ok);
 check(refusedOutcome?.filename === "not-an-image.jpg", "the wrong file was reported as refused");
 check(
@@ -299,9 +331,7 @@ try {
   await ingestUploads({
     env,
     files: Array.from({ length: 11 }, () => ({
-      filename: "x.jpg",
-      declaredType: "image/jpeg",
-      bytes: photoJpeg,
+      ...lazyFile("x.jpg", "image/jpeg", photoJpeg, reads),
     })),
     options: baseOptions,
     processorFactory: async () => fakeProcessor(),
@@ -321,7 +351,7 @@ let noProcessor = null;
 try {
   await ingestUploads({
     env,
-    files: [{ filename: "y.jpg", declaredType: "image/jpeg", bytes: photoJpeg }],
+    files: [lazyFile("y.jpg", "image/jpeg", photoJpeg, reads)],
     options: baseOptions,
     processorFactory: async () => null,
   });

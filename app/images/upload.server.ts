@@ -34,11 +34,21 @@ import {
   DEFAULT_UPLOAD_DECLARED_TYPE,
 } from "../images/upload-validation";
 
-/** One file the operator asked to upload. Bytes are read only when processed. */
+/**
+ * One file the operator asked to upload.
+ *
+ * A LAZY source: `size` is known from the parsed request without reading
+ * anything, and `readBytes()` is called by the loop below only when that file's
+ * turn comes. The previous revision passed already-materialised byte arrays, so
+ * the batch policy ran after every body had been read — it could not prevent the
+ * allocation it existed to prevent.
+ */
 export type UploadFileInput = {
   readonly filename: string;
   readonly declaredType: string;
-  readonly bytes: Uint8Array;
+  readonly size: number;
+  /** Called at most once, and never for two files at the same time. */
+  readonly readBytes: () => Promise<Uint8Array>;
 };
 
 /** The operator's choices, already parsed from the form. */
@@ -92,9 +102,12 @@ function newPhotoId(): string {
  *
  * Called before any body is read, which is the entire point: a submission that
  * cannot be accepted must be refused while it is still just a set of numbers.
+ * The route applies the same check even earlier, from the parsed Files'
+ * metadata; this call is the second, independent enforcement, so the guarantee
+ * does not depend on a caller remembering to do it.
  */
 function assertBatchPolicy(files: readonly UploadFileInput[]): void {
-  assertBatchWithinPolicy(files.map((file) => ({ size: file.bytes.byteLength })));
+  assertBatchWithinPolicy(files.map((file) => ({ size: file.size })));
 }
 
 /** Suffix appended to the per-file title in a multi-file upload. */
@@ -217,13 +230,18 @@ export async function ingestUploads(input: {
   }
 
   const outcomes: UploadOutcome[] = [];
+  // SEQUENTIAL on purpose. Each iteration awaits its own `readBytes()` and then
+  // finishes with it before the next begins, so at most one file body is alive at
+  // a time and the peak is one master plus its derivatives rather than the whole
+  // batch. The loop is `for ... of` with awaited work inside, NOT `Promise.all`.
   for (const [index, file] of input.files.entries()) {
     const photoId = newPhotoId();
     let processed: Awaited<ReturnType<typeof processUpload>>;
     try {
+      const bytes = await file.readBytes();
       processed = await processUpload({
         photoId,
-        bytes: file.bytes,
+        bytes,
         declaredType: file.declaredType || DEFAULT_UPLOAD_DECLARED_TYPE,
         filename: file.filename,
         watermarkEnabled: input.options.watermarkEnabled,
