@@ -1,11 +1,15 @@
 import type { MetaFunction } from "react-router";
 import { Link, useLoaderData } from "react-router";
 
+import { EngagementControls } from "../components/EngagementControls";
 import { PhotoFigure } from "../components/PhotoFigure";
+import { siteOriginFrom } from "../data/canonical-origin";
 import { appEnvironmentFrom } from "../data/context.server";
 import { site } from "../data/site";
 import { getPhotoDetail, getPublishedGallery, resolveTags } from "../data/queries";
-import { absoluteUrl, galleriesPath, galleryPath, photoPath } from "../lib/paths";
+import { readEngagement } from "../engagement/engagement.server";
+import { metadataTags, photoMetadataFor } from "../engagement/metadata";
+import { galleriesPath, galleryPath, photoPath } from "../lib/paths";
 
 export async function loader({
   request,
@@ -20,23 +24,48 @@ export async function loader({
   const detail = params.slug ? await getPhotoDetail(params.slug, env) : null;
   if (!detail) {
     // Unknown and unpublished photographs are indistinguishable publicly, so
-    // publication state cannot be inferred from a 404.
+    // publication state cannot be inferred from a 404. No social metadata is
+    // produced for a draft: there is no loader data to produce it from.
     throw new Response("Photograph not found", { status: 404, statusText: "Not Found" });
   }
 
-  const origin = new URL(request.url).origin;
   const photo = detail.photo;
-  const description = photo.description || site.description;
   const gallery = await getPublishedGallery(detail.gallery.slug, env);
+
+  // The canonical origin is CONFIGURED, never taken from the request: a `Host`
+  // header must not be able to change what the site says its address is.
+  const origin = siteOriginFrom(env);
+  const metadata = photoMetadataFor(origin, {
+    slug: photo.slug,
+    title: photo.title,
+    description: photo.description,
+    webStorageKey: photo.webStorageKey,
+    fallbackDescription: site.description,
+    siteName: `${site.name} ${site.secondary}`,
+  });
+
+  // Engagement is read for THIS browser only. The count comes from storage, and
+  // when storage is unreachable it reports itself unavailable rather than
+  // inventing a number.
+  const view = await readEngagement({ id: photo.id, slug: photo.slug }, request, env);
 
   return {
     detail,
     tags: await resolveTags(photo.tags, env),
     related: gallery?.photos.filter((candidate) => candidate.id !== photo.id).slice(0, 4) ?? [],
-    social: {
-      canonical: absoluteUrl(origin, photoPath(photo.slug)),
-      image: absoluteUrl(origin, photo.webStorageKey),
-      description,
+    // Loader data carries only public facts: the count, whether this browser is
+    // one of them, and safe share information. No cookie value, no digest, no
+    // storage key beyond the public path already rendered.
+    engagement: view.engagement,
+    engagementUnavailableReason: view.availability.available ? null : view.availability.reason,
+    // The document tags are built from THESE values rather than recomputed, so a
+    // tag can never disagree with the data the page was rendered from.
+    metadata,
+    share: {
+      canonical: metadata.canonical,
+      title: photo.title,
+      description: metadata.description,
+      image: metadata.image,
     },
   };
 }
@@ -45,22 +74,7 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
   if (!loaderData) {
     return [{ title: `Photograph not found — ${site.name} ${site.secondary}` }];
   }
-  const { photo } = loaderData.detail;
-
-  return [
-    { title: `${photo.title} — ${site.name} ${site.secondary}` },
-    { name: "description", content: loaderData.social.description },
-    { tagName: "link", rel: "canonical", href: loaderData.social.canonical },
-    { property: "og:type", content: "article" },
-    { property: "og:title", content: photo.title },
-    { property: "og:description", content: loaderData.social.description },
-    { property: "og:image", content: loaderData.social.image },
-    { property: "og:url", content: loaderData.social.canonical },
-    { name: "twitter:card", content: "summary_large_image" },
-    { name: "twitter:title", content: photo.title },
-    { name: "twitter:description", content: loaderData.social.description },
-    { name: "twitter:image", content: loaderData.social.image },
-  ];
+  return metadataTags(loaderData.metadata);
 };
 
 function displayDate(iso: string | null): string | null {
@@ -153,17 +167,21 @@ export default function PhotoRoute() {
           ) : null}
         </dl>
 
-        <div className="photo-actions" aria-label="Photograph interactions">
-          <button type="button" className="button" disabled aria-disabled="true">
-            Like
-          </button>
-          <button type="button" className="button" disabled aria-disabled="true">
-            Share
-          </button>
-          <p className="photo-actions__note">
-            Likes and sharing arrive in a later slice. Nothing is recorded yet.
-          </p>
-        </div>
+        <EngagementControls
+          slug={photo.slug}
+          engagement={data.engagement}
+          availabilityReason={data.engagementUnavailableReason}
+          canonicalUrl={data.share.canonical}
+          shareTarget={{
+            url: data.share.canonical,
+            title: data.share.title,
+            description: data.share.description,
+            // A photograph with no public preview image passes an empty string,
+            // which the Pinterest link simply omits rather than substituting a
+            // private URL.
+            imageUrl: data.share.image ?? "",
+          }}
+        />
       </div>
 
       <nav className="photo-nav" aria-label="Photograph navigation">

@@ -68,8 +68,16 @@
   // belongs in the repository. The operator sets both for a deployment; see
   // README.md under "Authentication and roles". With neither Access nor the
   // development header available, every protected route denies (401/403).
+  //
+  // PUBLIC_SITE_ORIGIN is the CANONICAL public origin (Slice 07). Canonical
+  // links, OpenGraph URLs and social preview images are built from it, so the
+  // domain lives here rather than in markup, and a request's Host header can
+  // never redefine it. The value is the operator-supplied production origin; it
+  // is correct for local development too, because a canonical URL should point
+  // at the real site even when the page is being previewed.
   "vars": {
     "ALLOW_DEVELOPMENT_SEED": "true",
-    "ALLOW_DEVELOPMENT_IDENTITY": "true"
+    "ALLOW_DEVELOPMENT_IDENTITY": "true",
+    "PUBLIC_SITE_ORIGIN": "https://anyaparallax.co.uk"
   }
 }

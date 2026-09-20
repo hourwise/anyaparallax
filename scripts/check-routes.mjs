@@ -108,6 +108,35 @@ const requiredMarkers = [
   ["app/data/storage.ts", "PUBLIC_MEDIA_PREFIX"],
   // The production processor must be the platform binding, not a local codec.
   ["wrangler.jsonc", "IMAGE_TRANSFORMS"],
+  // Slice 07: engagement, sharing and the canonical/social metadata boundary.
+  ["app/engagement/engagement.ts", "SHARE_CHANNELS"],
+  ["app/engagement/identifier.ts", "isEngagementIdentifier"],
+  ["app/engagement/anonymous-browser.server.ts", "crypto.randomUUID"],
+  ["app/engagement/anonymous-browser.server.ts", "SHA-256"],
+  ["app/engagement/anonymous-browser.server.ts", "SameSite=Lax"],
+  ["app/engagement/engagement.server.ts", "likePhoto"],
+  ["app/engagement/store.server.ts", "INSERT OR IGNORE"],
+  ["app/engagement/share.ts", "isSameOriginRequest"],
+  ["app/engagement/metadata.ts", "publicPreviewPath"],
+  ["app/engagement/metadata.ts", "summary_large_image"],
+  ["app/data/canonical-origin.ts", "DEFAULT_PUBLIC_SITE_ORIGIN"],
+  ["app/components/EngagementControls.tsx", "EngagementControls"],
+  ["app/routes/engagement.$slug.tsx", "recordShare"],
+  ["app/routes/photo.tsx", "EngagementControls"],
+  ["wrangler.jsonc", "PUBLIC_SITE_ORIGIN"],
+];
+
+/**
+ * A private master must never be able to become a social preview image.
+ *
+ * The metadata module is the ONLY place a stored reference is turned into a URL a
+ * crawler would fetch, so it must contain no reference to the private domain and
+ * no fallback that could reach it. Its own checks prove the behaviour; this proves
+ * the module has no private vocabulary to begin with.
+ */
+const privateFreeModules = [
+  ["app/engagement/metadata.ts", /r2:\/\/masters|originalStorageKey|original_storage_key/],
+  ["app/routes/photo.tsx", /r2:\/\/masters|originalStorageKey|original_storage_key/],
 ];
 
 /**
@@ -137,6 +166,22 @@ const forbiddenImports = [
 /** Collected failures; declared before the scans below so they can push to it. */
 const failures = [];
 
+/**
+ * Source with comments removed, so a scan tests the CODE rather than its prose.
+ *
+ * This matters in both directions. A file that explains why it does NOT import
+ * something would otherwise be accused of importing it, and — worse — a scan that
+ * matched comments could be satisfied by describing the rule instead of following
+ * it.
+ */
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*(\/\/|\*)/.test(line))
+    .join("\n");
+}
+
 /** Client-bundled components must not import any `.server` module at all. */
 const serverImportPattern = /from\s+["'][^"']*\.server(?:\.[cm]?[jt]s)?["']/;
 
@@ -150,7 +195,7 @@ for (const directory of ["app/routes", "app/components", "app/layouts"]) {
       continue;
     }
     const filePath = resolve(root, directory, name);
-    const source = readFileSync(filePath, "utf8");
+    const source = stripComments(readFileSync(filePath, "utf8"));
     for (const [pattern, label] of forbiddenImports) {
       if (pattern.test(source)) {
         failures.push(`${directory}/${name} references ${label}`);
@@ -211,6 +256,19 @@ for (const [file, pattern] of forbiddenContent) {
   if (pattern.test(readFileSync(filePath, "utf8"))) {
     failures.push(
       `${file} embeds content that must come from the data layer (${pattern.source})`,
+    );
+  }
+}
+
+for (const [file, pattern] of privateFreeModules) {
+  const filePath = resolve(root, file);
+  if (!existsSync(filePath)) {
+    failures.push(`${file} is missing`);
+    continue;
+  }
+  if (pattern.test(stripComments(readFileSync(filePath, "utf8")))) {
+    failures.push(
+      `${file} names a private master reference (${pattern.source}); social metadata must only ever use the public derivative`,
     );
   }
 }

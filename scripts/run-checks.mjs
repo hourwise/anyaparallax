@@ -20,6 +20,10 @@ const checks = [
   "./checks/check-upload-pipeline.mjs",
   "./checks/check-upload-server.mjs",
   "./checks/check-media-route.mjs",
+  // Slice 07: engagement, sharing, social metadata and the privacy scan.
+  "./checks/check-metadata.mjs",
+  "./checks/check-engagement.mjs",
+  "./checks/check-privacy.mjs",
   "./checks/check-d1.mjs",
   "./checks/check-auth.mjs",
 ];

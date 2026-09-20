@@ -9,6 +9,11 @@ export default [
   // so `/media/...` returns image bytes and never an HTML document.
   route("media/*", "routes/media.ts"),
 
+  // Engagement endpoint (Slice 07): also a resource route outside every layout.
+  // It is public because likes need no account, but it is POST-only and
+  // same-origin, and it returns JSON rather than a document.
+  route("engagement/:slug", "routes/engagement.$slug.tsx"),
+
   // Public site: shared header, footer and mobile navigation.
   layout("layouts/public.tsx", [
     index("routes/home.tsx"),

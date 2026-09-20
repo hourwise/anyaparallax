@@ -34,6 +34,14 @@ export type AppBindings = {
    * a loopback host; must never be "true" in a real deployment.
    */
   readonly ALLOW_DEVELOPMENT_IDENTITY?: string;
+  /**
+   * The canonical public origin of the site, for example
+   * `https://anyaparallax.co.uk`. Canonical links and social preview URLs are
+   * built from it, so the domain lives in configuration rather than in markup,
+   * and a request's `Host` header can never redefine it. Absent locally, where
+   * the documented production origin is used.
+   */
+  readonly PUBLIC_SITE_ORIGIN?: string;
 };
 
 export type AppRequestContext = {
