@@ -58,11 +58,16 @@ export default function GalleryRoute() {
         <p className="muted">No photographs are published in this gallery yet.</p>
       ) : (
         <div className="gallery-grid">
-          {gallery.photos.map((photo) => (
+          {gallery.photos
+            .filter(
+              (photo): photo is typeof photo & { thumbnailImagePath: string } =>
+                photo.thumbnailImagePath !== null,
+            )
+            .map((photo) => (
             <PhotoFigure
               className="gallery-grid__item"
               key={photo.id}
-              src={photo.thumbnailStorageKey}
+              src={photo.thumbnailImagePath}
               alt={`Development placeholder for “${photo.title}”.`}
               ratio={`${photo.width} / ${photo.height}`}
               sizes="(min-width: 56.25rem) 33vw, (min-width: 34rem) 50vw, 100vw"
@@ -72,7 +77,7 @@ export default function GalleryRoute() {
                 title: `${photo.title} — photograph page`,
               }}
             />
-          ))}
+            ))}
         </div>
       )}
 

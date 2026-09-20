@@ -10,8 +10,16 @@ export type PhotoFigureLink = {
 };
 
 type PhotoFigureProps = {
-  /** Image URL. Slice 02 points at development placeholders; later slices pass real derivatives. */
-  src: string;
+  /**
+   * Browser-facing PUBLIC image path, or null/absent when none is available.
+   *
+   * Slice 02 points at development placeholders; later slices pass the public
+   * path produced by the projection. A null means the stored reference could not
+   * safely be converted (`publicImagePathFrom` refused it), and this component
+   * then renders the reserved space WITHOUT an `src` rather than emitting a value
+   * a browser cannot load or falling back to a private reference.
+   */
+  src: string | null | undefined;
   /** Accessible name for the photograph. */
   alt: string;
   /** Intrinsic aspect ratio, e.g. "4 / 5". Reserved space avoids layout shift. */
@@ -54,14 +62,25 @@ export function PhotoFigure({
   return (
     <figure className={className ? `photo-figure ${className}` : "photo-figure"}>
       <div className="photo-figure__media" style={{ aspectRatio: ratio }}>
-        <img
-          className="photo-figure__image"
-          src={src}
-          alt={alt}
-          loading={loading}
-          decoding="async"
-          sizes={sizes}
-        />
+        {/*
+          The single fail-closed point for every photograph grid and card: no
+          public path means no image element at all, so an internal storage
+          reference can never be rendered as a `src` from here.
+        */}
+        {src ? (
+          <img
+            className="photo-figure__image"
+            src={src}
+            alt={alt}
+            loading={loading}
+            decoding="async"
+            sizes={sizes}
+          />
+        ) : (
+          <span className="photo-figure__image photo-figure__image--unavailable">
+            Image unavailable
+          </span>
+        )}
       </div>
       {hasCaption ? (
         <figcaption

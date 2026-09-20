@@ -114,3 +114,49 @@ export function refFromPublicUrl(path: string): string | null {
   const rest = path.slice(PUBLIC_MEDIA_PREFIX.length);
   return rest.length > 0 ? `${IMAGES_SCHEME}${rest}` : null;
 }
+
+/**
+ * The browser-facing PUBLIC path for a stored image reference, or null.
+ *
+ * This is the one place a stored reference becomes something a browser may
+ * fetch, and it exists because two legitimate reference shapes reach it:
+ *
+ *   `r2://images/web/<id>/web.webp`  a DB-backed photograph, converted through
+ *                                    the public media boundary to `/media/...`
+ *   `/images/dev/<name>.svg`         a development seed photograph, which is
+ *                                    already a public site path
+ *
+ * Anything else returns null, and a null is meant to be OMITTED rather than
+ * substituted. That matters most for the private shapes: a master reference
+ * (`r2://masters/...`) and a path under `/originals/` or `/masters/` are refused
+ * explicitly rather than by failing to match a public rule, because a leak here
+ * puts a print-quality original in front of a browser.
+ *
+ * `publicRefUrl` above remains the stricter, storage-key-only conversion: it is
+ * the inverse of `refFromPublicUrl` and returns null for anything that is not a
+ * public derivative key. This function is the PUBLIC RENDERING boundary — what a
+ * `src` attribute may contain — and the two are deliberately separate, so a
+ * future storage scheme cannot become public just by being mentioned here.
+ */
+export function publicImagePathFrom(storedRef: unknown): string | null {
+  if (typeof storedRef !== "string" || storedRef.length === 0) {
+    return null;
+  }
+  const publicPath = publicRefUrl(storedRef);
+  if (publicPath !== null) {
+    return publicPath;
+  }
+  if (isStorageKey(storedRef)) {
+    // A storage reference that is not a public image: a private master, or an
+    // unknown domain. Never converted.
+    return null;
+  }
+  if (!storedRef.startsWith("/") || storedRef.startsWith("//")) {
+    return null;
+  }
+  const lowered = storedRef.toLowerCase();
+  if (lowered.includes("masters") || lowered.includes("originals")) {
+    return null;
+  }
+  return storedRef;
+}

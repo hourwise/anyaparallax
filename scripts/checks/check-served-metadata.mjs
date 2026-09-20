@@ -119,6 +119,37 @@ const FORBIDDEN = [
   ["an originals object path", "originals/"],
 ];
 
+/**
+ * Anything that would mean an internal PUBLIC storage reference reached markup.
+ *
+ * This is the Slice 07A defect: `r2://images/...` is an internal reference a
+ * browser cannot fetch, and it used to be copied into `src` attributes by the
+ * public projection. It is checked on every served route below.
+ */
+const FORBIDDEN_PUBLIC_STORAGE = [
+  ["the public images scheme", "r2://images/"],
+  ["any r2 scheme", "r2://"],
+  ["the web derivative storage key", "web_storage_key"],
+  ["the thumbnail derivative storage key", "thumbnail_storage_key"],
+];
+
+/** Every `src`/`href` value in the markup that looks like an image reference. */
+function imageReferences(html) {
+  const references = [];
+  for (const match of html.matchAll(/(?:src|href)="([^"]*)"/gi)) {
+    const value = match[1] ?? "";
+    if (value.includes("r2:") || value.includes("/media/") || value.includes("/images/")) {
+      references.push(value);
+    }
+  }
+  return references;
+}
+
+/** The `og:image` content of a page, or null. */
+function ogImageFrom(html) {
+  return metaContent(html, "property", "og:image");
+}
+
 try {
   if (!(await waitForServer())) {
     console.error("dev server did not start");
@@ -208,6 +239,12 @@ try {
   for (const [label, needle] of FORBIDDEN) {
     check(!html.includes(needle), `the served photograph page contains ${label} (${needle})`);
   }
+  // Slice 07A: no INTERNAL public storage reference either. The two scans are
+  // deliberately separate, because they fail for different reasons — one is a
+  // confidentiality breach, the other is a broken image.
+  for (const [label, needle] of FORBIDDEN_PUBLIC_STORAGE) {
+    check(!html.includes(needle), `the served photograph page contains ${label} (${needle})`);
+  }
   // A request whose Host is not the canonical origin must not change the tags:
   // the canonical origin is configured, not derived from the request.
   check(
@@ -262,6 +299,175 @@ try {
   }
   const hiddenGallery = await fetch(`${origin}/gallery/studio-work`);
   check(hiddenGallery.status === 404, `an unpublished gallery returned ${hiddenGallery.status}`);
+
+  // --- A DATABASE-BACKED photograph (Slice 07A) ---------------------------
+  //
+  // The defect this slice repairs was invisible with the development seed set,
+  // because a seed photograph stores `/images/dev/*.svg` — already a public path.
+  // It only appeared once a row held a real `r2://images/...` reference. So the
+  // check creates exactly that: it uploads a photograph through the production
+  // pipeline, so local D1 holds a row whose derivative keys are internal
+  // references, and then inspects the HTML a browser would receive.
+  //
+  // A helper passing while a component bypasses it is the defect being guarded
+  // against, which is why this asserts on SERVED MARKUP and then actually
+  // fetches the URL it finds.
+  const fixture = new FormData();
+  fixture.append(
+    "photos",
+    new Blob([new Uint8Array(readFileSync(resolve(root, "scripts", "fixtures", "photo.jpg")))], {
+      type: "image/jpeg",
+    }),
+    "photo.jpg",
+  );
+  const draftFixture = new FormData();
+  draftFixture.append(
+    "photos",
+    new Blob([new Uint8Array(readFileSync(resolve(root, "scripts", "fixtures", "greyscale.jpg")))], {
+      type: "image/jpeg",
+    }),
+    "greyscale.jpg",
+  );
+
+  const uploaded = await fetch(
+    `${origin}/dev-verification?title=Delivery+Probe&published=true&watermark=off&position=none`,
+    { method: "POST", body: fixture },
+  );
+  const draftUploaded = await fetch(
+    `${origin}/dev-verification?title=Delivery+Draft&published=false&watermark=off&position=none`,
+    { method: "POST", body: draftFixture },
+  );
+  const uploadedBody = await uploaded.json();
+  const draftBody = await draftUploaded.json();
+  const dbRows = uploadedBody.rows ?? [];
+  const publishedRow = dbRows.find((row) => row.published === 1 && row.web_storage_key?.startsWith("r2://images/"));
+  const draftRow = (draftBody.rows ?? []).find(
+    (row) => row.published === 0 && row.web_storage_key?.startsWith("r2://images/"),
+  );
+  check(Boolean(publishedRow), "no DB-backed published photograph could be created for this check");
+  check(Boolean(draftRow), "no DB-backed draft photograph could be created for this check");
+  // The premise of the check: the row genuinely holds an INTERNAL reference.
+  check(
+    publishedRow?.web_storage_key?.startsWith("r2://images/web/") === true,
+    `the fixture row does not hold an internal web reference: ${publishedRow?.web_storage_key}`,
+  );
+  check(
+    publishedRow?.thumbnail_storage_key?.startsWith("r2://images/thumbs/") === true,
+    `the fixture row does not hold an internal thumbnail reference: ${publishedRow?.thumbnail_storage_key}`,
+  );
+
+  if (publishedRow) {
+    const expectedWeb = `/${String(publishedRow.web_storage_key).replace("r2://images/", "media/")}`;
+    const expectedThumb = `/${String(publishedRow.thumbnail_storage_key).replace("r2://images/", "media/")}`;
+
+    const dbPage = await fetch(`${origin}/photo/${publishedRow.slug}`);
+    const dbHtml = await dbPage.text();
+    check(dbPage.status === 200, `the DB-backed photograph returned ${dbPage.status}`);
+
+    // (1) No internal public storage reference anywhere in the markup.
+    for (const [label, needle] of FORBIDDEN_PUBLIC_STORAGE) {
+      check(!dbHtml.includes(needle), `a DB-backed photograph page contains ${label} (${needle})`);
+    }
+    for (const [label, needle] of FORBIDDEN) {
+      check(!dbHtml.includes(needle), `a DB-backed photograph page contains ${label} (${needle})`);
+    }
+
+    // (2) The detail image is the converted PUBLIC path.
+    const detailSrc = /<img[^>]*class="photo-detail__image"[^>]*src="([^"]*)"/i.exec(dbHtml)?.[1] ?? null;
+    check(
+      detailSrc === expectedWeb,
+      `the detail image src is ${JSON.stringify(detailSrc)}, expected ${JSON.stringify(expectedWeb)}`,
+    );
+
+    // (3) The URL it names actually serves a real image, so "loadable" is proved
+    //     rather than assumed. The fetch is guarded so that a regression produces
+    //     a readable failure instead of a URL-parse crash: when the projection is
+    //     broken the value is an `r2://` URI, and the assertion above has already
+    //     reported it.
+    if (typeof detailSrc === "string" && detailSrc.startsWith("/")) {
+      const servedImage = await fetch(`${origin}${detailSrc}`);
+      check(servedImage.status === 200, `the detail image URL returned ${servedImage.status}`);
+      const servedBytes = new Uint8Array(await servedImage.arrayBuffer());
+      check(servedBytes.byteLength > 0, "the detail image URL served an empty body");
+      check(
+        servedBytes[0] === 0x52 && servedBytes[1] === 0x49 && servedBytes[8] === 0x57,
+        `the detail image is not a RIFF/WEBP container: ${[...servedBytes.slice(0, 12)].join(",")}`,
+      );
+    } else {
+      check(false, `the detail image source is not a fetchable public path: ${JSON.stringify(detailSrc)}`);
+    }
+
+    // (4) Every image reference on the page is a public path, not a storage URI.
+    const references = imageReferences(dbHtml);
+    check(references.length > 0, "the DB-backed page rendered no image references at all");
+    check(
+      references.every((value) => value.startsWith("/") || value.startsWith("https://")),
+      `an image reference is not a browser URL: ${JSON.stringify(references.filter((value) => !value.startsWith("/") && !value.startsWith("https://")))}`,
+    );
+    check(
+      references.every((value) => !value.includes("r2:")),
+      `an image reference is an internal storage URI: ${JSON.stringify(references.filter((value) => value.includes("r2:")))}`,
+    );
+    check(
+      references.includes(expectedWeb) || references.includes(expectedThumb),
+      "the converted derivative path does not appear among the page's image references",
+    );
+
+    // (5) The social preview uses the public path as well.
+    check(
+      ogImageFrom(dbHtml) === null ||
+        (ogImageFrom(dbHtml)?.endsWith(expectedWeb.split("/").slice(1).join("/")) ?? false),
+      `og:image is ${JSON.stringify(ogImageFrom(dbHtml))}, expected to end with the public derivative path`,
+    );
+  }
+
+  // --- The other DB-backed surfaces --------------------------------------
+  //
+  // A gallery grid and the homepage both render photographs from the same
+  // projection, so a raw reference there would be the same defect in a second
+  // place. Both are scanned for internal references.
+  const galleryPage = await fetch(`${origin}/gallery/nightlife`);
+  const galleryHtml = await galleryPage.text();
+  check(galleryPage.status === 200, `a gallery page returned ${galleryPage.status}`);
+  if (publishedRow) {
+    check(
+      galleryHtml.includes(`/photo/${publishedRow.slug}`) ||
+        !galleryHtml.includes("photo-figure__image"),
+      "the gallery did not list the uploaded photograph, so the scan proves nothing",
+    );
+  }
+  for (const [label, needle] of FORBIDDEN_PUBLIC_STORAGE) {
+    check(!galleryHtml.includes(needle), `a gallery page contains ${label} (${needle})`);
+  }
+
+  for (const route of ["/", "/galleries"]) {
+    const response = await fetch(`${origin}${route}`);
+    const routeHtml = await response.text();
+    check(response.status === 200, `${route} returned ${response.status}`);
+    for (const [label, needle] of FORBIDDEN_PUBLIC_STORAGE) {
+      check(!routeHtml.includes(needle), `${route} contains ${label} (${needle})`);
+    }
+    check(
+      imageReferences(routeHtml).every((value) => !value.includes("r2:")),
+      `${route} renders an internal storage reference into an image attribute`,
+    );
+  }
+
+  // --- The draft stays unreachable ---------------------------------------
+  if (draftRow) {
+    const draftPage = await fetch(`${origin}/photo/${draftRow.slug}`);
+    check(draftPage.status === 404, `a DB-backed draft returned ${draftPage.status}, expected 404`);
+    const draftHtml = await draftPage.text();
+    check(!draftHtml.includes("og:image"), "a DB-backed draft served social metadata");
+    // Its derivative must also be refused, which is the Slice 06 publication rule
+    // still holding for a row that genuinely exists in the bucket.
+    const draftDerivative = `/${String(draftRow.web_storage_key).replace("r2://images/", "media/")}`;
+    const draftMedia = await fetch(`${origin}${draftDerivative}`);
+    check(
+      draftMedia.status === 404,
+      `an unpublished derivative returned ${draftMedia.status}, expected 404`,
+    );
+  }
 } finally {
   await shutdown();
 }

@@ -27,9 +27,11 @@ const {
   normaliseSiteOrigin,
   siteOriginFrom,
 } = await import("../../app/data/canonical-origin.ts");
-const { metadataTags, photoMetadataFor, publicPreviewPath } = await import(
-  "../../app/engagement/metadata.ts"
+const { publicImagePathFrom, publicRefUrl, refFromPublicUrl } = await import(
+  "../../app/data/storage.ts"
 );
+const { toPublicPhoto } = await import("../../app/data/project.ts");
+const { metadataTags, photoMetadataFor } = await import("../../app/engagement/metadata.ts");
 const { check, note, report } = await import("./report.mjs");
 
 const CANONICAL = "https://anyaparallax.co.uk";
@@ -101,15 +103,31 @@ check(
   "an absolute path escaped the canonical origin",
 );
 
-// --- The preview image is public or absent --------------------------------
+// --- The public image path boundary (Slice 07A) ---------------------------
 
+// `publicImagePathFrom` is where a stored reference becomes something a browser
+// may fetch, and it is the function the PUBLIC PROJECTION now uses. Both
+// legitimate reference shapes must convert, and every private shape must be
+// refused — returning null so the caller OMITS the image rather than guessing.
 check(
-  publicPreviewPath("r2://images/web/photo-1/web.webp") === "/media/web/photo-1/web.webp",
+  publicImagePathFrom("r2://images/web/photo-1/web.webp") === "/media/web/photo-1/web.webp",
   "a production derivative key did not become a public media path",
 );
 check(
-  publicPreviewPath("/images/dev/red-glow.svg") === "/images/dev/red-glow.svg",
+  publicImagePathFrom("/images/dev/red-glow.svg") === "/images/dev/red-glow.svg",
   "a development public asset path was refused",
+);
+check(
+  publicRefUrl("r2://images/web/photo-1/web.webp") === "/media/web/photo-1/web.webp",
+  "the storage-key-only conversion changed behaviour",
+);
+check(
+  publicRefUrl("/images/dev/red-glow.svg") === null,
+  "the storage-key-only conversion accepted a plain site path",
+);
+check(
+  refFromPublicUrl("/media/web/photo-1/web.webp") === "r2://images/web/photo-1/web.webp",
+  "the public path does not round-trip back to its storage key",
 );
 for (const [value, label] of [
   ["r2://masters/originals/photo-1/master.tif", "a private master key"],
@@ -120,10 +138,98 @@ for (const [value, label] of [
   ["//evil.example/web.webp", "a protocol-relative path"],
   ["https://evil.example/web.webp", "an absolute URL"],
   ["", "an empty value"],
+  [undefined, "an undefined value"],
+  [null, "a null value"],
+  [42, "a non-string value"],
 ]) {
-  check(publicPreviewPath(value) === null, `${label} produced a preview path`);
+  check(publicImagePathFrom(value) === null, `${label} produced a public image path`);
 }
-note("preview path: production keys convert, every private shape is refused");
+note("public image path: production keys convert, every private shape is refused");
+
+// --- The PROJECTION is where the repair lives -----------------------------
+
+/**
+ * A minimal persistence row, so the projection can be driven directly.
+ *
+ * This is the layer the defect was in: `toPublicPhoto` used to copy the stored
+ * key into the public projection, and components then emitted it as a `src`.
+ */
+function photoRecordWith(webStorageKey, thumbnailStorageKey) {
+  return {
+    id: "photo-1",
+    title: "Closing time",
+    slug: "closing-time",
+    description: "The last few minutes of a night, picked out in red.",
+    galleryId: "gallery-nightlife",
+    tags: [],
+    location: null,
+    captureDate: "2026-08-02",
+    width: 1080,
+    height: 720,
+    orientation: "landscape",
+    originalStorageKey: "r2://masters/originals/photo-1/master.tif",
+    webStorageKey,
+    thumbnailStorageKey,
+    watermarkEnabled: false,
+    watermarkPosition: "bottom-right",
+    featured: false,
+    featuredVariant: "a",
+    published: true,
+    printAvailable: false,
+    createdAt: "2026-08-02T12:00:00.000Z",
+    updatedAt: "2026-08-05T12:00:00.000Z",
+    publishedAt: "2026-08-05T20:00:00.000Z",
+  };
+}
+
+const projected = toPublicPhoto(
+  photoRecordWith("r2://images/web/photo-1/web.webp", "r2://images/thumbs/photo-1/thumb.webp"),
+);
+check(
+  projected.webImagePath === "/media/web/photo-1/web.webp",
+  `the projection produced ${JSON.stringify(projected.webImagePath)} for the web derivative`,
+);
+check(
+  projected.thumbnailImagePath === "/media/thumbs/photo-1/thumb.webp",
+  `the projection produced ${JSON.stringify(projected.thumbnailImagePath)} for the thumbnail`,
+);
+// The decisive assertion: no internal storage reference survives the projection.
+for (const [field, value] of [
+  ["webImagePath", projected.webImagePath],
+  ["thumbnailImagePath", projected.thumbnailImagePath],
+]) {
+  check(
+    typeof value !== "string" || !/^r2:/i.test(value),
+    `the projection left a storage URI in ${field}: ${JSON.stringify(value)}`,
+  );
+}
+check(
+  !("webStorageKey" in projected) && !("thumbnailStorageKey" in projected),
+  "the public projection still exposes a storage-key field",
+);
+check(
+  !("originalStorageKey" in projected),
+  "the public projection exposes the private master key",
+);
+check(
+  !JSON.stringify(projected).includes("masters"),
+  "the public projection mentions the private domain",
+);
+// A seed photograph keeps working: its stored reference is already a public path.
+const projectedSeed = toPublicPhoto(photoRecordWith("/images/dev/red-glow.svg", "/images/dev/red-glow.svg"));
+check(
+  projectedSeed.webImagePath === "/images/dev/red-glow.svg",
+  `a development seed image did not survive the projection: ${JSON.stringify(projectedSeed.webImagePath)}`,
+);
+// A private reference fails closed in the projection too.
+const projectedPrivate = toPublicPhoto(
+  photoRecordWith("r2://masters/originals/photo-1/master.tif", "/originals/photo-1/master.tif"),
+);
+check(
+  projectedPrivate.webImagePath === null && projectedPrivate.thumbnailImagePath === null,
+  "a private stored reference produced a public image path in the projection",
+);
+note("projection: derivative keys and seed paths convert, private references become null");
 
 // --- The exact metadata for a representative photograph -------------------
 
@@ -131,7 +237,8 @@ const input = {
   slug: "closing-time",
   title: "Closing time",
   description: "The last few minutes of a night, picked out in red.",
-  webStorageKey: "r2://images/web/closing-time/web.webp",
+  // The metadata receives a PUBLIC PATH, exactly as the projection produces it.
+  webImagePath: "/media/web/closing-time/web.webp",
   fallbackDescription: "Site description",
   siteName: "Anyaparallax Photography",
 };
@@ -197,12 +304,10 @@ check(
   "the canonical link tag does not carry the canonical URL",
 );
 
-// A private reference must OMIT the image tags rather than substitute anything.
-const privateMetadata = photoMetadataFor(CANONICAL, {
-  ...input,
-  webStorageKey: "r2://masters/originals/closing-time/master.tif",
-});
-check(privateMetadata.image === null, "a private master produced a preview image");
+// A projection that refused the stored reference produces a null path, and the
+// image tags are then OMITTED rather than substituted with anything.
+const privateMetadata = photoMetadataFor(CANONICAL, { ...input, webImagePath: null });
+check(privateMetadata.image === null, "a null public path produced a preview image");
 const privateTags = metadataTags(privateMetadata);
 const privateKeys = privateTags.map(descriptorKey);
 check(!privateKeys.includes("og:image"), "og:image was emitted for a photograph with no public preview");
@@ -211,10 +316,27 @@ check(
   !JSON.stringify(privateTags).includes("masters"),
   "a private reference reached the metadata tags",
 );
+// End to end through the real projection: a private stored reference yields no
+// preview image anywhere in the metadata.
+const privateProjected = toPublicPhoto(
+  photoRecordWith("r2://masters/originals/photo-1/master.tif", "r2://masters/originals/photo-1/master.tif"),
+);
+const privateEndToEnd = photoMetadataFor(CANONICAL, {
+  ...input,
+  webImagePath: privateProjected.webImagePath,
+});
+check(
+  privateEndToEnd.image === null,
+  "a private stored reference produced a social preview image",
+);
+check(
+  !JSON.stringify(metadataTags(privateEndToEnd)).includes("master"),
+  "a private reference reached the tags through the projection",
+);
 note(`tags verified: ${tags.length} for a public preview, ${privateTags.length} when the image is omitted`);
 
 report(
-  "Metadata boundary check passed: the canonical origin is configuration rather than the request, production " +
-    "derivative keys become public media paths, every private reference is refused and omits the image tags, " +
-    "and the emitted tag set matches the required canonical/OpenGraph/Twitter shape.",
+  "Metadata boundary check passed: the canonical origin is configuration rather than the request, the public " +
+    "projection converts derivative keys to media paths and refuses every private shape, omitted images stay " +
+    "omitted rather than substituted, and the emitted tag set matches the required canonical/OpenGraph/Twitter shape.",
 );

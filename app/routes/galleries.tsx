@@ -68,11 +68,11 @@ export default function GalleriesRoute() {
                 to={galleryPath(gallery.slug)}
                 title={`${gallery.name} gallery`}
               >
-                {cover ? (
+                {cover && cover.thumbnailImagePath ? (
                   <span className="collection-card__media">
                     <img
                       className="collection-card__image"
-                      src={cover.thumbnailStorageKey}
+                      src={cover.thumbnailImagePath}
                       alt={`Development placeholder for the ${gallery.name} cover photograph.`}
                       loading="lazy"
                       decoding="async"

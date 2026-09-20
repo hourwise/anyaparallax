@@ -116,6 +116,14 @@ export function aspectRatioOf(photo: Pick<PublicPhoto, "width" | "height">): str
  *
  * Fields added to `PhotoRecord` are NOT public by default: add them here only
  * when the public UI genuinely needs them.
+ *
+ * IMAGE FIELDS ARE PATHS, NOT STORAGE KEYS (Slice 07A). `webImagePath` and
+ * `thumbnailImagePath` are browser-facing PUBLIC site paths — `/media/...` for a
+ * DB-backed derivative, `/images/dev/...` for a development seed photograph —
+ * already converted by `publicImagePathFrom()` in `project.ts`. They are named
+ * for what they are so that a component cannot mistake one for a storage key and
+ * render `r2://...` into a `src`; the type system refuses the old names outright.
+ * A component that needs an image reads one of these and emits it directly.
  */
 export type PublicPhoto = {
   readonly id: string;
@@ -131,9 +139,14 @@ export type PublicPhoto = {
   readonly width: number;
   readonly height: number;
   readonly orientation: PhotoOrientation;
-  /** Public derivatives only. The private master key is deliberately absent. */
-  readonly webStorageKey: string;
-  readonly thumbnailStorageKey: string;
+  /**
+   * Browser-facing public path for the display derivative, or null when the
+   * stored reference could not safely be converted. The private master key is
+   * deliberately absent, and a null must be omitted rather than substituted.
+   */
+  readonly webImagePath: string | null;
+  /** Browser-facing public path for the thumbnail derivative, or null. */
+  readonly thumbnailImagePath: string | null;
   readonly featured: boolean;
   /** Editorial grid slot for featured presentation; presentation-only. */
   readonly featuredVariant: string;

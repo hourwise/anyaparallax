@@ -20,7 +20,6 @@
 import type { MetaDescriptor } from "react-router";
 
 import { canonicalUrl } from "../data/canonical-origin";
-import { publicRefUrl } from "../data/storage";
 import { photoPath } from "../lib/paths";
 
 /** The document and social metadata for one photograph page. */
@@ -42,12 +41,14 @@ export type PhotoMetadataInput = {
   /** The photograph's own description, or an empty string. */
   readonly description: string;
   /**
-   * The stored public derivative reference. Accepts either a storage key
-   * (`r2://images/...`, the shape production rows hold) or a site-relative
-   * public path (the shape the development seed set holds, `/images/dev/...`).
-   * A private reference is refused rather than converted.
+   * The photograph's browser-facing PUBLIC image path, as produced by the public
+   * projection (`PublicPhoto.webImagePath`). This is a PATH, not a storage key:
+   * the conversion from a stored reference happens once, in the projection, so
+   * there is a single definition of how a derivative becomes a URL. A null here
+   * means the projection refused the reference, and the preview image is then
+   * omitted.
    */
-  readonly webStorageKey: string;
+  readonly webImagePath: string | null;
   /** Site description, used when the photograph has none of its own. */
   readonly fallbackDescription: string;
   /** Site name, appended to the document title. */
@@ -55,56 +56,20 @@ export type PhotoMetadataInput = {
 };
 
 /**
- * The PUBLIC, site-relative path for a stored derivative reference, or null.
- *
- * Two reference shapes reach this function and both are legitimate:
- *
- *   `r2://images/web/<id>/web.webp`  a production row, converted through the
- *                                    public media boundary (`/media/...`)
- *   `/images/dev/<name>.svg`         a development seed photograph, which is
- *                                    already a public site path
- *
- * Anything else yields null, and a null preview image is OMITTED rather than
- * substituted. That matters most for the private shapes: `r2://masters/...` and
- * a path under `/originals/` are refused here, so a social card can never be
- * built from a print-quality master. The check for the private prefix is
- * deliberately explicit rather than relying on "it did not match the public
- * rules", because a leak is the failure that would escape the site entirely.
- */
-export function publicPreviewPath(storedRef: string): string | null {
-  const publicPath = publicRefUrl(storedRef);
-  if (publicPath !== null) {
-    return publicPath;
-  }
-  if (/^r2:/i.test(storedRef)) {
-    // A storage reference that is not a public image: a private master, or an
-    // unknown domain. Never converted.
-    return null;
-  }
-  if (!storedRef.startsWith("/") || storedRef.startsWith("//")) {
-    return null;
-  }
-  if (storedRef.toLowerCase().includes("masters") || storedRef.toLowerCase().includes("originals")) {
-    return null;
-  }
-  return storedRef;
-}
-
-/**
  * Build the page's metadata.
  *
- * `image` is null when no public preview may be published. Callers must treat
- * null as "publish no preview image", never as "use the original".
+ * `image` is null when the projection could not produce a public preview path.
+ * Callers must treat null as "publish no preview image", never as "use the
+ * original".
  */
 export function photoMetadataFor(origin: string, input: PhotoMetadataInput): PhotoMetadata {
-  const publicPath = publicPreviewPath(input.webStorageKey);
   return {
     title: `${input.title} — ${input.siteName}`,
     // A photograph with no description of its own still needs one for a social
     // card, and the site description is the honest thing to use.
     description: input.description.trim().length > 0 ? input.description : input.fallbackDescription,
     canonical: canonicalUrl(origin, photoPath(input.slug)),
-    image: publicPath === null ? null : canonicalUrl(origin, publicPath),
+    image: input.webImagePath === null ? null : canonicalUrl(origin, input.webImagePath),
     type: "article",
   };
 }

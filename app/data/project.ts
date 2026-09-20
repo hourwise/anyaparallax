@@ -1,5 +1,5 @@
 /**
- * Shared projection mappers (Slice 03, unchanged in Slice 04).
+ * Shared projection mappers (Slice 03; public-image delivery repaired in Slice 07A).
  *
  * These turn persistence records into the public view types. They are the ONLY
  * place where persistence fields are chosen for public consumption, and they
@@ -8,6 +8,19 @@
  *
  * `originalStorageKey` is deliberately never copied: it locates the private
  * archival/print master and must not reach a loader payload.
+ *
+ * PUBLIC IMAGE DELIVERY (Slice 07A). Stored image references are converted HERE,
+ * at the single boundary every public read passes through, rather than at each
+ * render site. That is the repair for a defect where `toPublicPhoto` copied the
+ * raw `r2://images/...` key into the public projection and components emitted it
+ * as an `src`, which a browser cannot load. Converting here means a public
+ * loader payload cannot carry an internal storage reference at all, and a
+ * component that tries to render one no longer compiles, because the public
+ * fields are named `webImagePath` / `thumbnailImagePath`.
+ *
+ * The conversion is not a formatting step: `publicImagePathFrom()` refuses a
+ * private master, an unknown storage domain and an `originals/` path, returning
+ * null. A null is meant to be omitted, never replaced with a guess.
  */
 import type {
   GalleryRecord,
@@ -17,6 +30,7 @@ import type {
   PublicPhoto,
   WatermarkPosition,
 } from "./model";
+import { publicImagePathFrom } from "./storage";
 
 const watermarkPositions: readonly WatermarkPosition[] = [
   "bottom-right",
@@ -41,7 +55,13 @@ export function orientationOf(width: number, height: number): PhotoOrientation {
   return width > height ? "landscape" : "portrait";
 }
 
-/** Persistence photograph → public projection. */
+/**
+ * Persistence photograph → public projection.
+ *
+ * The stored derivative references are converted to browser-facing public paths
+ * here, so no public loader payload can carry an internal storage reference. The
+ * master is neither converted nor copied.
+ */
 export function toPublicPhoto(photo: PhotoRecord): PublicPhoto {
   return {
     id: photo.id,
@@ -55,8 +75,8 @@ export function toPublicPhoto(photo: PhotoRecord): PublicPhoto {
     width: photo.width,
     height: photo.height,
     orientation: photo.orientation,
-    webStorageKey: photo.webStorageKey,
-    thumbnailStorageKey: photo.thumbnailStorageKey,
+    webImagePath: publicImagePathFrom(photo.webStorageKey),
+    thumbnailImagePath: publicImagePathFrom(photo.thumbnailStorageKey),
     featured: photo.featured,
     featuredVariant: photo.featuredVariant,
     printAvailable: photo.printAvailable,

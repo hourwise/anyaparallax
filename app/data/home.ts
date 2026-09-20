@@ -51,7 +51,11 @@ export const aboutPreview = {
 export type HomepagePhotoCard = {
   readonly id: string;
   readonly slug: string;
-  readonly photo: string;
+  /**
+   * Browser-facing PUBLIC image path, or null when the stored reference could
+   * not be converted. `src={card.photo}` is only rendered when it is a string.
+   */
+  readonly photo: string | null;
   readonly alt: string;
   readonly ratio: string;
   readonly title: string;
@@ -66,7 +70,8 @@ export type HomepageGalleryCard = {
   readonly id: string;
   readonly name: string;
   readonly to: string;
-  readonly cover: { photo: string; alt: string } | null;
+  /** Cover image path (or null) and its alternative text. */
+  readonly cover: { photo: string | null; alt: string } | null;
   readonly count: number;
   readonly description: string;
 };
@@ -86,7 +91,11 @@ export function toPhotoCard(photo: PublicPhotoWithGallery): HomepagePhotoCard {
   return {
     id: photo.id,
     slug: photo.slug,
-    photo: photo.webStorageKey,
+    // A PUBLIC path from the projection, never a storage key: `photo` is emitted
+    // straight into an `src`. When the projection refused the stored reference
+    // this is null, and the card renders without an image rather than with an
+    // unloadable one.
+    photo: photo.webImagePath,
     alt: photoAlt(photo),
     ratio: aspectRatioOf(photo),
     title: photo.title,
@@ -109,7 +118,7 @@ export function toGalleryCard(
     to: galleryPath(gallery.slug),
     cover: cover
       ? {
-          photo: cover.thumbnailStorageKey,
+          photo: cover.thumbnailImagePath,
           alt: `Development placeholder for the ${gallery.name} cover photograph.`,
         }
       : null,

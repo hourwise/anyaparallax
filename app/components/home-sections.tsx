@@ -128,7 +128,7 @@ export function ExploreGalleriesSection({
         {galleries.map((gallery) => (
           <li className="collections__item" key={gallery.id}>
             <Link className="collection-card" to={gallery.to} title={`${gallery.name} gallery`}>
-              {gallery.cover ? (
+              {gallery.cover?.photo ? (
                 <span className="collection-card__media">
                   <img
                     className="collection-card__image"

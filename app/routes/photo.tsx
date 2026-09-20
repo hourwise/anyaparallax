@@ -39,7 +39,10 @@ export async function loader({
     slug: photo.slug,
     title: photo.title,
     description: photo.description,
-    webStorageKey: photo.webStorageKey,
+    // A PUBLIC path from the projection, not a storage key: the conversion
+    // happens once, in `toPublicPhoto`, so the metadata cannot disagree with the
+    // image the page renders.
+    webImagePath: photo.webImagePath,
     fallbackDescription: site.description,
     siteName: `${site.name} ${site.secondary}`,
   });
@@ -116,16 +119,28 @@ export default function PhotoRoute() {
         <div
           className={`photo-detail__media photo-detail__media--${photo.orientation}`}
         >
-          <img
-            className="photo-detail__image"
-            src={photo.webStorageKey}
-            alt={`Development placeholder for “${photo.title}”.`}
-            loading="eager"
-            decoding="async"
-            sizes="(min-width: 75rem) 55vw, 100vw"
-            width={photo.width}
-            height={photo.height}
-          />
+          {/*
+            `photo.webImagePath` is a PUBLIC path produced by the projection. When
+            it is null the stored reference could not safely be converted, so no
+            image is rendered: an unloadable `src` would be worse than an empty
+            frame, and substituting the original would be worse still.
+          */}
+          {photo.webImagePath ? (
+            <img
+              className="photo-detail__image"
+              src={photo.webImagePath}
+              alt={`Development placeholder for “${photo.title}”.`}
+              loading="eager"
+              decoding="async"
+              sizes="(min-width: 75rem) 55vw, 100vw"
+              width={photo.width}
+              height={photo.height}
+            />
+          ) : (
+            <span className="photo-detail__image photo-detail__image--unavailable">
+              This photograph’s display image is unavailable.
+            </span>
+          )}
         </div>
         <figcaption className="photo-detail__caption">
           <h1>{photo.title}</h1>
@@ -217,11 +232,16 @@ export default function PhotoRoute() {
             </p>
           </header>
           <div className="latest-grid">
-            {related.map((item) => (
+            {related
+              .filter(
+                (item): item is typeof item & { thumbnailImagePath: string } =>
+                  item.thumbnailImagePath !== null,
+              )
+              .map((item) => (
               <PhotoFigure
                 className="latest-grid__item"
                 key={item.id}
-                src={item.thumbnailStorageKey}
+                src={item.thumbnailImagePath}
                 alt={`Development placeholder for “${item.title}”.`}
                 ratio={`${item.width} / ${item.height}`}
                 sizes="(min-width: 62rem) 25vw, (min-width: 40rem) 50vw, 100vw"
@@ -231,7 +251,7 @@ export default function PhotoRoute() {
                   title: `${item.title} — photograph page`,
                 }}
               />
-            ))}
+              ))}
           </div>
         </section>
       ) : null}

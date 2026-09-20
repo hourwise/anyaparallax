@@ -106,6 +106,12 @@ const requiredMarkers = [
   ["app/routes/media.ts", "serveMedia"],
   ["app/routes/admin/upload.tsx", "ingestUploads"],
   ["app/data/storage.ts", "PUBLIC_MEDIA_PREFIX"],
+  // Slice 07A: the public image delivery boundary and the projection that uses it.
+  ["app/data/storage.ts", "publicImagePathFrom"],
+  ["app/data/project.ts", "publicImagePathFrom"],
+  ["app/data/model.ts", "webImagePath"],
+  ["app/data/model.ts", "thumbnailImagePath"],
+  ["app/components/PhotoFigure.tsx", "photo-figure__image--unavailable"],
   // The production processor must be the platform binding, not a local codec.
   ["wrangler.jsonc", "IMAGE_TRANSFORMS"],
   // Slice 07: engagement, sharing and the canonical/social metadata boundary.
@@ -117,7 +123,7 @@ const requiredMarkers = [
   ["app/engagement/engagement.server.ts", "likePhoto"],
   ["app/engagement/store.server.ts", "INSERT OR IGNORE"],
   ["app/engagement/share.ts", "isSameOriginRequest"],
-  ["app/engagement/metadata.ts", "publicPreviewPath"],
+  ["app/engagement/metadata.ts", "webImagePath"],
   ["app/engagement/metadata.ts", "summary_large_image"],
   ["app/data/canonical-origin.ts", "DEFAULT_PUBLIC_SITE_ORIGIN"],
   ["app/components/EngagementControls.tsx", "EngagementControls"],
@@ -137,7 +143,22 @@ const requiredMarkers = [
 const privateFreeModules = [
   ["app/engagement/metadata.ts", /r2:\/\/masters|originalStorageKey|original_storage_key/],
   ["app/routes/photo.tsx", /r2:\/\/masters|originalStorageKey|original_storage_key/],
+  // Slice 07A: the public projection is the boundary that converts stored
+  // references, so it must contain no private vocabulary of its own.
+  ["app/data/project.ts", /r2:\/\/masters|originalStorageKey|original_storage_key/],
 ];
+
+/**
+ * A public component or route must never render a raw storage reference.
+ *
+ * This is the Slice 07A defect stated as a rule. `src={item.thumbnailStorageKey}`
+ * is exactly how an internal `r2://` reference reached browser markup; the public
+ * projection now produces `webImagePath` / `thumbnailImagePath`, and this scan
+ * refuses the shapes that bypassed it so a future component cannot quietly
+ * reintroduce one. It runs over every route, layout and component.
+ */
+const storageKeyRenderPattern =
+  /src=\{[^}]*[Ss]torageKey[^}]*\}|href=\{[^}]*[Ss]torageKey[^}]*\}|src=\{["'`]r2:\/\//;
 
 /**
  * Gallery and photograph content must come from the data layer, so these route
@@ -203,6 +224,11 @@ for (const directory of ["app/routes", "app/components", "app/layouts"]) {
     }
     if (directory === "app/components" && serverImportPattern.test(source)) {
       failures.push(`${directory}/${name} imports a server-only module`);
+    }
+    if (storageKeyRenderPattern.test(source)) {
+      failures.push(
+        `${directory}/${name} renders a storage reference into a browser attribute; use the public projection's image path`,
+      );
     }
   }
 }
