@@ -1,0 +1,55 @@
+-- Anyaparallax V1 — authorised-user email identity uniqueness (Slice 05 repair 01).
+--
+-- WHY THIS MIGRATION EXISTS
+--
+-- The authentication boundary treats an email address as an IDENTITY, not as an
+-- opaque primary key: a verified Access assertion is normalised (trimmed and
+-- lower-cased) by `normaliseEmail()` in `app/auth/identity.ts`, and the account
+-- directory resolves that normalised value to at most one role.
+--
+-- Migration 0001 declared `email TEXT NOT NULL UNIQUE`. That constraint is
+-- case-SENSITIVE, because SQLite's default collation is BINARY. Case variants
+-- therefore satisfied it and could coexist:
+--
+--   anya@example.test   →  photographer
+--   ANYA@example.test   →  manager
+--
+-- Both rows denote the same identity to the application but carried different
+-- authorities, so a case-insensitive lookup would have had to choose between
+-- them. That is an ambiguity in the authority source itself, and no
+-- application-level check can remove it after the fact: the database has to
+-- refuse the second row.
+--
+-- THE INVARIANT ENFORCED HERE
+--
+--   At most one `users` row may exist per identity, where the identity of an
+--   email address is its `COLLATE NOCASE` (ASCII case-folded) value.
+--
+-- Expressed as SQL:
+--
+--   CREATE UNIQUE INDEX idx_users_email_identity_nocase
+--     ON users (email COLLATE NOCASE);
+--
+-- The index also serves the account lookup, which compares the stored column
+-- against the normalised address with the same collation
+-- (`WHERE email COLLATE NOCASE = ?1` in `app/auth/accounts.server.ts`), so the
+-- uniqueness rule and the lookup rule are one and the same rule.
+--
+-- NOCASE folds ASCII A-Z only, which is exactly what `normaliseEmail()`'s
+-- `toLowerCase()` does for anything the identity boundary can produce, so the
+-- index cannot disagree with the application's normalisation.
+--
+-- NOTES
+--
+--   * `CREATE UNIQUE INDEX` is deliberately NOT `IF NOT EXISTS`: if a case
+--     variant already exists, this migration must FAIL loudly rather than
+--     silently leave the ambiguity in place. Resolve the duplicate rows and
+--     apply the migration again.
+--   * The users-table constraints from 0001 are untouched. `email TEXT NOT NULL
+--     UNIQUE` remains, so both uniqueness rules are enforced; the BINARY one is
+--     simply no longer the only one.
+--   * 0001 is accepted history and is never rewritten; this repair adds a new
+--     migration so it applies to databases that are already migrated.
+
+CREATE UNIQUE INDEX idx_users_email_identity_nocase
+  ON users (email COLLATE NOCASE);

@@ -7,15 +7,59 @@
  * the shared visibility/projection suite against `D1PortfolioRepository` — so
  * the production data path is proved equivalent to the local one.
  *
+ * Slice 05 adds the authorised-user directory checks, and repair 01 adds the
+ * identity-uniqueness checks: the unique NOCASE index exists, a case variant of
+ * an authorised address cannot become a second row, a lookup by any casing
+ * resolves the one account, the lookup is served by that index, and the D1 role
+ * decisions are unchanged for photographer, manager, inactive and unknown
+ * identities. Probes run inside rolled-back transactions, so the fixture the
+ * other checks read is never mutated.
+ *
  * Nothing contacts Cloudflare: `wrangler d1 execute --local` is used throughout.
  */
+import { RouterContextProvider } from "react-router";
+
 import { findAccountByEmail, listAccounts } from "../../app/auth/accounts.server.ts";
+import { ACCOUNT_BY_EMAIL_SQL } from "../../app/auth/accounts.ts";
+import { requireAdminAccess, requireManagerAccess } from "../../app/auth/authorization.server.ts";
+import { appContext } from "../../app/data/context.ts";
 import { D1PortfolioRepository } from "../../app/data/repository.d1.server.ts";
 import { seed } from "../../app/data/seed.ts";
 import { MASTERS_SCHEME } from "../../app/data/storage.ts";
 import { createD1TestDatabase } from "./d1-harness.mjs";
 import { check, note, report } from "./report.mjs";
 import { runRepositoryChecks } from "./repository-checks.mjs";
+
+/**
+ * A `RouterContextProvider` carrying an environment, exactly as the Worker entry
+ * builds it, so the D1 account source can be driven through the real guards.
+ */
+function contextFor(env) {
+  const context = new RouterContextProvider();
+  context.set(appContext, { env });
+  return context;
+}
+
+/** The status of a guard denial (a thrown `data()` value), or null if it allowed the request. */
+function denialStatus(error) {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+  const init = error.init;
+  if (init && typeof init.status === "number") {
+    return init.status;
+  }
+  return typeof error.status === "number" ? error.status : null;
+}
+
+/** Run a guard and report either the authorised user or the denial status. */
+async function attemptGuard(guard, request, context) {
+  try {
+    return { user: await guard(request, context), status: null };
+  } catch (error) {
+    return { user: null, status: denialStatus(error) };
+  }
+}
 
 const label = "d1";
 const database = await createD1TestDatabase({ seed, label });
@@ -299,6 +343,212 @@ check(
   "D1 account lookup invented an account for an unknown email",
 );
 
+// --- Authorised-identity uniqueness (Slice 05 repair 01) ------------------
+
+// Case variants of one address are ONE identity. Migration 0002 enforces that
+// at the database layer with a unique NOCASE index, and the account lookup must
+// use the same rule so authority can never be ambiguous.
+const identityIndexRow = database.query(
+  "SELECT name, sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'users' AND name = 'idx_users_email_identity_nocase'",
+)[0];
+check(
+  Boolean(identityIndexRow),
+  "migration 0002 did not create the idx_users_email_identity_nocase index",
+);
+check(
+  (identityIndexRow?.sql ?? "").includes("UNIQUE"),
+  "idx_users_email_identity_nocase is not UNIQUE",
+);
+check(
+  (identityIndexRow?.sql ?? "").includes("COLLATE NOCASE"),
+  "idx_users_email_identity_nocase does not use COLLATE NOCASE",
+);
+const userIndexes = database
+  .query("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'users' ORDER BY name")
+  .map((row) => row.name);
+check(
+  userIndexes.includes("idx_users_email_identity_nocase"),
+  `users indexes are ${userIndexes.join(", ")}`,
+);
+note(`users indexes: ${userIndexes.join(", ")}`);
+
+// Migrations 0001 and 0002 applied from an empty state, in order.
+const appliedMigrations = database
+  .query("SELECT name FROM d1_migrations ORDER BY id")
+  .map((row) => row.name);
+check(
+  appliedMigrations.join(",") === "0001_initial_schema.sql,0002_user_email_identity_uniqueness.sql",
+  `migrations applied out of order or incomplete: ${appliedMigrations.join(", ")}`,
+);
+
+// The lookup must be served by the NOCASE index rather than by scanning the
+// table with `lower(email)`, so the comparison and the constraint share a rule.
+// The plan is taken from the PRODUCTION query text, so a change to the account
+// lookup is planned here too rather than silently diverging from a copy.
+const accountPlan = database
+  .query(`EXPLAIN QUERY PLAN ${ACCOUNT_BY_EMAIL_SQL}`, "photographer@anyaparallax.test")
+  .map((row) => row.detail)
+  .join(" | ");
+check(
+  accountPlan.includes("idx_users_email_identity_nocase"),
+  `the account lookup does not use the identity index: ${accountPlan}`,
+);
+check(
+  !/SCAN users/.test(accountPlan),
+  `the account lookup scans the whole users table: ${accountPlan}`,
+);
+note(`account lookup plan: ${accountPlan}`);
+
+// The proven probe: insert an authorised address, attempt a case variant as a
+// second row, then resolve the identity through a third casing. All inside a
+// rolled-back transaction, so the fixture the other checks read is untouched.
+const duplicateStatements = [
+  "INSERT INTO users (id, email, role, active, created_at, updated_at) " +
+    "VALUES ('u-probe-identity', 'anya@example.test', 'photographer', 1, '2026-01-01', '2026-01-01')",
+  "INSERT INTO users (id, email, role, active, created_at, updated_at) " +
+    "VALUES ('u-probe-duplicate', 'ANYA@example.test', 'manager', 1, '2026-01-01', '2026-01-01')",
+  "SELECT id, email, role FROM users WHERE email COLLATE NOCASE = 'AnyA@Example.Test'",
+];
+
+// The same invariant across every write path: a row may change its own case
+// (that is still ONE identity), but no statement can leave one identity with two
+// rows, so authority can never be ambiguous.
+const recaseStatements = [
+  "INSERT INTO users (id, email, role, active, created_at, updated_at) " +
+    "VALUES ('u-probe-recase', 'anya@example.test', 'photographer', 1, '2026-01-01', '2026-01-01')",
+  "UPDATE users SET email = 'ANYA@example.test', role = 'manager' WHERE id = 'u-probe-recase'",
+  "SELECT id, email, role FROM users WHERE email COLLATE NOCASE = 'anya@example.test'",
+  "INSERT INTO users (id, email, role, active, created_at, updated_at) " +
+    "VALUES ('u-probe-second', 'AnyA@Example.Test', 'photographer', 1, '2026-01-01', '2026-01-01')",
+];
+
+const duplicateIdentityProbe = database.probeQuery(duplicateStatements);
+const duplicateVerdicts = duplicateIdentityProbe.map((outcome) =>
+  outcome.error === null ? "ok" : outcome.error,
+);
+check(
+  duplicateIdentityProbe.length === duplicateStatements.length,
+  `the duplicate-identity probe ran ${duplicateIdentityProbe.length} of ` +
+    `${duplicateStatements.length} statements: ${JSON.stringify(duplicateVerdicts)}`,
+);
+check(
+  duplicateVerdicts[0] === "ok",
+  `inserting anya@example.test failed: ${JSON.stringify(duplicateVerdicts)}`,
+);
+check(
+  /UNIQUE constraint failed/i.test(duplicateVerdicts[1] ?? ""),
+  `a case variant (ANYA@example.test) was accepted as a second identity: ` +
+    `${JSON.stringify(duplicateVerdicts)}`,
+);
+const identityLookupRows = duplicateIdentityProbe[2].rows;
+check(
+  identityLookupRows.length === 1 && identityLookupRows[0].id === "u-probe-identity",
+  `a case-insensitive lookup did not resolve the one identity row: ` +
+    `${JSON.stringify(identityLookupRows)}`,
+);
+
+// The same invariant across a second write path.
+const recaseProbe = database.probeQuery(recaseStatements);
+const recaseVerdicts = recaseProbe.map((outcome) =>
+  outcome.error === null ? "ok" : outcome.error,
+);
+check(
+  recaseProbe.length === recaseStatements.length,
+  `the re-case probe ran ${recaseProbe.length} of ${recaseStatements.length} statements: ` +
+    `${JSON.stringify(recaseVerdicts)}`,
+);
+check(
+  recaseVerdicts[0] === "ok",
+  `re-casing the one identity row failed: ${JSON.stringify(recaseVerdicts)}`,
+);
+const recasedRows = recaseProbe[2].rows;
+check(
+  recasedRows.length === 1 && recasedRows[0].role === "manager",
+  `re-casing left something other than one identity row: ${JSON.stringify(recasedRows)}`,
+);
+check(
+  /UNIQUE constraint failed/i.test(recaseVerdicts[3] ?? ""),
+  `a case variant was accepted as a second identity after an update: ` +
+    `${JSON.stringify(recaseVerdicts)}`,
+);
+
+// Role behaviour through the real guards, reading authority from these rows: a
+// development identity (resolved through the same account directory) plus the
+// same role sets the /admin and /manager layouts apply.
+const guardEnvironment = { ...d1Environment, ALLOW_DEVELOPMENT_IDENTITY: "true" };
+const photographerAdmin = await attemptGuard(
+  requireAdminAccess,
+  new Request("http://localhost:5173/admin", {
+    headers: { "x-anyaparallax-development-identity": "PHOTOGRAPHER@Anyaparallax.TEST" },
+  }),
+  contextFor(guardEnvironment),
+);
+check(
+  photographerAdmin.user?.role === "photographer",
+  `D1-backed photographer was denied /admin: ${photographerAdmin.status ?? "no denial"}`,
+);
+
+const photographerManager = await attemptGuard(
+  requireManagerAccess,
+  new Request("http://localhost:5173/manager", {
+    headers: {
+      "x-anyaparallax-development-identity": "PHOTOGRAPHER@Anyaparallax.TEST",
+      "x-anyaparallax-role": "manager",
+    },
+  }),
+  contextFor(guardEnvironment),
+);
+check(
+  photographerManager.status === 403,
+  `D1-backed photographer was not denied /manager: ${photographerManager.status ?? "allowed"}`,
+);
+
+const managerManager = await attemptGuard(
+  requireManagerAccess,
+  new Request("http://localhost:5173/manager", {
+    headers: { "x-anyaparallax-development-identity": "MANAGER@Anyaparallax.TEST" },
+  }),
+  contextFor(guardEnvironment),
+);
+check(
+  managerManager.user?.role === "manager",
+  `D1-backed manager was denied /manager: ${managerManager.status ?? "no denial"}`,
+);
+
+const inactiveGuard = await attemptGuard(
+  requireAdminAccess,
+  new Request("http://localhost:5173/admin", {
+    headers: { "x-anyaparallax-development-identity": "deactivated@anyaparallax.test" },
+  }),
+  contextFor(guardEnvironment),
+);
+check(
+  inactiveGuard.status === 403,
+  `a deactivated D1 account was not denied: ${inactiveGuard.status ?? "allowed"}`,
+);
+
+const unknownGuard = await attemptGuard(
+  requireAdminAccess,
+  new Request("http://localhost:5173/admin", {
+    headers: { "x-anyaparallax-development-identity": "stranger@anyaparallax.test" },
+  }),
+  contextFor(guardEnvironment),
+);
+check(
+  unknownGuard.status === 403,
+  `an identity with no D1 account was not denied: ${unknownGuard.status ?? "allowed"}`,
+);
+
+const anonymousGuard = await attemptGuard(
+  requireAdminAccess,
+  new Request("http://localhost:5173/admin"),
+  contextFor(guardEnvironment),
+);
+check(
+  anonymousGuard.status === 401,
+  `an unidentified D1 request was not 401: ${anonymousGuard.status ?? "allowed"}`,
+);
+
 const d1Accounts = await listAccounts(d1Environment);
 check(
   d1Accounts.length === seed.users.length,
@@ -309,6 +559,10 @@ check(
   "D1 directory listed an unsupported role",
 );
 check(d1Accounts[0]?.role === "manager", "D1 directory is not ordered managers-first");
+check(
+  new Set(d1Accounts.map((account) => account.email)).size === d1Accounts.length,
+  "D1 directory listed one identity twice",
+);
 
 // Share events start unconfirmed: V1 only ever records that a share started.
 // The row is removed again so the fixture stays exactly as loaded.
@@ -340,6 +594,15 @@ check(
   database.query("SELECT COUNT(*) AS total FROM galleries WHERE id LIKE 'g-%'")[0]?.total === 0,
   "gallery probes leaked rows into the fixture",
 );
+check(
+  database.query("SELECT COUNT(*) AS total FROM users WHERE id LIKE 'u-probe-%'")[0]?.total === 0,
+  "identity probes leaked rows into the fixture",
+);
+check(
+  database.query("SELECT COUNT(*) AS total FROM users WHERE email COLLATE NOCASE = 'anya@example.test'")[0]
+    ?.total === 0,
+  "the identity probe address leaked into the fixture",
+);
 
 database.close();
 
@@ -347,5 +610,6 @@ report(
   `D1 check passed: schema, ${photoForeignKeys.length + galleryForeignKeys.length} foreign keys, ` +
     `indexes and ${seed.photos.length} fixture photographs verified; ` +
     `repository returns ${visiblePhotos.length} published photographs and keeps ` +
-    `${hiddenPhotoSlugs.length} hidden; ${d1Accounts.length} authorised accounts served from D1.`,
+    `${hiddenPhotoSlugs.length} hidden; ${d1Accounts.length} authorised accounts served from D1 ` +
+    `under a unique case-insensitive email identity.`,
 );

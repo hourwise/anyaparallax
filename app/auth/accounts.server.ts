@@ -17,47 +17,30 @@
  * Server-only: accounts contain personal data (email addresses) and must never
  * reach a public loader payload or the client bundle. Only the authenticated
  * `/admin` and `/manager` surfaces display them, and only to their operator.
+ *
+ * Identity uniqueness (Slice 05 repair 01): an email address denotes exactly one
+ * account, and a case variant of it is the same identity. The database refuses
+ * a second row under a unique NOCASE index
+ * (`migrations/0002_user_email_identity_uniqueness.sql`), and both lookups here
+ * apply the matching rule from `accounts.ts` — the same collation for the
+ * comparison, and a fail-closed refusal to answer when more than one row
+ * answers for one identity.
  */
 import type { AppBindings } from "../data/context";
-import { isAppRole, type UserRecord } from "../data/model";
+import type { UserRecord } from "../data/model";
 import type { D1DatabaseBinding } from "../data/repository.d1.server";
 import { seed } from "../data/seed";
+import {
+  ACCOUNT_BY_EMAIL_SQL,
+  accountForIdentity,
+  soleAccount,
+  toUserRecord,
+  type AccountRow,
+} from "./accounts";
 import { normaliseEmail } from "./identity";
 
 /** The environment values the directory reads. */
 export type AccountEnvironment = Pick<AppBindings, "DB" | "ALLOW_DEVELOPMENT_SEED">;
-
-type UserRow = {
-  id?: unknown;
-  email?: unknown;
-  role?: unknown;
-  active?: unknown;
-  created_at?: unknown;
-  updated_at?: unknown;
-};
-
-/** Map a `users` row defensively: a malformed or unexpected row is not an account. */
-function toUserRecord(row: UserRow): UserRecord | null {
-  if (typeof row.id !== "string" || typeof row.email !== "string") {
-    return null;
-  }
-  if (!isAppRole(row.role)) {
-    return null;
-  }
-  const email = normaliseEmail(row.email);
-  if (email === null) {
-    return null;
-  }
-  return {
-    id: row.id,
-    email,
-    role: row.role,
-    // D1 returns INTEGER 0/1; the harness may return booleans.
-    active: row.active === 1 || row.active === true,
-    createdAt: typeof row.created_at === "string" ? row.created_at : "",
-    updatedAt: typeof row.updated_at === "string" ? row.updated_at : "",
-  };
-}
 
 function isD1Binding(value: unknown): value is D1DatabaseBinding {
   return (
@@ -67,22 +50,35 @@ function isD1Binding(value: unknown): value is D1DatabaseBinding {
   );
 }
 
+/**
+ * Resolve an identity through D1.
+ *
+ * The comparison collation and the row limit come from `accounts.ts` so the
+ * lookup and the database's uniqueness invariant cannot drift apart: the query
+ * is index-backed and case-insensitive, and reading up to two rows lets an
+ * ambiguous directory fail closed (see `soleAccount`) instead of answering with
+ * an arbitrary role.
+ */
 async function findAccountInD1(
   db: D1DatabaseBinding,
   email: string,
 ): Promise<UserRecord | null> {
   const result = await db
-    .prepare(
-      "SELECT id, email, role, active, created_at, updated_at FROM users WHERE lower(email) = ?1 LIMIT 1",
-    )
+    .prepare(ACCOUNT_BY_EMAIL_SQL)
     .bind(email)
-    .all<UserRow>();
-  const row = result.results?.[0];
-  return row ? toUserRecord(row) : null;
+    .all<AccountRow>();
+  return soleAccount(result.results);
 }
 
+/**
+ * Resolve an identity through the development seed users.
+ *
+ * The seed set is another account source and obeys the same rule as the table
+ * (`accountForIdentity`): an identity resolves only when exactly one seed user
+ * matches, so a duplicate can never make local authority depend on array order.
+ */
 function findAccountInSeed(email: string): UserRecord | null {
-  return seed.users.find((user) => normaliseEmail(user.email) === email) ?? null;
+  return accountForIdentity(seed.users, email);
 }
 
 /**
@@ -118,7 +114,7 @@ async function listAccountsInD1(db: D1DatabaseBinding): Promise<readonly UserRec
     .prepare(
       "SELECT id, email, role, active, created_at, updated_at FROM users ORDER BY role ASC, email ASC",
     )
-    .all<UserRow>();
+    .all<AccountRow>();
   return (result.results ?? [])
     .map(toUserRecord)
     .filter((account): account is UserRecord => account !== null);

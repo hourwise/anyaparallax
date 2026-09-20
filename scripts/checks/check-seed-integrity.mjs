@@ -14,6 +14,7 @@ import { toPublicGallery, toPublicPhoto } from "../../app/data/project.ts";
 import { isAppRole } from "../../app/data/model.ts";
 import { seed } from "../../app/data/seed.ts";
 import { MASTERS_SCHEME } from "../../app/data/storage.ts";
+import { normaliseEmail } from "../../app/auth/identity.ts";
 import { check, note, report, walk } from "./report.mjs";
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -87,23 +88,45 @@ for (const gallery of seed.galleries) {
 
 // Authorised users (Slice 05): placeholder identities on the reserved `.test`
 // domain. Real operator addresses are deployment data and never belong here.
+//
+// An email address is an IDENTITY, so uniqueness must hold after the SAME
+// normalisation the authentication boundary applies (`normaliseEmail`): two
+// seed rows that differ only in case are one identity carrying two roles, which
+// the database refuses (migration 0002) and the account lookup fails closed on.
 const userIds = new Set();
 const userEmails = new Set();
+const normalisedUserEmails = new Set();
 for (const user of seed.users) {
   check(!userIds.has(user.id), `duplicate user id ${user.id}`);
   userIds.add(user.id);
   check(!userEmails.has(user.email), `duplicate user email ${user.email}`);
   userEmails.add(user.email);
+
+  const normalised = normaliseEmail(user.email);
+  check(normalised !== null, `user ${user.id} email cannot be normalised for authentication`);
   check(
-    user.email === user.email.trim().toLowerCase(),
-    `user ${user.id} email is not stored normalised`,
+    normalised === user.email,
+    `user ${user.id} email is not stored in the normalised form authentication uses`,
   );
+  check(
+    normalised === null || !normalisedUserEmails.has(normalised),
+    `user ${user.id} duplicates another user's identity after email normalisation`,
+  );
+  if (normalised !== null) {
+    normalisedUserEmails.add(normalised);
+  }
+
   check(isAppRole(user.role), `user ${user.id} has an unsupported role ${String(user.role)}`);
   check(
     user.email.endsWith(".test"),
     `user ${user.id} does not use the reserved .test domain`,
   );
 }
+check(
+  normalisedUserEmails.size === seed.users.length,
+  "seed users do not map one-to-one onto authentication identities",
+);
+note(`seed identities (normalised): ${[...normalisedUserEmails].sort().join(", ")}`);
 
 // --- Projection safety ---------------------------------------------------
 

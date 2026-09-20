@@ -81,6 +81,15 @@ const requiredMarkers = [
   ["migrations/0001_initial_schema.sql", "CREATE TABLE IF NOT EXISTS photos"],
   ["migrations/0001_initial_schema.sql", "original_storage_key"],
   ["migrations/0001_initial_schema.sql", "CREATE TABLE IF NOT EXISTS users"],
+  // Slice 05 repair 01: one case-insensitive identity per authorised email.
+  [
+    "migrations/0002_user_email_identity_uniqueness.sql",
+    "CREATE UNIQUE INDEX idx_users_email_identity_nocase",
+  ],
+  ["migrations/0002_user_email_identity_uniqueness.sql", "COLLATE NOCASE"],
+  ["app/auth/accounts.ts", "ACCOUNT_BY_EMAIL_SQL"],
+  ["app/auth/accounts.ts", "soleAccount"],
+  ["app/auth/accounts.server.ts", "ACCOUNT_BY_EMAIL_SQL"],
 ];
 
 /**

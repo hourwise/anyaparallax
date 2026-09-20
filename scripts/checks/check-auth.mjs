@@ -16,6 +16,11 @@
  *    entirely once Access is configured.
  * 4. Account lookup — active, inactive, unknown, case-insensitive, malformed,
  *    and the fail-loudly behaviour when no user source exists.
+ * 4b. Identity uniqueness (repair 01) — an identity resolves to exactly one
+ *    account: a case variant is the same identity, an AMBIGUOUS directory (two
+ *    rows answering for one address, which the unique NOCASE index should make
+ *    unreachable) fails closed rather than selecting a role, and the seed users
+ *    are unique after the same normalisation authentication applies.
  * 5. Role guards — 401 without identity, 403 for unknown/inactive/wrong role,
  *    deny-by-default for an empty role set, and forged role information in
  *    headers, cookies and the query string being ignored.
@@ -38,6 +43,13 @@ import {
 } from "../../app/auth/identity.ts";
 import { resolveIdentity, verifyAccessToken } from "../../app/auth/identity.server.ts";
 import { findAccountByEmail, listAccounts } from "../../app/auth/accounts.server.ts";
+import {
+  ACCOUNT_BY_EMAIL_SQL,
+  ACCOUNT_IDENTITY_ROW_LIMIT,
+  accountForIdentity,
+  soleAccount,
+  toUserRecord,
+} from "../../app/auth/accounts.ts";
 import {
   authorizeRequest,
   requireAdminAccess,
@@ -133,6 +145,36 @@ function denialMessage(value) {
 async function denialOf(operation) {
   const { error } = await capture(operation);
   return error;
+}
+
+/**
+ * A structural D1 stub that answers the account query with fixed rows.
+ *
+ * The unique NOCASE index makes an ambiguous directory unreachable through real
+ * SQL, so the fail-closed rule cannot be reached through `wrangler`. This stub
+ * supplies the forbidden rows directly and RECORDS THE SQL IT WAS ASKED FOR, so
+ * the check also proves the lookup really did attempt the case-insensitive
+ * comparison and asked for more than one row — that is, that the ambiguity is
+ * detectable at all rather than assumed away by `LIMIT 1`.
+ */
+function accountStub(rows) {
+  const queries = [];
+  return {
+    queries,
+    DB: {
+      prepare(query) {
+        queries.push(query);
+        return {
+          bind() {
+            return this;
+          },
+          async all() {
+            return { results: rows, success: true };
+          },
+        };
+      },
+    },
+  };
 }
 
 // --- 1. Vocabulary --------------------------------------------------------
@@ -374,6 +416,143 @@ expect(
 );
 const unavailableList = await capture(() => listAccounts({}));
 expect(unavailableList.error instanceof Error, "account listing without a user source did not fail loudly");
+
+// --- 4b. Identity uniqueness (repair 01) ----------------------------------
+
+// One email address is one identity. The account query has to compare with the
+// same collation the unique index uses, because `lower(email)` cannot use that
+// index and could disagree with it.
+expect(
+  ACCOUNT_BY_EMAIL_SQL.includes("COLLATE NOCASE"),
+  "the account query does not compare the stored email case-insensitively",
+);
+expect(
+  !/lower\s*\(/i.test(ACCOUNT_BY_EMAIL_SQL),
+  "the account query wraps the stored column in lower(), which cannot use the identity index",
+);
+expect(
+  !/LIMIT\s+1\b/i.test(ACCOUNT_BY_EMAIL_SQL),
+  "the account query takes a single row, so an ambiguous directory could not be detected",
+);
+
+// The guard core: exactly one usable row, or no account at all.
+const identityRow = {
+  id: "user-photographer",
+  email: "Photographer@Anyaparallax.TEST",
+  role: "photographer",
+  active: 1,
+  created_at: "2026-08-01T09:00:00.000Z",
+  updated_at: "2026-08-01T09:00:00.000Z",
+};
+const sole = soleAccount([identityRow]);
+expect(sole?.role === "photographer", "a single identity row did not resolve to its account");
+expect(sole?.email === PHOTOGRAPHER_EMAIL, "a resolved account is not stored normalised");
+expect(soleAccount([]) === null, "an identity with no rows resolved to an account");
+expect(soleAccount(undefined) === null, "a missing result set resolved to an account");
+expect(soleAccount([identityRow, { ...identityRow, id: "user-2" }]) === null, "an ambiguous identity resolved to an account");
+expect(
+  soleAccount([identityRow, { ...identityRow, id: "user-2", role: "manager" }]) === null,
+  "an ambiguous identity was resolved by row order, not denied",
+);
+expect(
+  soleAccount([{ ...identityRow, role: "owner" }]) === null,
+  "a row with an unsupported role resolved to an account",
+);
+expect(
+  soleAccount([{ ...identityRow, email: "not-an-email" }]) === null,
+  "a row with an unusable email resolved to an account",
+);
+expect(
+  soleAccount([{ id: "user-x", email: PHOTOGRAPHER_EMAIL, role: "photographer", active: 0 }])?.active ===
+    false,
+  "an inactive row was not reported as inactive",
+);
+expect(
+  toUserRecord({ ...identityRow, active: true })?.active === true,
+  "a boolean active flag was not accepted",
+);
+
+// The lookup denies an ambiguous directory rather than choosing a role, and the
+// stub proves the query it was given could have observed both rows.
+const ambiguousDirectory = accountStub([
+  { ...identityRow, email: "anya@example.test", role: "photographer" },
+  { ...identityRow, id: "user-2", email: "ANYA@example.test", role: "manager" },
+]);
+const ambiguous = await findAccountByEmail("anya@example.test", {
+  DB: ambiguousDirectory.DB,
+  ALLOW_DEVELOPMENT_SEED: "false",
+});
+expect(ambiguous === null, "an ambiguous D1 directory resolved to one of two roles");
+expect(
+  ambiguousDirectory.queries.length === 1 && ambiguousDirectory.queries[0] === ACCOUNT_BY_EMAIL_SQL,
+  "the D1 lookup did not issue the shared account query",
+);
+const [ambiguityRow] = ambiguousDirectory.queries;
+const rowLimit = Number(/LIMIT\s+(\d+)/i.exec(ambiguityRow ?? "")?.[1] ?? "0");
+expect(
+  rowLimit === ACCOUNT_IDENTITY_ROW_LIMIT && ACCOUNT_IDENTITY_ROW_LIMIT >= 2,
+  `the account query reads ${rowLimit} row(s), which cannot detect ambiguity`,
+);
+expect(
+  ambiguityRow?.includes(`COLLATE NOCASE = ?1`),
+  "the account query does not bind the normalised identity against a NOCASE column",
+);
+
+// A single-row directory still resolves, so the fail-closed rule is not a
+// blanket denial.
+const singleDirectory = accountStub([
+  { ...identityRow, email: "anya@example.test", role: "manager" },
+]);
+const single = await findAccountByEmail("Anya@Example.TEST", {
+  DB: singleDirectory.DB,
+  ALLOW_DEVELOPMENT_SEED: "false",
+});
+expect(single?.role === "manager", "a single-row D1 directory did not resolve its account");
+expect(single?.email === "anya@example.test", "the resolved account is not normalised");
+
+// The seed source obeys the same rule, checked against the rule itself so the
+// shared seed set is never mutated.
+const seedRuleUser = { ...seed.users[0], role: "photographer", active: true };
+expect(
+  accountForIdentity([seedRuleUser], PHOTOGRAPHER_EMAIL)?.role === "photographer",
+  "the seed rule did not resolve a single matching user",
+);
+expect(
+  accountForIdentity([], PHOTOGRAPHER_EMAIL) === null,
+  "the seed rule invented an account for an empty set",
+);
+expect(
+  accountForIdentity([seedRuleUser, { ...seedRuleUser, id: "user-2", role: "manager" }], PHOTOGRAPHER_EMAIL) ===
+    null,
+  "the seed rule resolved an ambiguous set to one of two roles",
+);
+expect(
+  accountForIdentity(
+    [{ ...seedRuleUser, email: "someone-else@anyaparallax.test" }],
+    PHOTOGRAPHER_EMAIL,
+  ) === null,
+  "the seed rule resolved an identity no user holds",
+);
+expect(
+  accountForIdentity(seed.users, PHOTOGRAPHER_EMAIL)?.role === "photographer",
+  "the live seed set did not resolve its photographer",
+);
+
+// Seed emails must be unique under the SAME normalisation authentication uses,
+// or the local directory would be ambiguous for exactly the identities it serves.
+const normalisedSeedEmails = seed.users.map((user) => normaliseEmail(user.email));
+expect(
+  normalisedSeedEmails.every((email) => email !== null),
+  "a seed user email cannot be normalised by the authentication boundary",
+);
+expect(
+  new Set(normalisedSeedEmails).size === seed.users.length,
+  "two seed users share one identity after email normalisation",
+);
+expect(
+  seed.users.every((user) => normaliseEmail(user.email) === user.email),
+  "a seed user email is not stored in its normalised form",
+);
 
 // --- 5. Role guards -------------------------------------------------------
 

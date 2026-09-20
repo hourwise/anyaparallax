@@ -2,10 +2,11 @@
  * Test harness for the D1 checks.
  *
  * Bootstrapping uses the real tools: `wrangler d1 migrations apply --local`
- * applies the repository migrations and `wrangler d1 execute --local` loads the
- * fixture rows. Queries then run in-process against the same SQLite file via
- * `node:sqlite`, which is the engine the local D1 simulator uses — fast enough
- * to exercise every repository method without spawning a process per query.
+ * applies the repository migrations (0001 and 0002, in order) and `wrangler d1
+ * execute --local` loads the fixture rows. Queries then run in-process against
+ * the same SQLite file via `node:sqlite`, which is the engine the local D1
+ * simulator uses — fast enough to exercise every repository method without
+ * spawning a process per query.
  *
  * Local only: nothing here contacts Cloudflare.
  */
@@ -285,6 +286,35 @@ export async function createD1TestDatabase({ seed, label }) {
             outcomes.push(null);
           } catch (error) {
             outcomes.push(error instanceof Error ? error.message : String(error));
+          }
+        }
+      } finally {
+        db.exec("ROLLBACK");
+      }
+      return outcomes;
+    },
+    /**
+     * Run read queries inside a transaction that is always rolled back, so a
+     * probe can observe the effect of statements it wrote without leaving them
+     * in the fixture. Returns `{ rows, error }` per statement: rows are empty
+     * when the statement wrote rather than read, and `error` is null when it
+     * succeeded.
+     */
+    probeQuery(sql) {
+      const outcomes = [];
+      db.exec("BEGIN");
+      try {
+        for (const statement of sql) {
+          try {
+            outcomes.push({
+              rows: db.prepare(statement).all().map((row) => ({ ...row })),
+              error: null,
+            });
+          } catch (error) {
+            outcomes.push({
+              rows: [],
+              error: error instanceof Error ? error.message : String(error),
+            });
           }
         }
       } finally {
