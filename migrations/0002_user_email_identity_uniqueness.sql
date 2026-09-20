@@ -1,11 +1,11 @@
--- Anyaparallax V1 — authorised-user email identity uniqueness (Slice 05 repair 01).
+-- Anyaparallax V1 — authorised-user email identity uniqueness (Slice 05 repairs 01–02).
 --
 -- WHY THIS MIGRATION EXISTS
 --
 -- The authentication boundary treats an email address as an IDENTITY, not as an
--- opaque primary key: a verified Access assertion is normalised (trimmed and
--- lower-cased) by `normaliseEmail()` in `app/auth/identity.ts`, and the account
--- directory resolves that normalised value to at most one role.
+-- opaque primary key: a verified Access assertion is normalised by
+-- `normaliseEmail()` in `app/auth/identity.ts`, and the account directory
+-- resolves that normalised value to at most one role.
 --
 -- Migration 0001 declared `email TEXT NOT NULL UNIQUE`. That constraint is
 -- case-SENSITIVE, because SQLite's default collation is BINARY. Case variants
@@ -23,7 +23,7 @@
 -- THE INVARIANT ENFORCED HERE
 --
 --   At most one `users` row may exist per identity, where the identity of an
---   email address is its `COLLATE NOCASE` (ASCII case-folded) value.
+--   ACCEPTED operator email address is its case-folded value.
 --
 -- Expressed as SQL:
 --
@@ -35,9 +35,32 @@
 -- (`WHERE email COLLATE NOCASE = ?1` in `app/auth/accounts.server.ts`), so the
 -- uniqueness rule and the lookup rule are one and the same rule.
 --
--- NOCASE folds ASCII A-Z only, which is exactly what `normaliseEmail()`'s
--- `toLowerCase()` does for anything the identity boundary can produce, so the
--- index cannot disagree with the application's normalisation.
+-- WHY THE TWO RULES AGREE — EXACTLY (repair 02)
+--
+-- SQLite's built-in NOCASE folds ASCII A-Z ONLY; it performs no Unicode case
+-- mapping, and it cannot be extended here without an ICU build. JavaScript
+-- `String.prototype.toLowerCase()` DOES case-map beyond ASCII: for example the
+-- Turkish dotted capital I and the Kelvin sign both lower-case to forms (or
+-- lengths) that an ASCII fold never produces. Reconciliation is therefore by
+-- contract, in three exact steps:
+--
+--   1. accepted operator identities are ASCII email addresses — `normaliseEmail()`
+--      returns null for any value containing a non-ASCII code point, so every
+--      ACCEPTED identity is ASCII and no non-ASCII identity can enter the
+--      directory through the application;
+--   2. application normalisation lower-cases ASCII, where `toLowerCase()` and an
+--      ASCII fold are the same mapping;
+--   3. SQLite NOCASE folds ASCII A-Z, which is that same mapping.
+--
+-- For every accepted identity both rules therefore compute the identical fold,
+-- and a case variant of an authorised address cannot become a second row.
+--
+-- What this migration does NOT do: it does not refuse a non-ASCII row written
+-- directly by an operator (SQLite's NOCASE simply folds no part of it), and it
+-- does not attempt Unicode or ICU collation. The application-side ASCII
+-- contract in step 1 is what keeps the directory's identities inside the
+-- region where the two rules coincide; the identity uniqueness of stored rows
+-- is still enforced by the index for whatever case-identical forms are written.
 --
 -- NOTES
 --
@@ -48,8 +71,9 @@
 --   * The users-table constraints from 0001 are untouched. `email TEXT NOT NULL
 --     UNIQUE` remains, so both uniqueness rules are enforced; the BINARY one is
 --     simply no longer the only one.
---   * 0001 is accepted history and is never rewritten; this repair adds a new
---     migration so it applies to databases that are already migrated.
+--   * 0001 is accepted history and is never rewritten; repair 01 added this
+--     migration so it applies to databases that are already migrated, and
+--     repair 02 corrected the statements above without changing the SQL.
 
 CREATE UNIQUE INDEX idx_users_email_identity_nocase
   ON users (email COLLATE NOCASE);

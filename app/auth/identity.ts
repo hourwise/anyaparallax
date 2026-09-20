@@ -64,18 +64,50 @@ const MAX_EMAIL_LENGTH = 254;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
 /**
- * Normalise an email for storage and lookup: trimmed, lower-cased, shape-checked.
- * Returns null when the value cannot be an address, so callers deny instead of
- * comparing junk.
+ * The accepted operator-identity character set: printable ASCII only.
+ *
+ * This is an explicit V1 IDENTITY CONTRACT, not a general email validator. Real
+ * operator addresses are conventional ASCII mailboxes, and restricting them is
+ * what lets the two authority rules in this boundary agree exactly:
+ *
+ *   * the application normalises an accepted identity with `toLowerCase()`;
+ *   * the database enforces uniqueness with `COLLATE NOCASE`;
+ *   * JavaScript lower-casing is Unicode-aware, while SQLite's NOCASE folds
+ *     ASCII A-Z only, so outside ASCII the two rules can disagree — an address
+ *     could be one identity to the application and two rows to the database.
+ *
+ * Rejecting non-ASCII outright removes that class of disagreement instead of
+ * approximating it: for every accepted identity both rules are the same ASCII
+ * fold. The range is written explicitly (`\x20-\x7E`, compared per code unit) so
+ * "ASCII" stays visibly ASCII and cannot be read as a Unicode property escape.
+ * An internationalised address is therefore refused and the operator must use
+ * its ASCII form — a deliberate V1 limitation.
+ */
+// The first printable ASCII code point, written as an escape so the class reads
+// as an explicit range rather than as a literal space.
+const ASCII_IDENTITY_PATTERN = /^[\x20-\x7E]*$/;
+
+/**
+ * Normalise an email for storage and lookup: trimmed, lower-cased, ASCII-only,
+ * length- and shape-checked.
+ *
+ * Returns null when the value cannot be an accepted identity — including ANY
+ * non-ASCII code point — so callers deny instead of comparing junk, and the
+ * database's NOCASE uniqueness rule always agrees with this function's result.
  */
 export function normaliseEmail(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
   }
-  const email = value.trim().toLowerCase();
-  if (email.length === 0 || email.length > MAX_EMAIL_LENGTH) {
+  const trimmed = value.trim();
+  if (
+    trimmed.length === 0 ||
+    trimmed.length > MAX_EMAIL_LENGTH ||
+    !ASCII_IDENTITY_PATTERN.test(trimmed)
+  ) {
     return null;
   }
+  const email = trimmed.toLowerCase();
   return EMAIL_PATTERN.test(email) ? email : null;
 }
 

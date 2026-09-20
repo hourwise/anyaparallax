@@ -93,6 +93,11 @@ for (const gallery of seed.galleries) {
 // normalisation the authentication boundary applies (`normaliseEmail`): two
 // seed rows that differ only in case are one identity carrying two roles, which
 // the database refuses (migration 0002) and the account lookup fails closed on.
+//
+// The identity contract is ASCII (repair 02): the application lower-cases with
+// JavaScript, whose case mapping is Unicode-aware, while SQLite's NOCASE folds
+// ASCII A-Z only. A seed identity must therefore be pure ASCII, or the two
+// authority rules could disagree about it.
 const userIds = new Set();
 const userEmails = new Set();
 const normalisedUserEmails = new Set();
@@ -116,6 +121,10 @@ for (const user of seed.users) {
     normalisedUserEmails.add(normalised);
   }
 
+  check(
+    [...user.email].every((character) => character.charCodeAt(0) <= 0x7e),
+    `user ${user.id} identity contains a non-ASCII character, which SQLite's NOCASE cannot fold`,
+  );
   check(isAppRole(user.role), `user ${user.id} has an unsupported role ${String(user.role)}`);
   check(
     user.email.endsWith(".test"),

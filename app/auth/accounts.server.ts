@@ -18,13 +18,15 @@
  * reach a public loader payload or the client bundle. Only the authenticated
  * `/admin` and `/manager` surfaces display them, and only to their operator.
  *
- * Identity uniqueness (Slice 05 repair 01): an email address denotes exactly one
- * account, and a case variant of it is the same identity. The database refuses
- * a second row under a unique NOCASE index
+ * Identity uniqueness (Slice 05 repairs 01–02): an email address denotes exactly
+ * one account, and a case variant of it is the same identity. The database
+ * refuses a second row under a unique NOCASE index
  * (`migrations/0002_user_email_identity_uniqueness.sql`), and both lookups here
  * apply the matching rule from `accounts.ts` — the same collation for the
  * comparison, and a fail-closed refusal to answer when more than one row
- * answers for one identity.
+ * answers for one identity. Accepted identities are ASCII addresses, which is
+ * what keeps the application's `toLowerCase()` and SQLite's NOCASE fold in
+ * exact agreement; see that module for the full statement.
  */
 import type { AppBindings } from "../data/context";
 import type { UserRecord } from "../data/model";

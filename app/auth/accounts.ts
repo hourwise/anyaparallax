@@ -1,6 +1,6 @@
 /**
  * Account identity rules — the shared vocabulary of the authorised-user
- * directory (Slice 05 repair 01).
+ * directory (Slice 05 repairs 01–02).
  *
  * An email address is an IDENTITY in this application, not an opaque key: the
  * authentication boundary normalises it, and exactly one account row must
@@ -13,6 +13,22 @@
  *     the SAME collation (`COLLATE NOCASE`) and takes at most two rows, so the
  *     lookup uses the index, agrees with the index's rule, and can detect the
  *     forbidden state instead of assuming it away.
+ *
+ * WHY THE TWO RULES AGREE — EXACTLY (repair 02):
+ *
+ *   1. accepted operator identities are ASCII email addresses — `normaliseEmail()`
+ *      rejects any value containing a non-ASCII code point, so every accepted
+ *      identity is ASCII;
+ *   2. application normalisation lower-cases ASCII, where `toLowerCase()` and an
+ *      ASCII fold are the same mapping;
+ *   3. SQLite's NOCASE folds ASCII A-Z, which is that same mapping.
+ *
+ * JavaScript case mapping is Unicode-aware and SQLite's NOCASE is not, so the
+ * agreement holds only INSIDE the ASCII region that step 1 defines. Outside it
+ * the two would disagree (the Turkish dotted capital I lower-cases to a
+ * two-code-point sequence, which no ASCII fold produces), which is exactly why
+ * a non-ASCII identity is refused rather than approximated. No Unicode or ICU
+ * collation is attempted anywhere in this boundary.
  *
  * This module is pure (no bindings, no environment, no React Router) so the
  * rule can be asserted directly from a check script and reused by any future
@@ -41,8 +57,8 @@ export const ACCOUNT_IDENTITY_ROW_LIMIT = 2;
  *     use one collation, so the lookup cannot see a different set of rows than
  *     the constraint permits.
  *
- * The bound parameter is the normalised (lower-cased) address; NOCASE folding
- * makes the comparison match any stored case. The subquery is limited to
+ * The bound parameter is the normalised (lower-cased ASCII) address, and NOCASE
+ * folding matches it against any stored ASCII casing. The subquery is limited to
  * {@link ACCOUNT_IDENTITY_ROW_LIMIT} rows and selects `email` so the outer
  * projection names its columns as `users` does, which keeps the row mapper
  * identical for both account sources.
@@ -89,10 +105,14 @@ export function toUserRecord(row: AccountRow): UserRecord | null {
 /**
  * The account a list of candidate users holds for one NORMALISED identity.
  *
- * This is the rule every account source applies: `users.filter(matches)` then
- * exactly one account, or none. It takes the identity already normalised, so a
- * caller cannot accidentally compare unnormalised text; `soleAccount` remains
- * the final authority on whether the result is usable.
+ * This is the rule every account source applies: keep the users whose stored
+ * email normalises to the identity, then require exactly one. Stored emails are
+ * normalised before comparison for the same reason the database compares with
+ * NOCASE — an accepted identity is case-folded on both sides, and only ASCII
+ * addresses reach here at all (see the header).
+ *
+ * The identity passed in must already be normalised; `soleAccount` remains the
+ * final authority on whether the result is usable.
  */
 export function accountForIdentity(
   users: readonly UserRecord[],

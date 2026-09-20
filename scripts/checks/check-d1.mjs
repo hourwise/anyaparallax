@@ -15,6 +15,10 @@
  * identities. Probes run inside rolled-back transactions, so the fixture the
  * other checks read is never mutated.
  *
+ * Repair 02 adds the ASCII identity contract: the application refuses non-ASCII
+ * identities, and a non-ASCII row written straight into the D1 file cannot
+ * collide with an accepted ASCII identity or be resolved by the guard.
+ *
  * Nothing contacts Cloudflare: `wrangler d1 execute --local` is used throughout.
  */
 import { RouterContextProvider } from "react-router";
@@ -22,11 +26,12 @@ import { RouterContextProvider } from "react-router";
 import { findAccountByEmail, listAccounts } from "../../app/auth/accounts.server.ts";
 import { ACCOUNT_BY_EMAIL_SQL } from "../../app/auth/accounts.ts";
 import { requireAdminAccess, requireManagerAccess } from "../../app/auth/authorization.server.ts";
+import { normaliseEmail } from "../../app/auth/identity.ts";
 import { appContext } from "../../app/data/context.ts";
 import { D1PortfolioRepository } from "../../app/data/repository.d1.server.ts";
 import { seed } from "../../app/data/seed.ts";
 import { MASTERS_SCHEME } from "../../app/data/storage.ts";
-import { createD1TestDatabase } from "./d1-harness.mjs";
+import { createD1TestDatabase, d1FileProbe } from "./d1-harness.mjs";
 import { check, note, report } from "./report.mjs";
 import { runRepositoryChecks } from "./repository-checks.mjs";
 
@@ -470,6 +475,110 @@ check(
   /UNIQUE constraint failed/i.test(recaseVerdicts[3] ?? ""),
   `a case variant was accepted as a second identity after an update: ` +
     `${JSON.stringify(recaseVerdicts)}`,
+);
+
+// --- The ASCII identity contract at the database layer (repair 02) ---------
+//
+// SQLite's NOCASE folds ASCII A-Z only, while the application's toLowerCase()
+// case-maps far beyond ASCII. The two can only agree for identities that are
+// ASCII, so `normaliseEmail()` refuses non-ASCII input. These checks prove the
+// disagreement is not reachable through the directory: a non-ASCII row stored
+// in the real D1 file can never collide with an accepted ASCII identity, and
+// the guard refuses the non-ASCII spelling outright even when a real UTF-8 row
+// is present.
+
+// The contract the rest of this section depends on.
+check(
+  normaliseEmail("ANYA@EXAMPLE.TEST") === "anya@example.test",
+  "the ASCII normalisation contract does not lower-case a mixed-case ASCII identity",
+);
+check(
+  normaliseEmail("ány@example.test") === null && normaliseEmail("anya@exámple.test") === null,
+  "the ASCII normalisation contract accepts a non-ASCII identity",
+);
+
+const d1AsciiLookup = await findAccountByEmail("PHOTOGRAPHER@Anyaparallax.TEST", d1Environment);
+check(
+  d1AsciiLookup?.role === "photographer" && d1AsciiLookup.email === "photographer@anyaparallax.test",
+  `a mixed-case ASCII identity no longer resolves in D1: ${JSON.stringify(d1AsciiLookup)}`,
+);
+check(
+  (await findAccountByEmail("Photographer@Anyaparallax.TEST", d1Environment))?.active === true,
+  "a mixed-case ASCII identity no longer reports the active account",
+);
+
+// Written straight to the SQLite file D1 produced, inside ONE rolled-back
+// transaction, so a collision between rows is observable as a failing statement
+// instead of as silently stored duplicate authority.
+const collisionProbe = d1FileProbe(database);
+const collisionOutcomes = collisionProbe.run([
+  "INSERT INTO users (id, email, role, active, created_at, updated_at) " +
+    "VALUES ('u-probe-ascii', 'anya@example.test', 'photographer', 1, '2026-01-01', '2026-01-01')",
+  "INSERT INTO users (id, email, role, active, created_at, updated_at) " +
+    "VALUES ('u-probe-nonascii', 'ány@example.test', 'manager', 1, '2026-01-01', '2026-01-01')",
+  // A SECOND row spelling the ASCII identity differently must be refused: this
+  // is the authority ambiguity the unique index exists to prevent.
+  "INSERT INTO users (id, email, role, active, created_at, updated_at) " +
+    "VALUES ('u-probe-ascii-variant', 'ANYA@example.test', 'manager', 1, '2026-01-01', '2026-01-01')",
+  // The non-ASCII row is a DIFFERENT identity to NOCASE, so it does not collide
+  // with the ASCII one: an accepted identity cannot be shadowed by an accented
+  // spelling, and the operator's ASCII address keeps its own authority.
+  "UPDATE users SET email = 'Ánya@example.test' WHERE id = 'u-probe-ascii'",
+  "UPDATE users SET email = 'anya@example.test' WHERE id = 'u-probe-ascii'",
+]);
+collisionProbe.close();
+const [asciiRow, nonAsciiRow, asciiVariantInsert, toNonAscii, backToAscii] = collisionOutcomes;
+check(asciiRow.ok, `inserting the ASCII identity row failed: ${asciiRow.error}`);
+check(
+  asciiVariantInsert.ok === false && /UNIQUE constraint failed/i.test(asciiVariantInsert.error ?? ""),
+  "an ASCII case variant of an accepted identity was accepted as a second row: " +
+    `${JSON.stringify(collisionOutcomes)}`,
+);
+check(
+  nonAsciiRow.ok,
+  `the D1 file refused the non-ASCII row, so the collision probe proves nothing: ${nonAsciiRow.error}`,
+);
+check(
+  toNonAscii.ok,
+  `a non-ASCII row collides with an accepted ASCII identity: ${toNonAscii.error}`,
+);
+check(
+  backToAscii.ok,
+  `restoring the ASCII spelling collided with the non-ASCII row (NOCASE folded it): ${backToAscii.error}`,
+);
+note(
+  `identity collisions in the D1 file: ascii-variant insert ${
+    asciiVariantInsert.ok ? "accepted" : "rejected"
+  }, ascii-to-non-ascii ${toNonAscii.ok ? "allowed" : "rejected"}, ` +
+    `non-ascii row ${nonAsciiRow.ok ? "accepted" : "refused"}`,
+);
+
+// The guard refuses a non-ASCII spelling even while such a row is stored (all
+// inside a rolled-back transaction), so a non-ASCII header can never reach the
+// ASCII account it resembles.
+const nonAsciiRowInsert = database.probe([
+  "INSERT INTO users (id, email, role, active, created_at, updated_at) " +
+    "VALUES ('u-probe-nonascii', 'ány@example.test', 'manager', 1, '2026-01-01', '2026-01-01')",
+]);
+const nonAsciiGuard = await attemptGuard(
+  requireManagerAccess,
+  new Request("http://localhost:5173/manager", {
+    headers: { "x-anyaparallax-development-identity": "ány@example.test" },
+  }),
+  contextFor({ ...d1Environment, ALLOW_DEVELOPMENT_IDENTITY: "true" }),
+);
+check(
+  nonAsciiGuard.status === 401,
+  `a non-ASCII identity was not refused outright: ${nonAsciiGuard.status ?? "allowed"}`,
+);
+check(
+  (await findAccountByEmail("ány@example.test", d1Environment)) === null,
+  "a non-ASCII identity resolved to an account",
+);
+note(
+  `non-ASCII identity row stored in the D1 fixture for the guard probe: ${
+    nonAsciiRowInsert[0] === null ? "yes" : "no (refused by SQLite)"
+  }`,
 );
 
 // Role behaviour through the real guards, reading authority from these rows: a

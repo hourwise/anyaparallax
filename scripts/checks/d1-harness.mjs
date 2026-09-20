@@ -200,6 +200,44 @@ function findSqliteFile(dir) {
 }
 
 /**
+ * Run fixture statements directly against the SQLite file the D1 simulator
+ * produced, in a transaction that is always rolled back.
+ *
+ * This exists so a check can inspect what D1 actually WROTE — the binding layer
+ * cannot express a query with no parameters, and it converts errors into
+ * `{ success: false }` rather than throwing. Returns a `run` function that
+ * executes statements and reports each one's outcome, so a collision between
+ * two rows is observable as a failing statement rather than as silent data.
+ */
+export function d1FileProbe(database) {
+  const db = new DatabaseSync(database.sqlitePath);
+  db.exec("PRAGMA foreign_keys = ON");
+  return {
+    /** Run `statements` inside a rolled-back transaction; returns one `{ ok, error }` per statement. */
+    run(statements) {
+      const outcomes = [];
+      db.exec("BEGIN");
+      try {
+        for (const statement of statements) {
+          try {
+            db.prepare(statement).run();
+            outcomes.push({ ok: true, error: null });
+          } catch (error) {
+            outcomes.push({ ok: false, error: error instanceof Error ? error.message : String(error) });
+          }
+        }
+      } finally {
+        db.exec("ROLLBACK");
+      }
+      return outcomes;
+    },
+    close() {
+      db.close();
+    },
+  };
+}
+
+/**
  * Create an isolated local D1 database, apply the real migrations, load the
  * fixture rows, and return both a D1-shaped binding and direct query helpers.
  *

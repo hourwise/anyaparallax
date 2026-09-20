@@ -180,11 +180,44 @@ function accountStub(rows) {
 // --- 1. Vocabulary --------------------------------------------------------
 
 expect(normaliseEmail("  Anya@Example.TEST ") === "anya@example.test", "email is not trimmed/lower-cased");
+expect(normaliseEmail("ANYA@EXAMPLE.TEST") === "anya@example.test", "upper-case ASCII email is not lower-cased");
+expect(normaliseEmail("AnYa@ExAmPlE.tEsT") === "anya@example.test", "mixed-case ASCII email is not lower-cased");
 expect(normaliseEmail("not-an-email") === null, "malformed email accepted");
 expect(normaliseEmail("a@b") === null, "address without a dotted domain accepted");
 expect(normaliseEmail("") === null, "empty email accepted");
 expect(normaliseEmail(null) === null, "null email accepted");
 expect(normaliseEmail(`${"a".repeat(250)}@example.test`) === null, "over-long email accepted");
+
+// The accepted-identity contract is ASCII (repair 02). A non-ASCII code point
+// anywhere in the address is refused, in the local part and in the domain, so
+// the application's Unicode-aware `toLowerCase()` can never meet a value that
+// SQLite's ASCII-only NOCASE would fold differently.
+const nonAsciiIdentities = [
+  ["anya@exámple.test", "an accented domain"],
+  ["ány@example.test", "an accented local part"],
+  ["anya@EXAMPLE.TÉST", "an accented domain in upper case"],
+  ["ＡＮＹＡ@example.test", "a full-width local part"],
+  ["anya@ｅｘａｍｐｌｅ.test", "a full-width domain"],
+  ["αnya@example.test", "a Greek local part"],
+  ["anya@exampłe.test", "a Polish l-stroke domain"],
+  ["İ@example.test", "the Turkish dotted capital I, which lower-cases to two code points"],
+  ["anya@examp𝔩e.test", "an astral-plane character in the domain"],
+  ["anya@examp\u00a0le.test", "a non-breaking space inside the address"],
+  ["anya@examp\u200ble.test", "a zero-width space inside the address"],
+];
+for (const [identity, label] of nonAsciiIdentities) {
+  expect(normaliseEmail(identity) === null, `non-ASCII identity accepted: ${label}`);
+}
+// The contract is a rejection of non-ASCII, not of all upper-case or punctuation:
+// an ASCII address keeps working and is still folded.
+expect(
+  normaliseEmail("O'Brien+prints@Example.TEST") === "o'brien+prints@example.test",
+  "an ASCII address with punctuation was not accepted and folded",
+);
+expect(
+  normaliseEmail("anya@sub.domain.example.test") === "anya@sub.domain.example.test",
+  "a multi-label ASCII domain was not accepted",
+);
 
 expect(isLoopbackHostname("localhost"), "localhost not recognised as loopback");
 expect(isLoopbackHostname("127.0.0.1"), "127.0.0.1 not recognised as loopback");
@@ -343,6 +376,40 @@ expect(
     developmentEnv,
   )) === null,
   "malformed development identity accepted",
+);
+
+// A non-ASCII identity is refused at the boundary itself (repair 02), through
+// the real Access JWT path as well as the development header, so no non-ASCII
+// email can reach the account directory or be compared against NOCASE.
+expect(
+  (await resolveIdentity(
+    requestTo("/admin", { "x-anyaparallax-development-identity": "ány@example.test" }),
+    developmentEnv,
+  )) === null,
+  "a development identity with a non-ASCII local part was accepted",
+);
+expect(
+  (await resolveIdentity(
+    requestTo("/admin", { "x-anyaparallax-development-identity": "anya@exámple.test" }),
+    developmentEnv,
+  )) === null,
+  "a development identity with a non-ASCII domain was accepted",
+);
+expect(
+  (await verifyAccessToken(
+    signedToken(accessClaims({ email: "ány@example.test" })),
+    accessConfig,
+    provideKeySet,
+  )) === null,
+  "a signed Access JWT for a non-ASCII identity was accepted",
+);
+expect(
+  (await verifyAccessToken(
+    signedToken(accessClaims({ email: "anya@exámple.test" })),
+    accessConfig,
+    provideKeySet,
+  )) === null,
+  "a signed Access JWT for a non-ASCII domain was accepted",
 );
 
 const accessIdentity = await resolveIdentity(
@@ -552,6 +619,44 @@ expect(
 expect(
   seed.users.every((user) => normaliseEmail(user.email) === user.email),
   "a seed user email is not stored in its normalised form",
+);
+
+// The ASCII contract, on the seed identities themselves: every accepted seed
+// email is pure ASCII, which is the region where `toLowerCase()` and SQLite's
+// NOCASE fold coincide.
+for (const user of seed.users) {
+  expect(
+    [...user.email].every((character) => character.charCodeAt(0) <= 0x7e),
+    `seed user ${user.id} has a non-ASCII identity`,
+  );
+  expect(
+    user.email.toLowerCase() === user.email && user.email.toUpperCase().toLowerCase() === user.email,
+    `seed user ${user.id} identity is not stable under ASCII case folding`,
+  );
+}
+
+// A non-ASCII row in ANY account source cannot claim an accepted ASCII
+// identity: its stored email does not normalise, so it never matches. This is
+// the application half of the contract the D1 check probes at the file layer.
+const nonAsciiSeedRow = {
+  id: "user-non-ascii-probe",
+  email: "ány@example.test",
+  role: "manager",
+  active: true,
+  createdAt: "2026-08-01T09:00:00.000Z",
+  updatedAt: "2026-08-01T09:00:00.000Z",
+};
+expect(
+  accountForIdentity([nonAsciiSeedRow], "anya@example.test") === null,
+  "a non-ASCII row claimed an accepted ASCII identity",
+);
+expect(
+  accountForIdentity([nonAsciiSeedRow], normaliseEmail(nonAsciiSeedRow.email) ?? "") === null,
+  "a non-ASCII row resolved to an account through its own spelling",
+);
+expect(
+  soleAccount([nonAsciiSeedRow]) === null,
+  "a non-ASCII row was mapped to an account",
 );
 
 // --- 5. Role guards -------------------------------------------------------
