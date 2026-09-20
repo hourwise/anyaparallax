@@ -1,5 +1,7 @@
 /**
- * `/robots.txt` (REPAIR-09D).
+ * `/robots.txt` (REPAIR-09D; the `/media/` policy corrected in the crawlability
+ * follow-up, because a published derivative a crawler may not fetch is a published
+ * photograph nobody can find).
  *
  * A resource route outside every layout: it returns a text document rather than an
  * HTML page, and it exports no component, so nothing here reaches the client bundle.
@@ -12,8 +14,14 @@
  *     useless requests away, NOT a security control. Every one of those routes
  *     denies an unauthorised request on its own;
  *   * `/dev-verification` is a development-only surface and must never be indexed;
- *   * `/media/` serves image bytes rather than pages, so crawling it wastes budget
- *     and reveals nothing worth indexing;
+ *   * `/media/...` is deliberately NOT disallowed. Those URLs are the published
+ *     photographs themselves, served only while their photograph and their gallery
+ *     are both published, so a prefix-wide `Disallow` would withhold nothing the
+ *     publication gate does not already withhold — while keeping the site's own
+ *     images out of image search, because a crawler that may not fetch an image may
+ *     not index it either. What must never come back through that prefix is a
+ *     private master, and `refFromPublicUrl` refuses a non-public key before any
+ *     bucket or database is read;
  *   * the acknowledgement pages are the result of a submission, are marked
  *     `noindex` and carry no content — they are excluded here as well;
  *   * `/engagement/` is POST-only and answers JSON.
@@ -27,13 +35,21 @@
 import { siteOriginFrom } from "../data/canonical-origin";
 import { appEnvironmentFrom } from "../data/context.server";
 
-/** The crawler policy, as one immutable list so the checks can read the same source. */
+/**
+ * The crawler policy, as one immutable list so the checks can read the same source.
+ *
+ * `/media/` is absent on purpose and must stay absent: it is the one prefix whose
+ * URLs ARE the published photographs. Keeping a draft, a withdrawn image or a
+ * private master away from a visitor is the job of `serveMedia`'s publication gate,
+ * which answers every request it cannot prove is published with the same bare 404.
+ * A `Disallow` line here would add no protection to that and would suppress the
+ * images the site exists to show.
+ */
 export const ROBOTS_DISALLOW: readonly string[] = [
   "/admin",
   "/manager",
   "/dev-verification",
   "/engagement/",
-  "/media/",
   "/contact/received",
   "/prints/enquire/received",
 ];

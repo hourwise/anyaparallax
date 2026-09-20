@@ -15,7 +15,11 @@
  *
  *   CRAWLER POLICY — `/robots.txt` and `/sitemap.xml` are served with the right
  *   content types, describe only public surfaces, and cannot be redirected to
- *   another host by a forged `Host` or `X-Forwarded-Host`.
+ *   another host by a forged `Host` or `X-Forwarded-Host`. The policy is then
+ *   EVALUATED the way a crawler evaluates it, against the published `/media/...` URL
+ *   of a real uploaded photograph: a published derivative must be crawlable, and an
+ *   unpublished one must still be refused by the publication gate rather than by a
+ *   robots rule.
  *
  *   PUBLICATION AUTHORITY — the sitemap follows the 09B management path: withdrawing
  *   a photograph removes it, republishing restores it, and moving a still-published
@@ -26,6 +30,7 @@
  * is irrelevant here — nothing in this check inspects watermark pixels).
  */
 import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { register } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -556,10 +561,201 @@ try {
       `robots.txt with ${label} leaked a non-canonical host`,
     );
     check(!body.includes("r2://"), `robots.txt with ${label} contains a storage reference`);
-    for (const path of ["/admin", "/manager", "/dev-verification", "/media/", "/contact/received"]) {
+    for (const path of [
+      "/admin",
+      "/manager",
+      "/dev-verification",
+      "/engagement/",
+      "/contact/received",
+      "/prints/enquire/received",
+    ]) {
       check(body.includes(`Disallow: ${path}`), `robots.txt with ${label} does not disallow ${path}`);
     }
+    check(
+      !/^Disallow:\s*\/media\b/im.test(body),
+      `robots.txt with ${label} still disallows /media, which is where the published photographs are served`,
+    );
   }
+
+  // --- G2. Published media stays crawlable -------------------------------
+  //
+  // `Disallow` is a rule about being FETCHED, and a crawler that may not fetch an
+  // image may not index it either — so a prefix-wide `Disallow: /media/` hides the
+  // published photographs while protecting nothing: every request the media route
+  // cannot prove is published already gets the same bare 404, drafts and private
+  // masters included.
+  //
+  // Two kinds of evidence follow. First the policy is EVALUATED the way a crawler
+  // evaluates it (longest matching rule wins, `Allow` wins a tie) rather than
+  // substring-matched, against real URLs. Then a genuine uploaded photograph is
+  // driven through the real publication path, so the policy is checked against a URL
+  // that actually serves — and against one that must still refuse.
+
+  const plainRobots = await (await fetch(`${origin}/robots.txt`)).text();
+
+  /** Every `Allow`/`Disallow` rule that applies to `User-agent: *`. */
+  function robotsRules(text) {
+    const rules = [];
+    let applies = false;
+    for (const rawLine of text.split("\n")) {
+      const line = rawLine.split("#")[0].trim();
+      if (line === "") continue;
+      const [rawField, ...rest] = line.split(":");
+      const field = rawField.trim().toLowerCase();
+      const value = rest.join(":").trim();
+      if (field === "user-agent") {
+        applies = value === "*";
+      } else if (applies && (field === "allow" || field === "disallow") && value !== "") {
+        // An empty value means "no rule", not "match nothing".
+        rules.push({ allow: field === "allow", pattern: value });
+      }
+    }
+    return rules;
+  }
+
+  /** One rule pattern against one path, with `*` and the trailing `$` anchor. */
+  function patternMatches(pattern, path) {
+    const anchored = pattern.endsWith("$");
+    const body = anchored ? pattern.slice(0, -1) : pattern;
+    const source = body
+      .split("*")
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join(".*");
+    return new RegExp(`^${source}${anchored ? "$" : ""}`).test(path);
+  }
+
+  /** The crawler's decision for one path, or `true` when no rule matches it. */
+  function policyAllows(text, path) {
+    let best = null;
+    for (const rule of robotsRules(text)) {
+      if (!patternMatches(rule.pattern, path)) continue;
+      const length = rule.pattern.length;
+      if (best === null || length > best.length || (length === best.length && rule.allow)) {
+        best = { length, allow: rule.allow };
+      }
+    }
+    return best === null ? true : best.allow;
+  }
+
+  for (const path of ["/media/web/probe/web.webp", "/media/thumbs/probe/thumb.webp"]) {
+    check(policyAllows(plainRobots, path), `the served policy would not let a crawler fetch ${path}`);
+  }
+  for (const [label, path] of [
+    ["the operator dashboard", "/admin"],
+    ["a photograph management page", "/admin/photos"],
+    ["the manager area", "/manager"],
+    ["the development verification route", "/dev-verification"],
+    ["the engagement endpoint", "/engagement/closing-time"],
+    ["a contact acknowledgement", "/contact/received"],
+    ["an enquiry acknowledgement", "/prints/enquire/received"],
+  ]) {
+    check(
+      !policyAllows(plainRobots, path),
+      `the served policy still lets a crawler fetch ${label} (${path})`,
+    );
+  }
+
+  // A DB-backed photograph with real derivative keys, created through the production
+  // upload pipeline, so the policy can be checked against URLs that serve.
+  const crawlFixture = new FormData();
+  crawlFixture.append(
+    "photos",
+    new Blob([new Uint8Array(readFileSync(resolve(root, "scripts", "fixtures", "photo.jpg")))], {
+      type: "image/jpeg",
+    }),
+    "photo.jpg",
+  );
+  const crawlUpload = await fetch(
+    `${origin}/dev-verification?title=Crawl+Probe&published=false&watermark=off&position=none&gallery=gallery-nightlife`,
+    { method: "POST", body: crawlFixture },
+  );
+  const crawlRow = ((await crawlUpload.json()).rows ?? []).find((row) => row.slug === "crawl-probe");
+  check(Boolean(crawlRow), "no DB-backed photograph could be created for the crawlability chain");
+  if (!crawlRow) {
+    throw new Error("the served check could not create its crawlability fixture");
+  }
+  check(
+    String(crawlRow.web_storage_key).startsWith("r2://images/web/"),
+    `the crawlability fixture does not hold an internal derivative key: ${crawlRow.web_storage_key}`,
+  );
+  const crawlMedia = `/media/${String(crawlRow.web_storage_key).replace("r2://images/", "")}`;
+
+  // The page that carries the image must be crawlable too, or the image is never
+  // discovered in the first place.
+  check(
+    policyAllows(plainRobots, `/photo/${crawlRow.slug}`),
+    `the served policy would not let a crawler fetch /photo/${crawlRow.slug}`,
+  );
+
+  // An unpublished derivative: the policy permits the URL and the gate still refuses
+  // it. This is the assertion that makes dropping the disallow safe — the refusal is
+  // the publication check, not a line in a text file.
+  check(
+    policyAllows(plainRobots, crawlMedia),
+    `the served policy would not let a crawler fetch ${crawlMedia}`,
+  );
+  const draftDerivative = await fetch(`${origin}${crawlMedia}`, { redirect: "manual" });
+  check(
+    draftDerivative.status === 404,
+    `an unpublished derivative returned ${draftDerivative.status} with no robots rule in the way`,
+  );
+  await draftDerivative.arrayBuffer();
+
+  await (
+    await postForm(
+      "/admin/photos",
+      { photoId: crawlRow.id, intent: "publish" },
+      { [IDENTITY_HEADER]: PHOTOGRAPHER },
+    )
+  ).text();
+
+  // Published: the same URL now serves, to an ordinary client and to an image crawler.
+  const publishedDerivative = await fetch(`${origin}${crawlMedia}`, { redirect: "manual" });
+  const derivativeBytes = new Uint8Array(await publishedDerivative.arrayBuffer());
+  check(
+    publishedDerivative.status === 200,
+    `a published derivative returned ${publishedDerivative.status}`,
+  );
+  check(
+    (publishedDerivative.headers.get("content-type") ?? "").startsWith("image/"),
+    `a published derivative has content type ${publishedDerivative.headers.get("content-type")}`,
+  );
+  check(derivativeBytes.byteLength > 0, `a published derivative served ${derivativeBytes.byteLength} bytes`);
+  const crawlerDerivative = await fetch(`${origin}${crawlMedia}`, {
+    redirect: "manual",
+    headers: { "user-agent": "Googlebot-Image/1.0" },
+  });
+  check(
+    crawlerDerivative.status === 200,
+    `a published derivative returned ${crawlerDerivative.status} to an image crawler`,
+  );
+  await crawlerDerivative.arrayBuffer();
+
+  // The private master is refused by the public-reference boundary, and the page that
+  // embeds the derivative never names a master key.
+  const masterProbe = await fetch(`${origin}/media/originals/${crawlRow.id}/master.jpg`, {
+    redirect: "manual",
+  });
+  check(
+    masterProbe.status === 404,
+    `a private master returned ${masterProbe.status} through the public boundary`,
+  );
+  await masterProbe.arrayBuffer();
+  const crawlPage = await (await fetch(`${origin}/photo/${crawlRow.slug}`)).text();
+  check(
+    !crawlPage.includes(String(crawlRow.original_storage_key)) && !crawlPage.includes("r2://"),
+    "the published page leaked a storage key",
+  );
+
+  // Recorded, not endorsed: the derivative 200 still carries `x-robots-tag: noindex`,
+  // so these URLs are fetchable but not INDEXABLE. Removing the disallow is what makes
+  // them crawlable; indexing additionally needs that header to go, and that is a
+  // separate decision. Printed rather than asserted so the state is visible in every
+  // gate run without a check endorsing it.
+  console.log(
+    `note | a published derivative carries x-robots-tag: ${publishedDerivative.headers.get("x-robots-tag")} ` +
+      "(crawlable; indexing would also need that header removed)",
+  );
 
   // --- H. sitemap.xml ----------------------------------------------------
 
@@ -753,7 +949,10 @@ console.log(
     "state; the enquiries table gained no column and no abuse table exists; the dashboard count followed real " +
     "submissions and fell when one was marked read and reached zero when archived, and stayed operator-only; " +
     "robots.txt and sitemap.xml served the right content types, named only public surfaces and could not be " +
-    "redirected to another host by forged Host or X-Forwarded-Host headers; and the sitemap followed the real " +
+    "redirected to another host by forged Host or X-Forwarded-Host headers; the served robots policy, evaluated " +
+    "the way a crawler evaluates it, permitted the published /media derivative of a real uploaded photograph and " +
+    "refused every operator, development, engagement and acknowledgement path, while an unpublished derivative " +
+    "was still refused by the publication gate rather than by a robots rule; and the sitemap followed the real " +
     "management path by dropping a withdrawn photograph, restoring it on republication, and dropping a " +
     "still-published photograph moved into a draft gallery.",
 );
