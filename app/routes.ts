@@ -1,6 +1,10 @@
 import { type RouteConfig, index, layout, route } from "@react-router/dev/routes";
 
 export default [
+  // Platform verification surface (Slice 06): inert unless the development
+  // switch is on, and it calls the same production pipeline as the admin form.
+  route("dev-verification", "routes/dev-verification.ts"),
+
   // Public derivative serving (Slice 06): a resource route outside every layout,
   // so `/media/...` returns image bytes and never an HTML document.
   route("media/*", "routes/media.ts"),

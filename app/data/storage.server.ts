@@ -98,6 +98,19 @@ export class R2ObjectStorage {
   }
 
   /**
+   * Remove a private master.
+   *
+   * Exists for ONE purpose: compensating cleanup when an upload's later stages
+   * fail, so an upload reported as refused leaves no orphan master behind. It is
+   * never called on a master that belongs to an accepted photograph — the caller
+   * only ever passes keys built from the id of the attempt that is failing.
+   */
+  async deleteMaster(key: string): Promise<void> {
+    asMasterRef(key);
+    await this.#masters.delete(objectKeyOf(key));
+  }
+
+  /**
    * Store a public derivative. Master keys are rejected: a private original
    * must never be written to the public bucket.
    */

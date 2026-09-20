@@ -35,6 +35,24 @@
     }
   ],
 
+  // Cloudflare Images binding (Slice 06 repair 01). This is the PRODUCTION image
+  // processor: decode, trusted dimensions, resize, watermark draw and output
+  // encoding all happen in the platform service rather than in Worker JavaScript,
+  // so no full-resolution raster is ever allocated in the isolate.
+  //
+  // Named IMAGE_TRANSFORMS deliberately: `IMAGES` is already the R2 bucket that
+  // holds public derivatives, and two bindings with one name would be a silent
+  // aliasing bug in exactly the area this repair is about.
+  //
+  // `remote` is intentionally absent (false): local development uses Wrangler's
+  // offline implementation, which performs no Cloudflare API call and incurs no
+  // charge. High-fidelity draw behaviour is therefore isolated behind an adapter
+  // and verified against a deterministic fake, with a live canary recorded as a
+  // later publication gate.
+  "images": {
+    "binding": "IMAGE_TRANSFORMS"
+  },
+
   // Development-only safety valves. Both must be "false" (or removed) for a real
   // deployment:
   //   ALLOW_DEVELOPMENT_SEED     — no D1 binding → serve the development seed set

@@ -8,7 +8,7 @@ import {
   DEFAULT_WATERMARK_POSITION,
   WATERMARK_POSITIONS,
   type WatermarkPosition,
-} from "../../images/watermark";
+} from "../../images/image-processor";
 
 export const meta: MetaFunction = () => [
   { title: "Upload photos — Anyaparallax admin" },

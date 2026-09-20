@@ -22,6 +22,38 @@ export type SupportedUploadType = (typeof SUPPORTED_UPLOAD_TYPES)[number];
 /** Largest accepted original, in bytes. A high-resolution master fits comfortably. */
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
+/**
+ * Largest number of files one submission may carry.
+ *
+ * A multipart request is read into Worker memory before anything can be judged,
+ * so an unbounded batch is a way for one request to consume the isolate. This is
+ * the count half of the batch policy; {@link MAX_BATCH_BYTES} is the byte half.
+ */
+export const MAX_BATCH_FILES = 10;
+
+/**
+ * Largest total size of one submission.
+ *
+ * Lower than `MAX_BATCH_FILES * MAX_UPLOAD_BYTES` on purpose: ten files may each
+ * be within the per-file ceiling while the request as a whole is far too large.
+ * Both limits are enforced before any image transformation happens.
+ */
+export const MAX_BATCH_BYTES = 64 * 1024 * 1024;
+
+/**
+ * Format used when an upload arrives without a usable declared content type.
+ *
+ * The declared type is a hint that must agree with the magic bytes when present
+ * (see {@link validateUpload}), so defaulting an absent one to JPEG is safe: the
+ * bytes still decide.
+ */
+export const DEFAULT_UPLOAD_DECLARED_TYPE = "image/jpeg";
+
+/** The master's filename extension for a decoded source format. */
+export function extensionForFormat(format: "image/jpeg" | "image/png"): string {
+  return format === "image/png" ? "png" : "jpg";
+}
+
 /** Largest accepted pixel count per image (width x height). */
 export const MAX_UPLOAD_PIXELS = 50_000_000;
 
@@ -43,7 +75,40 @@ export type UploadRejection =
   | "unsupported-image"
   | "too-many-pixels"
   | "dimensions-out-of-range"
-  | "unsafe-filename";
+  | "unsafe-filename"
+  | "too-many-files"
+  | "batch-too-large";
+
+/**
+ * Enforce the batch policy BEFORE any bytes are read or transformed.
+ *
+ * The caller supplies what the request DECLARES, so an oversized submission is
+ * refused while it is still cheap to refuse: the point is to never materialise
+ * the bodies of a batch that cannot possibly be accepted.
+ */
+export function assertBatchWithinPolicy(
+  files: readonly { readonly size: number }[],
+): void {
+  if (files.length > MAX_BATCH_FILES) {
+    throw new UploadError(
+      "too-many-files",
+      `${files.length} files were submitted; at most ${MAX_BATCH_FILES} are accepted per upload.`,
+    );
+  }
+  let total = 0;
+  for (const file of files) {
+    total += Number.isFinite(file.size) && file.size > 0 ? file.size : 0;
+  }
+  if (total > MAX_BATCH_BYTES) {
+    const megabytes = (total / (1024 * 1024)).toFixed(1);
+    throw new UploadError(
+      "batch-too-large",
+      `The submission is ${megabytes} MB in total; the limit is ${
+        MAX_BATCH_BYTES / (1024 * 1024)
+      } MB.`,
+    );
+  }
+}
 
 /** A refused upload: a stable reason plus a message written for the operator. */
 export class UploadError extends Error {

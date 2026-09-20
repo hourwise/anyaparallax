@@ -366,31 +366,74 @@ export async function createD1TestDatabase({ seed, label }) {
     /**
      * D1-shaped binding for `D1PortfolioRepository`. Numbered placeholders
      * (`?1`) are rewritten to positional `?`, matching the driver's binding.
+     *
+     * `batch` is provided because production D1 has it and `createPhoto` relies
+     * on it for atomicity. It is emulated with an explicit transaction that rolls
+     * back on the first failure — which is the property the repository actually
+     * depends on, so a check can prove that a failing tag link leaves no
+     * photograph row behind.
      */
     binding: {
       prepare(query) {
-        const make = (sql, values) => ({
-          bind(...next) {
-            return make(sql, next);
-          },
-          async all() {
-            const prepared = db.prepare(sql);
-            const results = values.length > 0 ? prepared.all(...values) : prepared.all();
-            return { results: results.map((row) => ({ ...row })), success: true };
-          },
-          async run() {
-            const prepared = db.prepare(sql);
-            if (values.length > 0) {
-              prepared.run(...values);
-            } else {
-              prepared.run();
-            }
-            return { success: true };
-          },
+        // D1 allows a numbered placeholder to be REFERENCED more than once
+        // (`... = ?1 OR ... = ?1`) while binding its value once. The SQLite
+        // driver this harness uses has no numbered parameters, so each distinct
+        // `?N` becomes a POSITIONAL `?` and the bound values are expanded to
+        // match: the same value is repeated once per reference. Without the
+        // expansion the statement is under-bound and every reference after the
+        // first silently matches nothing — which is the kind of bug that makes a
+        // publication check pass for the wrong reason.
+        const order = [];
+        const normalised = query.replace(/\?(\d+)/g, (_match, digits) => {
+          order.push(Number(digits));
+          return "?";
         });
+        const make = (sql, values) => {
+          const expanded = order.map((index) => values[index - 1]);
+          return {
+            bind(...next) {
+              return make(sql, next);
+            },
+            async all() {
+              const prepared = db.prepare(sql);
+              const results = expanded.length > 0 ? prepared.all(...expanded) : prepared.all();
+              return { results: results.map((row) => ({ ...row })), success: true };
+            },
+            async run() {
+              const prepared = db.prepare(sql);
+              if (expanded.length > 0) {
+                prepared.run(...expanded);
+              } else {
+                prepared.run();
+              }
+              return { success: true };
+            },
+            /** Consume this statement inside a batch's transaction. */
+            __execute() {
+              const prepared = db.prepare(sql);
+              if (expanded.length > 0) {
+                prepared.run(...expanded);
+              } else {
+                prepared.run();
+              }
+            },
+          };
+        };
 
-        const normalised = query.replace(/\?(\d+)/g, "?");
         return make(normalised, []);
+      },
+      async batch(statements) {
+        db.exec("BEGIN");
+        try {
+          for (const statement of statements) {
+            statement.__execute();
+          }
+          db.exec("COMMIT");
+        } catch (error) {
+          db.exec("ROLLBACK");
+          throw error;
+        }
+        return statements.map(() => ({ success: true }));
       },
     },
   };

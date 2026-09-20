@@ -92,14 +92,22 @@ const requiredMarkers = [
   ["app/auth/accounts.server.ts", "ACCOUNT_BY_EMAIL_SQL"],
   // Slice 06: upload pipeline and public derivative serving.
   ["app/images/upload-validation.ts", "validateUpload"],
-  ["app/images/codecs.ts", "decodeImage"],
-  ["app/images/watermark.ts", "applyWatermark"],
+  ["app/images/upload-validation.ts", "assertBatchWithinPolicy"],
+  ["app/images/image-processor.ts", "ImageProcessor"],
+  ["app/images/image-processor.ts", "drawRequestFor"],
+  ["app/images/image-processor.cloudflare.server.ts", "createCloudflareImageProcessor"],
+  ["app/images/image-processor.cloudflare.server.ts", "scale-down"],
+  ["app/images/watermark-asset.ts", "developmentWatermarkOverlay"],
   ["app/images/process.ts", "processUpload"],
   ["app/images/upload.server.ts", "ingestUploads"],
   ["app/images/media.server.ts", "serveMedia"],
+  ["app/images/media-publication.server.ts", "isPublishedDerivative"],
+  ["app/data/storage.server.ts", "deleteMaster"],
   ["app/routes/media.ts", "serveMedia"],
   ["app/routes/admin/upload.tsx", "ingestUploads"],
   ["app/data/storage.ts", "PUBLIC_MEDIA_PREFIX"],
+  // The production processor must be the platform binding, not a local codec.
+  ["wrangler.jsonc", "IMAGE_TRANSFORMS"],
 ];
 
 /**

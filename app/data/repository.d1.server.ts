@@ -31,6 +31,15 @@ import { slugify, suffixedSlug, type NewPhotoInput } from "./repository";
 /** The D1 binding surface used here. */
 export type D1DatabaseBinding = {
   prepare(query: string): D1PreparedStatementBinding;
+  /**
+   * Execute several statements as ONE transaction.
+   *
+   * Required, not optional: `createPhoto` records a photograph and its tag links
+   * together, and a sequential pair of `.run()` calls can leave a photograph
+   * with missing tag links (or fail after the row exists) if the second call
+   * fails. D1 batches are atomic, so either the whole record lands or none of it.
+   */
+  batch?(statements: readonly D1PreparedStatementBinding[]): Promise<readonly unknown[]>;
 };
 
 export type D1PreparedStatementBinding = {
@@ -126,6 +135,21 @@ function toPhotoRecord(row: PhotoRow, tags: readonly string[]): PhotoRecord {
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
   };
+}
+
+/**
+ * True when a value looks like a D1 binding.
+ *
+ * Exported so a server module can decide whether it is able to consult the
+ * database at all — the media route refuses to serve anything it cannot prove is
+ * published, and needs exactly this test to fail closed.
+ */
+export function isD1Binding(value: unknown): value is D1DatabaseBinding {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    typeof (value as { prepare?: unknown }).prepare === "function"
+  );
 }
 
 const PUBLISHED_GALLERY = "g.published = 1";
@@ -422,54 +446,70 @@ export class D1PortfolioRepository implements PortfolioRepository {
   /**
    * Record a photograph from an accepted upload.
    *
-   * Two statements: the photograph, then its tag links. They are issued in that
-   * order because `photo_tags` has foreign keys to both `photos` and `tags`, so
-   * a link cannot legally precede the row it describes. Duplicate tag ids are
-   * collapsed first — the junction table's primary key would reject a repeat,
-   * and a repeated tag is an operator slip, not a reason to fail the upload.
+   * The photograph row and EVERY tag link are committed in ONE D1 batch, which
+   * is a single transaction: a failing tag foreign key, a slug collision or any
+   * other statement leaves neither the photograph nor any link behind. A
+   * sequential pair of `.run()` calls could not promise that — the row would
+   * already exist when the link insert failed.
+   *
+   * Duplicate tag ids are collapsed first: the junction table's primary key
+   * would reject a repeat, and a repeated tag is an operator slip rather than a
+   * reason to fail an otherwise valid upload.
    */
   async createPhoto(input: NewPhotoInput): Promise<PhotoRecord> {
     const now = new Date().toISOString();
-    await this.#db
-      .prepare(
-        `INSERT INTO photos (
-           id, title, slug, description, gallery_id, location, capture_date,
-           width, height, original_storage_key, web_storage_key, thumbnail_storage_key,
-           watermark_enabled, watermark_position, featured, published, print_available,
-           created_at, updated_at, published_at
-         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)`,
-      )
-      .bind(
-        input.id,
-        input.title,
-        input.slug,
-        input.description,
-        input.galleryId,
-        input.location,
-        input.captureDate,
-        input.width,
-        input.height,
-        input.originalStorageKey,
-        input.webStorageKey,
-        input.thumbnailStorageKey,
-        input.watermarkEnabled ? 1 : 0,
-        input.watermarkPosition,
-        input.featured ? 1 : 0,
-        input.published ? 1 : 0,
-        input.printAvailable ? 1 : 0,
-        now,
-        now,
-        input.published ? now : null,
-      )
-      .run();
-
     const tagIds = [...new Set(input.tags)];
-    for (const tagId of tagIds) {
-      await this.#db
-        .prepare("INSERT INTO photo_tags (photo_id, tag_id) VALUES (?1, ?2)")
-        .bind(input.id, tagId)
-        .run();
+
+    const statements: D1PreparedStatementBinding[] = [
+      this.#db
+        .prepare(
+          `INSERT INTO photos (
+             id, title, slug, description, gallery_id, location, capture_date,
+             width, height, original_storage_key, web_storage_key, thumbnail_storage_key,
+             watermark_enabled, watermark_position, featured, published, print_available,
+             created_at, updated_at, published_at
+           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)`,
+        )
+        .bind(
+          input.id,
+          input.title,
+          input.slug,
+          input.description,
+          input.galleryId,
+          input.location,
+          input.captureDate,
+          input.width,
+          input.height,
+          input.originalStorageKey,
+          input.webStorageKey,
+          input.thumbnailStorageKey,
+          input.watermarkEnabled ? 1 : 0,
+          input.watermarkPosition,
+          input.featured ? 1 : 0,
+          input.published ? 1 : 0,
+          input.printAvailable ? 1 : 0,
+          now,
+          now,
+          input.published ? now : null,
+        ),
+      ...tagIds.map((tagId) =>
+        this.#db.prepare("INSERT INTO photo_tags (photo_id, tag_id) VALUES (?1, ?2)").bind(
+          input.id,
+          tagId,
+        ),
+      ),
+    ];
+
+    if (typeof this.#db.batch !== "function") {
+      // Fail loudly rather than silently degrading to non-atomic writes. A
+      // binding without `batch` cannot honour the all-or-nothing guarantee this
+      // method exists to provide.
+      throw new Error(
+        "The D1 binding does not expose batch(), so the photograph and its tag links " +
+          "cannot be committed atomically. Refusing to write a partial record.",
+      );
     }
+    await this.#db.batch(statements);
 
     return {
       id: input.id,
