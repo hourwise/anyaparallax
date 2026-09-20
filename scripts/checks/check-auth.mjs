@@ -36,6 +36,7 @@ import { RouterContextProvider } from "react-router";
 
 import {
   accessConfigurationFrom,
+  accessConfigurationIntended,
   identityModeFor,
   isLoopbackHostname,
   normaliseEmail,
@@ -233,9 +234,41 @@ expect(accessConfigurationFrom({ ACCESS_TEAM_DOMAIN: "team.cloudflareaccess.com"
 expect(accessConfigurationFrom({ ACCESS_AUD: "aud" }) === null, "audience without team domain accepted");
 expect(accessConfigurationFrom(accessEnv)?.audience === "aud-tag", "complete Access configuration rejected");
 
+// `accessConfigurationIntended` distinguishes "no Access at all" from "Access being
+// set up but incomplete" — the signal the fail-closed rule in resolveIdentity uses.
+expect(accessConfigurationIntended({}) === false, "an empty environment reads as Access-intended");
+expect(accessConfigurationIntended(undefined) === false, "an absent environment reads as Access-intended");
+expect(
+  accessConfigurationIntended(developmentEnv) === false,
+  "a development environment with no Access variables reads as Access-intended",
+);
+expect(
+  accessConfigurationIntended({ ACCESS_TEAM_DOMAIN: "team.cloudflareaccess.com" }) === true,
+  "a team domain alone is not recognised as a half-configured Access deployment",
+);
+expect(
+  accessConfigurationIntended({ ACCESS_AUD: "aud" }) === true,
+  "an audience alone is not recognised as a half-configured Access deployment",
+);
+expect(
+  accessConfigurationIntended({ ACCESS_TEAM_DOMAIN: "   " }) === false,
+  "a blank team domain is treated as a configuration intent",
+);
+expect(accessConfigurationIntended(accessEnv) === true, "a complete Access configuration is not recognised as intended");
+
 expect(identityModeFor(accessEnv) === "cloudflare-access", "Access mode not reported");
 expect(identityModeFor(developmentEnv) === "development", "development mode not reported");
 expect(identityModeFor({}) === "closed", "unconfigured mode not reported as closed");
+// A half-configured Access deployment fails closed, and the reported mode must say so
+// rather than claiming the development header is live.
+expect(
+  identityModeFor({ ACCESS_TEAM_DOMAIN: accessConfig.teamDomain, ALLOW_DEVELOPMENT_IDENTITY: "true" }) === "closed",
+  "half-configured Access with the dev flag on was reported as development, not closed",
+);
+expect(
+  identityModeFor({ ACCESS_AUD: accessConfig.audience, ALLOW_DEVELOPMENT_IDENTITY: "true" }) === "closed",
+  "half-configured Access (audience only) with the dev flag on was not reported as closed",
+);
 
 // --- 2. Access JWT verification (real RS256) ------------------------------
 
@@ -454,6 +487,37 @@ expect(
     { ALLOW_DEVELOPMENT_IDENTITY: "TRUE" },
   )) === null,
   "development identity accepted for a case-variant flag value",
+);
+
+// Fail-closed on a HALF-configured Access deployment: a production deployment that
+// has begun configuring Access (one variable set, the other missing or blank) must
+// NOT fall back to the loopback development identity, even with the development flag
+// on and a loopback host. A configuration mistake denies rather than downgrades.
+const partialAccessEnvs = [
+  ["a team domain but no audience", { ACCESS_TEAM_DOMAIN: accessConfig.teamDomain }],
+  ["an audience but no team domain", { ACCESS_AUD: accessConfig.audience }],
+  ["a team domain and a blank audience", { ACCESS_TEAM_DOMAIN: accessConfig.teamDomain, ACCESS_AUD: "   " }],
+  ["a malformed team domain and an audience", { ACCESS_TEAM_DOMAIN: "two words", ACCESS_AUD: accessConfig.audience }],
+];
+for (const [label, accessVars] of partialAccessEnvs) {
+  expect(
+    (await resolveIdentity(
+      requestTo("/admin", { "x-anyaparallax-development-identity": PHOTOGRAPHER_EMAIL }),
+      { ...accessVars, ALLOW_DEVELOPMENT_IDENTITY: "true", ALLOW_DEVELOPMENT_SEED: "true" },
+    )) === null,
+    `development identity accepted while Access is half-configured (${label})`,
+  );
+}
+// The rule is specific to a HALF-configured deployment: with no Access variables at
+// all the development path still resolves, so this is fail-closed, not a blanket ban.
+expect(
+  (
+    await resolveIdentity(
+      requestTo("/admin", { "x-anyaparallax-development-identity": PHOTOGRAPHER_EMAIL }),
+      developmentEnv,
+    )
+  )?.email === PHOTOGRAPHER_EMAIL,
+  "the development path stopped resolving with no Access variables present",
 );
 
 // --- 4. Account lookup ----------------------------------------------------

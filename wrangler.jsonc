@@ -53,15 +53,31 @@
     "binding": "IMAGE_TRANSFORMS"
   },
 
-  // Development-only safety valves. Both must be "false" (or removed) for a real
-  // deployment:
+  // Development-only safety valves. Both ship as "false" so the PUBLICATION-SAFE
+  // state is the one a deployment gets by accident, the same discipline
+  // SHOW_DEVELOPMENT_NOTICES uses below. Only the exact string "true" enables
+  // either valve; any other value (or none) leaves it off.
   //   ALLOW_DEVELOPMENT_SEED     — no D1 binding → serve the development seed set
-  //                                instead of failing.
+  //                                instead of failing. Off by default so a
+  //                                deployment with no binding fails LOUDLY rather
+  //                                than serving stale seed data. (With a real D1
+  //                                binding present the binding always wins and this
+  //                                valve is inert.)
   //   ALLOW_DEVELOPMENT_IDENTITY — accept the local development identity header
   //                                (`x-anyaparallax-development-identity`) so the
   //                                authentication boundary can be exercised without
   //                                Cloudflare Access. Honoured on loopback hosts
-  //                                only, and never while Access is configured.
+  //                                only, never while Access is configured, and —
+  //                                since REPAIR — never while Access is even
+  //                                HALF-configured. Off by default so a deployment
+  //                                that forgets to disable it is still closed, not
+  //                                one loopback-check weakness away from a bypass.
+  //
+  // To use either locally, opt in through a gitignored `.dev.vars` beside this file
+  // (which `pnpm dev` and the served checks load and which overrides these values)
+  // rather than by editing shipped configuration:
+  //   ALLOW_DEVELOPMENT_SEED="true"
+  //   ALLOW_DEVELOPMENT_IDENTITY="true"
   //
   // Cloudflare Access configuration (ACCESS_TEAM_DOMAIN, ACCESS_AUD) is
   // deliberately ABSENT here: no Access application exists yet and no value
@@ -87,8 +103,8 @@
   //   SHOW_DEVELOPMENT_NOTICES="true"
   // which overrides this value for `pnpm dev` without changing shipped config.
   "vars": {
-    "ALLOW_DEVELOPMENT_SEED": "true",
-    "ALLOW_DEVELOPMENT_IDENTITY": "true",
+    "ALLOW_DEVELOPMENT_SEED": "false",
+    "ALLOW_DEVELOPMENT_IDENTITY": "false",
     "PUBLIC_SITE_ORIGIN": "https://anyaparallax.co.uk",
     "SHOW_DEVELOPMENT_NOTICES": "false"
   }

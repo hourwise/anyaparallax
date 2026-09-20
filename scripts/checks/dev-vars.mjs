@@ -17,6 +17,16 @@
  *      aside and restored, so running the checks never destroys a local override.
  *   3. RESTORING IS IDEMPOTENT AND HAPPENS IN A `finally`. A failing assertion or a
  *      crash still leaves the workspace as it was found.
+ *
+ * THE DEVELOPMENT BASELINE. `wrangler.jsonc` ships `ALLOW_DEVELOPMENT_SEED` and
+ * `ALLOW_DEVELOPMENT_IDENTITY` as "false" so a deployment is publication-safe by
+ * accident (see the comment there). The served checks ARE local development: they
+ * drive `/admin` through the loopback development identity header and, without a
+ * provisioned D1, read the development seed. They therefore opt into both valves the
+ * way a developer's own `.dev.vars` does — which is exactly the gitignored,
+ * intentional mechanism the deployment docs point developers at. `withWorkerVariables`
+ * writes that baseline, and a caller may override any of it (for example to prove a
+ * valve is off), so no served check depends on the shipped default being "true".
  */
 import { copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -25,6 +35,17 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const devVarsPath = resolve(root, ".dev.vars");
 const backupPath = resolve(root, ".dev.vars.check-backup");
+
+/**
+ * The local development opt-in the served checks share: both development valves on.
+ * This mirrors the `.dev.vars` a developer keeps locally, so the checks behave the
+ * same whatever the (publication-safe "false") shipped defaults in `wrangler.jsonc`
+ * are. A caller override wins over these.
+ */
+export const DEVELOPMENT_WORKER_VARIABLES = {
+  ALLOW_DEVELOPMENT_SEED: "true",
+  ALLOW_DEVELOPMENT_IDENTITY: "true",
+};
 
 /** Fail loudly if `.dev.vars` is not ignored, so a check cannot leave a tracked file behind. */
 export function assertDevVarsIgnored() {
@@ -54,7 +75,9 @@ export function withWorkerVariables(variables) {
   if (existed) {
     copyFileSync(devVarsPath, backupPath);
   }
-  const body = Object.entries(variables)
+  // The development baseline first, then the caller's overrides, so a served check
+  // gets both valves on unless it deliberately sets one off.
+  const body = Object.entries({ ...DEVELOPMENT_WORKER_VARIABLES, ...variables })
     .map(([name, value]) => `${name}=${JSON.stringify(String(value))}`)
     .join("\n");
   writeFileSync(devVarsPath, `${body}\n`, "utf8");

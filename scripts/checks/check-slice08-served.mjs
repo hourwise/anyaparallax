@@ -38,10 +38,18 @@ import { register } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { withWorkerVariables } from "./dev-vars.mjs";
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const port = 4186;
 const origin = `http://[::1]:${port}`;
 const CANONICAL_ORIGIN = "https://anyaparallax.co.uk";
+
+// The development valves ship "false"; this served check is local development, so it
+// opts into the loopback development identity the way a developer's gitignored
+// `.dev.vars` does, before the dev server starts and reads it. Restored in the
+// `finally`.
+const restoreWorkerVariables = withWorkerVariables({});
 
 register("../ts-extension-hooks.mjs", import.meta.url);
 const { seed } = await import("../../app/data/seed.ts");
@@ -785,6 +793,7 @@ try {
   }
 } finally {
   await shutdown();
+  restoreWorkerVariables();
 }
 
 if (failures.length > 0) {

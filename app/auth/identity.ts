@@ -153,6 +153,31 @@ export function accessConfigurationFrom(
 }
 
 /**
+ * Has the operator BEGUN configuring Cloudflare Access?
+ *
+ * True when either Access variable carries any non-blank value, whether or not the
+ * pair is complete. This distinguishes two very different deployments that
+ * {@link accessConfigurationFrom} otherwise reports identically as "no Access":
+ *
+ *   * a deployment with no Access variables at all (local development, or a
+ *     deliberately closed deployment), and
+ *   * a deployment where Access is HALF-configured or mistyped — one variable set,
+ *     the other missing or blank.
+ *
+ * The second is a production deployment that is trying to be an Access deployment
+ * and has a configuration mistake. It must NEVER fall back to the development
+ * identity path (see `resolveIdentity`): the presence of a stray
+ * `ALLOW_DEVELOPMENT_IDENTITY=true` must not silently downgrade a broken Access
+ * deployment to header authentication. Failing closed is the safe reading of a
+ * half-finished Access configuration.
+ */
+export function accessConfigurationIntended(env: IdentityEnvironment | undefined): boolean {
+  const teamDomain = typeof env?.ACCESS_TEAM_DOMAIN === "string" ? env.ACCESS_TEAM_DOMAIN.trim() : "";
+  const audience = typeof env?.ACCESS_AUD === "string" ? env.ACCESS_AUD.trim() : "";
+  return teamDomain.length > 0 || audience.length > 0;
+}
+
+/**
  * Access logout endpoint, or null when Access is not configured. Signing out is
  * Access' responsibility, not the application's; the operator interfaces only
  * link to it. Pure string construction, so the chrome can use it without
@@ -176,6 +201,13 @@ export type IdentityMode = "cloudflare-access" | "development" | "closed";
 export function identityModeFor(env: IdentityEnvironment | undefined): IdentityMode {
   if (accessConfigurationFrom(env)) {
     return "cloudflare-access";
+  }
+  // A HALF-configured Access deployment fails closed in `resolveIdentity`: the
+  // development header is refused when either Access variable is set. Report that
+  // truthfully as `closed` rather than `development`, so the diagnostics never claim a
+  // header path is live while the boundary is actually denying every request.
+  if (accessConfigurationIntended(env)) {
+    return "closed";
   }
   return env?.ALLOW_DEVELOPMENT_IDENTITY === "true" ? "development" : "closed";
 }

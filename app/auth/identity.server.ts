@@ -25,6 +25,7 @@ import {
   type JsonWebKeySet,
   DEVELOPMENT_IDENTITY_HEADER,
   accessConfigurationFrom,
+  accessConfigurationIntended,
   isLoopbackHostname,
   normaliseEmail,
   type VerifiedIdentity,
@@ -250,6 +251,17 @@ export async function resolveIdentity(
         return null;
       }
       return await verifyAccessToken(assertion, configuration);
+    }
+
+    // Fail closed on a HALF-configured Access deployment. If either Access variable
+    // is set but the pair is incomplete, the operator is standing up an Access
+    // deployment and has a configuration mistake — the development identity path must
+    // not rescue it, even with `ALLOW_DEVELOPMENT_IDENTITY=true` and a loopback-looking
+    // host, because that would downgrade a broken Access deployment to header
+    // authentication. The development path is considered ONLY when no Access variable
+    // is present at all.
+    if (accessConfigurationIntended(env)) {
+      return null;
     }
 
     if (env?.ALLOW_DEVELOPMENT_IDENTITY !== "true") {

@@ -27,10 +27,17 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { withWorkerVariables } from "./dev-vars.mjs";
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const port = 4185;
 const origin = `http://[::1]:${port}`;
 const CANONICAL_ORIGIN = "https://anyaparallax.co.uk";
+
+// The development valves ship "false"; this served check is local development, so it
+// opts into the seed the way a developer's gitignored `.dev.vars` does, before the
+// dev server starts and reads it. Restored in the `finally`.
+const restoreWorkerVariables = withWorkerVariables({});
 
 const server = spawn(
   "node",
@@ -507,6 +514,7 @@ try {
   }
 } finally {
   await shutdown();
+  restoreWorkerVariables();
 }
 
 if (failures.length > 0) {

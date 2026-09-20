@@ -85,19 +85,21 @@ pnpm db:seed:local
 pnpm dev
 
 # 2. No binding at all: allow the documented seed fallback.
-pnpm dev   # with ALLOW_DEVELOPMENT_SEED=true in wrangler.jsonc (the default)
+pnpm dev   # with ALLOW_DEVELOPMENT_SEED="true" in a gitignored .dev.vars (see below)
 ```
 
 With a D1 binding present it always wins. Without one, the seed repository is used only
 while `ALLOW_DEVELOPMENT_SEED` is `"true"`; otherwise the data layer throws so a
-misconfigured deployment fails loudly instead of serving stale development data. Set it
-to `"false"` for any real deployment.
+misconfigured deployment fails loudly instead of serving stale development data.
+`wrangler.jsonc` ships it as `"false"` so a deployment is publication-safe by accident;
+to use the seed fallback locally, enable it in a gitignored `.dev.vars` (below) rather
+than by editing shipped configuration.
 
 ### Local operator sign-in
 
 Cloudflare Access is not configured yet, so `/admin` and `/manager` would deny every
-request. For local work only, `wrangler.jsonc` sets `ALLOW_DEVELOPMENT_IDENTITY` and the
-application accepts this header **on loopback hosts only**:
+request. For local work only, enable `ALLOW_DEVELOPMENT_IDENTITY` in a gitignored
+`.dev.vars` (below); the application then accepts this header **on loopback hosts only**:
 
 ```bash
 curl -H 'x-anyaparallax-development-identity: photographer@anyaparallax.test' \
@@ -110,8 +112,26 @@ curl -H 'x-anyaparallax-development-identity: manager@anyaparallax.test' \
 Those two addresses are the seeded placeholder accounts (reserved `.test` domain, see
 `app/data/seed.ts`): the first is a photographer and reaches `/admin` only, the second is
 a manager and reaches both areas. `deactivated@anyaparallax.test` exists to prove that a
-known but inactive account is refused. The header grants nothing off loopback, and it is
-ignored entirely once Cloudflare Access is configured.
+known but inactive account is refused. The header grants nothing off loopback; it is
+ignored entirely once Cloudflare Access is configured, and — so a half-finished Access
+deployment cannot be downgraded — ignored even when Access is only _partially_ configured
+(one of `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` set): a broken Access configuration fails
+closed rather than falling back to the development header.
+
+### Enabling the development valves locally (`.dev.vars`)
+
+`wrangler.jsonc` ships `ALLOW_DEVELOPMENT_SEED` and `ALLOW_DEVELOPMENT_IDENTITY` as
+`"false"` so the publication-safe state is the one a deployment gets by accident. To turn
+either on for local development, create a gitignored `.dev.vars` beside `wrangler.jsonc`
+(the same file the served checks write for themselves), which `pnpm dev` loads and which
+overrides the shipped `vars`:
+
+```text
+ALLOW_DEVELOPMENT_SEED="true"
+ALLOW_DEVELOPMENT_IDENTITY="true"
+```
+
+Nothing shipped in the repository changes, and no deployment inherits the valves.
 
 ## Checks
 
@@ -194,7 +214,9 @@ indexed.
            '2026-09-20T00:00:00.000Z', '2026-09-20T00:00:00.000Z');
    ```
 
-5. Set `ALLOW_DEVELOPMENT_IDENTITY` to `"false"` so only verified Access identities count.
+5. Confirm `ALLOW_DEVELOPMENT_IDENTITY` is `"false"` (the shipped default) so only
+   verified Access identities count, and set BOTH `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`:
+   a half-configured Access deployment fails closed rather than accepting the header.
 
 While Access is configured, the development identity header is ignored even on loopback.
 `Log out` links to the Access logout endpoint once a team domain is configured.
@@ -321,9 +343,12 @@ Nothing here has been run against Cloudflare. When publishing is authorised:
 2. `wrangler d1 create anyaparallax`, then put the returned `database_id` into
    `wrangler.jsonc`.
 3. `pnpm db:migrate:remote` to apply migrations.
-4. Set `ALLOW_DEVELOPMENT_SEED` to `"false"` so a missing binding fails loudly.
+4. Confirm `ALLOW_DEVELOPMENT_SEED` is `"false"` (the shipped default) so a missing
+   binding fails loudly, and that no `.dev.vars` overriding it reaches the deployment.
 5. Create the Cloudflare Access application, set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`,
    add one policy per operator, and insert their addresses into `users` (see
-   "Authentication and roles"). Set `ALLOW_DEVELOPMENT_IDENTITY` to `"false"`.
+   "Authentication and roles"). Confirm `ALLOW_DEVELOPMENT_IDENTITY` is `"false"` (the
+   shipped default). Set BOTH `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`, not one: a
+   half-configured Access deployment fails closed and denies every operator request.
 6. Do not seed production with development placeholder rows; real content arrives
    through the admin upload flow.
