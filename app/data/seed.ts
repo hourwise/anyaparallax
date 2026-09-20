@@ -7,6 +7,9 @@
  * Slice 04 replaces this module with the same query functions reading D1 rows;
  * the types in `app/data/model.ts` are already written for that mapping.
  *
+ * Slice 05 adds `users`: placeholder authorised identities for the local
+ * authentication boundary, on the reserved `.test` domain.
+ *
  * Deliberate characteristics:
  * - Gallery names follow the build sheet's provisional example list (Nightlife,
  *   Live Music, Cityscapes, Cars, People, Black & White).
@@ -15,8 +18,10 @@
  * - Two photographs and one gallery are deliberately UNPUBLISHED so the public
  *   visibility rules can be exercised and verified.
  * - Titles, descriptions, locations and dates are invented placeholder metadata.
+ * - Users are placeholder identities only; no real operator address belongs in
+ *   source (see `app/auth/README` notes in README.md).
  */
-import type { GalleryRecord, PhotoOrientation, PhotoRecord, TagRecord } from "./model";
+import type { GalleryRecord, PhotoOrientation, PhotoRecord, TagRecord, UserRecord } from "./model";
 import { masterKey } from "./storage";
 
 /** Development placeholder asset path. Slice 04/06 replace these with derivatives. */
@@ -503,13 +508,57 @@ const tagSeeds: readonly TagRecord[] = [
   { id: "tag-street", name: "Street", slug: "street" },
 ];
 
+/**
+ * Authorised users (Slice 05).
+ *
+ * These are PLACEHOLDER identities on the reserved `.test` domain
+ * (RFC 2606): they are not real addresses and they grant nothing outside a
+ * local development machine. The real operator addresses are deployment data
+ * and are inserted into the `users` table by the operator — never by this seed
+ * set and never as a hard-coded literal in shipped source.
+ *
+ * The set deliberately carries:
+ * - one active photographer (Anya's role),
+ * - one active manager (the site maintainer's role),
+ * - one INACTIVE photographer, so "an authenticated identity that is no longer
+ *   authorised is denied" can be checked with real rows.
+ */
+const userSeeds: readonly UserRecord[] = [
+  {
+    id: "user-photographer",
+    email: "photographer@anyaparallax.test",
+    role: "photographer",
+    active: true,
+    createdAt: "2026-08-01T09:00:00.000Z",
+    updatedAt: "2026-08-01T09:00:00.000Z",
+  },
+  {
+    id: "user-manager",
+    email: "manager@anyaparallax.test",
+    role: "manager",
+    active: true,
+    createdAt: "2026-08-01T09:00:00.000Z",
+    updatedAt: "2026-08-01T09:00:00.000Z",
+  },
+  {
+    id: "user-deactivated",
+    email: "deactivated@anyaparallax.test",
+    role: "photographer",
+    active: false,
+    createdAt: "2026-08-01T09:00:00.000Z",
+    updatedAt: "2026-09-01T09:00:00.000Z",
+  },
+];
+
 /** Raw rows. Query and visibility logic lives in `app/data/queries.ts`. */
 export const seed: {
   readonly galleries: readonly GalleryRecord[];
   readonly photos: readonly PhotoRecord[];
   readonly tags: readonly TagRecord[];
+  readonly users: readonly UserRecord[];
 } = {
   galleries: gallerySeeds,
   photos: photoSeeds,
   tags: tagSeeds,
+  users: userSeeds,
 };

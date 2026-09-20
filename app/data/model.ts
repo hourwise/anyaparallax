@@ -176,3 +176,39 @@ export type PublicTag = {
   readonly name: string;
   readonly slug: string;
 };
+
+/**
+ * Application roles (Slice 05). The `users` table constrains `role` to these
+ * values, and every server-side authorization decision maps a verified identity
+ * to exactly one of them. Roles are never accepted from the client: they are
+ * read from the database after the identity itself has been verified.
+ */
+export const APP_ROLES = ["photographer", "manager"] as const;
+
+export type AppRole = (typeof APP_ROLES)[number];
+
+export function isAppRole(value: unknown): value is AppRole {
+  return typeof value === "string" && (APP_ROLES as readonly string[]).includes(value);
+}
+
+/**
+ * Authorised application user row, as stored in the `users` table.
+ *
+ * This is a persistence shape and is deliberately NOT a public projection:
+ * emails are personal data and must never reach a public page, a public loader
+ * payload or the client bundle. Only the `/admin` and `/manager` surfaces —
+ * which are authenticated and role-checked — may display an account, and only
+ * to the signed-in operator.
+ */
+export type UserRecord = {
+  readonly id: string;
+  readonly email: string;
+  readonly role: AppRole;
+  /**
+   * Deactivating a row revokes access without deleting the audit trail. An
+   * inactive account authenticates but is denied authorization.
+   */
+  readonly active: boolean;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};

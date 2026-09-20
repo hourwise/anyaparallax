@@ -11,6 +11,7 @@
  *    to the browser, so this is a security property.
  */
 import { toPublicGallery, toPublicPhoto } from "../../app/data/project.ts";
+import { isAppRole } from "../../app/data/model.ts";
 import { seed } from "../../app/data/seed.ts";
 import { MASTERS_SCHEME } from "../../app/data/storage.ts";
 import { check, note, report, walk } from "./report.mjs";
@@ -82,6 +83,26 @@ for (const gallery of seed.galleries) {
     );
     check(cover.published, `gallery ${gallery.id} cover photo is unpublished`);
   }
+}
+
+// Authorised users (Slice 05): placeholder identities on the reserved `.test`
+// domain. Real operator addresses are deployment data and never belong here.
+const userIds = new Set();
+const userEmails = new Set();
+for (const user of seed.users) {
+  check(!userIds.has(user.id), `duplicate user id ${user.id}`);
+  userIds.add(user.id);
+  check(!userEmails.has(user.email), `duplicate user email ${user.email}`);
+  userEmails.add(user.email);
+  check(
+    user.email === user.email.trim().toLowerCase(),
+    `user ${user.id} email is not stored normalised`,
+  );
+  check(isAppRole(user.role), `user ${user.id} has an unsupported role ${String(user.role)}`);
+  check(
+    user.email.endsWith(".test"),
+    `user ${user.id} does not use the reserved .test domain`,
+  );
 }
 
 // --- Projection safety ---------------------------------------------------

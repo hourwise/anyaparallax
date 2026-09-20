@@ -5,38 +5,25 @@
  * Local only: it shells out to `wrangler d1 execute --local`, which writes to
  * `.wrangler/state` and never contacts Cloudflare. Use it after
  * `pnpm run db:migrate:local` to give `pnpm run dev` real rows to read — the
- * same data the pages show when no binding is available.
+ * same data the pages show when no binding is available, and the same
+ * placeholder operator accounts the local authentication boundary checks
+ * against.
  *
  * Usage:
  *   pnpm run db:migrate:local
  *   pnpm run db:seed:local
  */
-import { mkdirSync, writeFileSync } from "node:fs";
 import { register } from "node:module";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
 register("./ts-extension-hooks.mjs", import.meta.url);
 
 const { seed } = await import("../app/data/seed.ts");
-const { buildFixtureSql, runWrangler } = await import("./checks/d1-harness.mjs");
+const { seedLocalD1 } = await import("./checks/local-d1.mjs");
 
-const fixtureDir = join(tmpdir(), `anyaparallax-local-seed-${process.pid}`);
-mkdirSync(fixtureDir, { recursive: true });
-const fixturePath = join(fixtureDir, "seed.sql");
-writeFileSync(fixturePath, buildFixtureSql(seed), "utf8");
-
-await runWrangler([
-  "d1",
-  "execute",
-  "anyaparallax",
-  "--local",
-  "--yes",
-  "--file",
-  fixturePath,
-]);
+await seedLocalD1(seed);
 
 console.log(
   `Seeded the local D1 database from app/data/seed.ts ` +
-    `(${seed.galleries.length} galleries, ${seed.photos.length} photographs, ${seed.tags.length} tags).`,
+    `(${seed.galleries.length} galleries, ${seed.photos.length} photographs, ` +
+    `${seed.tags.length} tags, ${seed.users.length} authorised accounts).`,
 );

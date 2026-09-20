@@ -2,9 +2,10 @@
 
 Photography portfolio for Anya — night cities, live music and the moments after dark.
 
-Current state: **Slice 04 — D1 schema, migrations and R2 storage plumbing**. The public
-site reads gallery and photograph data through a single query boundary that runs against
-Cloudflare D1, with a development-only seed fallback for local work. It remains a
+Current state: **Slice 05 — authentication, admin and manager roles**. The public site
+reads gallery and photograph data through a single query boundary that runs against
+Cloudflare D1, with a development-only seed fallback for local work. `/admin` and
+`/manager` are now behind a real server-side identity and role boundary. It remains a
 development preview, not a published site.
 
 ## Stack
@@ -30,12 +31,17 @@ Implemented so far:
   enquiries and settings
 - R2 storage abstraction with a private masters bucket, a public images bucket and a key
   strategy that keeps the two apart by construction
+- Cloudflare Access-compatible authentication boundary: server-side verification of the
+  Access assertion JWT (or a loopback-only development identity), an authorised-user
+  lookup in D1, and deny-by-default guards on every `/admin` and `/manager` route
+- Functional operator foundations: Anya's `/admin` dashboard with the photographer or
+  manager role, and the manager-only `/manager` surface with live binding, storage,
+  identity state and the authorised-user directory
 
 Deliberately **not** implemented yet:
 
-- Authentication and authorization. `/admin` and `/manager` are development
-  placeholders awaiting Slice 05. They are **not secured** and contain no real
-  functionality, data or secrets.
+- The editing tools themselves (upload, metadata, galleries, settings) inside `/admin`
+  and `/manager`; those routes exist, are protected, and say so.
 - Image upload, derivative generation and watermarking (Slice 06), likes and sharing
   (Slice 07), print enquiries and the contact form (Slice 08).
 - Serving stored R2 objects to visitors. The storage layer is in place and tested; no
@@ -87,6 +93,26 @@ while `ALLOW_DEVELOPMENT_SEED` is `"true"`; otherwise the data layer throws so a
 misconfigured deployment fails loudly instead of serving stale development data. Set it
 to `"false"` for any real deployment.
 
+### Local operator sign-in
+
+Cloudflare Access is not configured yet, so `/admin` and `/manager` would deny every
+request. For local work only, `wrangler.jsonc` sets `ALLOW_DEVELOPMENT_IDENTITY` and the
+application accepts this header **on loopback hosts only**:
+
+```bash
+curl -H 'x-anyaparallax-development-identity: photographer@anyaparallax.test' \
+  http://localhost:5173/admin
+
+curl -H 'x-anyaparallax-development-identity: manager@anyaparallax.test' \
+  http://localhost:5173/manager
+```
+
+Those two addresses are the seeded placeholder accounts (reserved `.test` domain, see
+`app/data/seed.ts`): the first is a photographer and reaches `/admin` only, the second is
+a manager and reaches both areas. `deactivated@anyaparallax.test` exists to prove that a
+known but inactive account is refused. The header grants nothing off loopback, and it is
+ignored entirely once Cloudflare Access is configured.
+
 ## Checks
 
 ```bash
@@ -107,10 +133,74 @@ stripping. It covers:
 - the storage boundary (master keys never resolve to public URLs, never enter the public
   bucket, and are refused by public reads)
 - D1 schema behaviour (tables, indexes, CHECK and UNIQUE constraints, foreign keys)
+- the authentication boundary: Access JWT verification with a locally generated RSA key
+  set, refusal of forged identity headers, the development header's flag and loopback
+  requirements, account lookup (active, inactive, unknown, case-insensitive) and the
+  deny-by-default role guards for both areas
+- served protected routes: 401 without identity, 403 for the wrong role, 200 for the
+  right one, forged role headers/query parameters ignored
 
 D1 checks apply the real migrations to a throwaway local database, so they never touch
 Cloudflare. There is no dedicated lint tool yet: this slice keeps the dependency set to
 the supervisor-verified framework packages.
+
+## Authentication and roles
+
+Two people, two identities, one architecture. Cloudflare Access authenticates a person;
+the application decides what that person may do. Neither operator needs the other's
+email account or credentials.
+
+```text
+Cloudflare Access            (not configured yet — operator input required)
+      ↓ signed JWT on `cf-access-jwt-assertion`
+app/auth/identity.server.ts  verify signature, issuer, audience and expiry
+      ↓ verified email
+app/auth/accounts.server.ts  look up an ACTIVE account row → role
+      ↓
+app/auth/authorization.server.ts   deny unless the role is allowed
+      ↓
+/admin   photographer or manager      /manager   manager only
+```
+
+- `app/auth/identity.ts` — roles-agnostic vocabulary: identity sources, email
+  normalisation, Access configuration parsing, identity mode.
+- `app/auth/identity.server.ts` — RS256 verification against the Access key set
+  (`https://<team-domain>/cdn-cgi/access/certs`, cached 15 minutes), plus the
+  loopback-only development identity. Failure is never an identity.
+- `app/auth/accounts.server.ts` — the `users` table (or the seed users locally).
+  Roles are read from the database; a request can never declare its own role.
+- `app/auth/authorization.server.ts` — `requireAdminAccess` / `requireManagerAccess`,
+  called by every protected layout **and** every protected route loader.
+
+Denials are deliberately plain: **401** when no identity is proven, **403** when a proven
+identity is unknown, deactivated or lacks the role. Nothing about the account is echoed,
+and every `/admin` and `/manager` response carries `Cache-Control: no-store` and
+`X-Robots-Tag: noindex, nofollow`, so operator pages and denials are never cached or
+indexed.
+
+### Setting up Cloudflare Access (operator step, not yet performed)
+
+1. Create a Cloudflare Access application covering the operator paths (`/admin`, `/manager`).
+2. Add one policy per person, matching that person's email address. Access authenticates
+   each identity independently; no shared logins or passwords are used anywhere.
+3. Copy the team domain and the application's AUD tag into the deployment configuration
+   as `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`. Neither is a secret; both are deployment
+   configuration and are intentionally absent from this repository.
+4. Insert the real operator addresses into the `users` table — never into source code:
+
+   ```sql
+   INSERT INTO users (id, email, role, active, created_at, updated_at)
+   VALUES ('user-anya', 'replace-with-operator-email', 'photographer', 1,
+           '2026-09-20T00:00:00.000Z', '2026-09-20T00:00:00.000Z');
+   ```
+
+5. Set `ALLOW_DEVELOPMENT_IDENTITY` to `"false"` so only verified Access identities count.
+
+While Access is configured, the development identity header is ignored even on loopback.
+`Log out` links to the Access logout endpoint once a team domain is configured.
+
+No password, token, key or account credential is stored, logged or committed by this
+application: Access owns authentication completely.
 
 ## Storage and data
 
@@ -175,12 +265,18 @@ app/
   entry.server.tsx         streaming server entry
   routes.ts                route manifest
   app.css                  visual foundation and editorial layout
-  components/              header, footer, photo figure, homepage sections
+  components/              header, footer, photo figure, operator chrome
+  auth/
+    identity.ts            identity vocabulary, Access config, email normalisation
+    identity.server.ts     Access JWT verification + development identity (server only)
+    accounts.server.ts     authorised-user directory lookup (server only)
+    authorization.server.ts deny-by-default request guards (server only)
   data/
-    model.ts               persistence records and public DTO types
+    model.ts               persistence records, roles and public DTO types
     project.ts             persistence → public projection mappers
     storage.ts             object key strategy and private/public boundary
     storage.server.ts      R2-backed storage implementation (server only)
+    diagnostics.server.ts  manager-only status snapshot (server only)
     repository.ts          portfolio repository contract
     repository.d1.server.ts    Cloudflare D1 implementation
     repository.seed.server.ts  local development seed implementation
@@ -188,8 +284,8 @@ app/
     context.ts             request context (bindings)
     context.server.ts      loader access to the request context
     seed.ts                development seed rows (local only)
-  layouts/                 public chrome and protected-area placeholder chrome
-  routes/                  route modules
+  layouts/                 public chrome, admin chrome, manager chrome
+  routes/                  route modules (public, admin/, manager/)
 workers/
   app.ts                   Cloudflare Worker entry (sets request context)
 migrations/                D1 schema migrations
@@ -226,5 +322,8 @@ Nothing here has been run against Cloudflare. When publishing is authorised:
    `wrangler.jsonc`.
 3. `pnpm db:migrate:remote` to apply migrations.
 4. Set `ALLOW_DEVELOPMENT_SEED` to `"false"` so a missing binding fails loudly.
-5. Do not seed production with development placeholder rows; real content arrives
+5. Create the Cloudflare Access application, set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`,
+   add one policy per operator, and insert their addresses into `users` (see
+   "Authentication and roles"). Set `ALLOW_DEVELOPMENT_IDENTITY` to `"false"`.
+6. Do not seed production with development placeholder rows; real content arrives
    through the admin upload flow.

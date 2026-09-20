@@ -9,6 +9,7 @@
  *
  * Nothing contacts Cloudflare: `wrangler d1 execute --local` is used throughout.
  */
+import { findAccountByEmail, listAccounts } from "../../app/auth/accounts.server.ts";
 import { D1PortfolioRepository } from "../../app/data/repository.d1.server.ts";
 import { seed } from "../../app/data/seed.ts";
 import { MASTERS_SCHEME } from "../../app/data/storage.ts";
@@ -275,6 +276,40 @@ check(
   "deleting a gallery that still holds photographs was allowed",
 );
 
+// --- Authorised-user directory (Slice 05) ---------------------------------
+
+// The users table feeds the authorization guard, so the D1 lookup is proved
+// here against the same fixtured rows the seed set produced.
+const fixtureAccounts = database.query("SELECT COUNT(*) AS total FROM users")[0]?.total;
+check(
+  fixtureAccounts === seed.users.length,
+  `the fixture holds ${fixtureAccounts} accounts, expected ${seed.users.length}`,
+);
+
+const d1Environment = { DB: database.binding, ALLOW_DEVELOPMENT_SEED: "false" };
+const d1Photographer = await findAccountByEmail("PHOTOGRAPHER@Anyaparallax.TEST", d1Environment);
+check(d1Photographer?.role === "photographer", "D1 account lookup did not return the photographer");
+check(d1Photographer?.active === true, "D1 account lookup reported an active account as inactive");
+check(d1Photographer?.email === "photographer@anyaparallax.test", "D1 account lookup did not normalise the email");
+
+const d1Inactive = await findAccountByEmail("deactivated@anyaparallax.test", d1Environment);
+check(d1Inactive?.active === false, "D1 account lookup did not report the inactive account");
+check(
+  (await findAccountByEmail("stranger@anyaparallax.test", d1Environment)) === null,
+  "D1 account lookup invented an account for an unknown email",
+);
+
+const d1Accounts = await listAccounts(d1Environment);
+check(
+  d1Accounts.length === seed.users.length,
+  `D1 directory listed ${d1Accounts.length} accounts, expected ${seed.users.length}`,
+);
+check(
+  d1Accounts.every((account) => account.role === "photographer" || account.role === "manager"),
+  "D1 directory listed an unsupported role",
+);
+check(d1Accounts[0]?.role === "manager", "D1 directory is not ordered managers-first");
+
 // Share events start unconfirmed: V1 only ever records that a share started.
 // The row is removed again so the fixture stays exactly as loaded.
 const shareProbe = database.probe([
@@ -312,5 +347,5 @@ report(
   `D1 check passed: schema, ${photoForeignKeys.length + galleryForeignKeys.length} foreign keys, ` +
     `indexes and ${seed.photos.length} fixture photographs verified; ` +
     `repository returns ${visiblePhotos.length} published photographs and keeps ` +
-    `${hiddenPhotoSlugs.length} hidden.`,
+    `${hiddenPhotoSlugs.length} hidden; ${d1Accounts.length} authorised accounts served from D1.`,
 );

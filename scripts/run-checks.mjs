@@ -16,6 +16,7 @@ const checks = [
   "./checks/check-seed-repository.mjs",
   "./checks/check-storage.mjs",
   "./checks/check-d1.mjs",
+  "./checks/check-auth.mjs",
 ];
 
 for (const check of checks) {

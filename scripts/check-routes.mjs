@@ -22,8 +22,26 @@ const requiredRouteEntries = [
   ["/about", /route\(\s*["']about["']\s*,\s*["']routes\/about\.tsx["']\s*\)/],
   ["/prints", /route\(\s*["']prints["']\s*,\s*["']routes\/prints\.tsx["']\s*\)/],
   ["/contact", /route\(\s*["']contact["']\s*,\s*["']routes\/contact\.tsx["']\s*\)/],
-  ["/admin", /route\(\s*["']admin["']\s*,\s*["']routes\/admin\.tsx["']\s*\)/],
-  ["/manager", /route\(\s*["']manager["']\s*,\s*["']routes\/manager\.tsx["']\s*\)/],
+  ["/admin", /route\(\s*["']admin["']\s*,\s*["']routes\/admin\/dashboard\.tsx["']\s*\)/],
+  ["/admin/photos", /route\(\s*["']admin\/photos["']\s*,\s*["']routes\/admin\/photos\.tsx["']\s*\)/],
+  ["/admin/upload", /route\(\s*["']admin\/upload["']\s*,\s*["']routes\/admin\/upload\.tsx["']\s*\)/],
+  ["/admin/galleries", /route\(\s*["']admin\/galleries["']\s*,\s*["']routes\/admin\/galleries\.tsx["']\s*\)/],
+  ["/admin/settings", /route\(\s*["']admin\/settings["']\s*,\s*["']routes\/admin\/settings\.tsx["']\s*\)/],
+  ["/admin/*", /route\(\s*["']admin\/\*["']\s*,\s*["']routes\/admin\/not-found\.tsx["']\s*\)/],
+  ["/manager", /route\(\s*["']manager["']\s*,\s*["']routes\/manager\/dashboard\.tsx["']\s*\)/],
+  [
+    "/manager/diagnostics",
+    /route\(\s*["']manager\/diagnostics["']\s*,\s*["']routes\/manager\/diagnostics\.tsx["']\s*\)/,
+  ],
+  [
+    "/manager/settings",
+    /route\(\s*["']manager\/settings["']\s*,\s*["']routes\/manager\/settings\.tsx["']\s*\)/,
+  ],
+  [
+    "/manager/maintenance",
+    /route\(\s*["']manager\/maintenance["']\s*,\s*["']routes\/manager\/maintenance\.tsx["']\s*\)/,
+  ],
+  ["/manager/*", /route\(\s*["']manager\/\*["']\s*,\s*["']routes\/manager\/not-found\.tsx["']\s*\)/],
   ["catch-all not-found", /route\(\s*["']\*["']\s*,\s*["']routes\/not-found\.tsx["']\s*\)/],
 ];
 
@@ -35,8 +53,18 @@ const requiredMarkers = [
   ["wrangler.jsonc", "\"DB\""],
   ["wrangler.jsonc", "\"MASTERS\""],
   ["wrangler.jsonc", "\"IMAGES\""],
-  ["app/routes/admin.tsx", "Slice 05"],
-  ["app/routes/manager.tsx", "Slice 05"],
+  // Slice 05 authentication boundary.
+  ["wrangler.jsonc", "ALLOW_DEVELOPMENT_IDENTITY"],
+  ["app/auth/identity.server.ts", "verifyAccessToken"],
+  ["app/auth/identity.server.ts", "isLoopbackHostname"],
+  ["app/auth/accounts.server.ts", "findAccountByEmail"],
+  ["app/auth/authorization.server.ts", "requireManagerAccess"],
+  ["app/layouts/admin.tsx", "requireAdminAccess"],
+  ["app/layouts/manager.tsx", "requireManagerAccess"],
+  ["app/routes/admin/dashboard.tsx", "requireAdminAccess"],
+  ["app/routes/admin/upload.tsx", "requireAdminAccess"],
+  ["app/routes/manager/diagnostics.tsx", "requireManagerAccess"],
+  ["app/data/diagnostics.server.ts", "loadManagerDiagnostics"],
   // Slice 03 data boundary: public pages must read through the query layer.
   ["app/routes/galleries.tsx", "listPublishedGalleries"],
   ["app/routes/gallery.tsx", "getPublishedGallery"],
@@ -52,6 +80,7 @@ const requiredMarkers = [
   ["app/data/repository.ts", "interface PortfolioRepository"],
   ["migrations/0001_initial_schema.sql", "CREATE TABLE IF NOT EXISTS photos"],
   ["migrations/0001_initial_schema.sql", "original_storage_key"],
+  ["migrations/0001_initial_schema.sql", "CREATE TABLE IF NOT EXISTS users"],
 ];
 
 /**
@@ -65,18 +94,26 @@ const forbiddenContent = [
 ];
 
 /**
- * Persistence code, the private bucket binding and the master storage scheme
- * must never be imported by a route module or a shared component: route modules
- * are bundled for the browser.
+ * Persistence code, the private bucket binding, the master storage scheme and
+ * raw identity verification must never be imported by a route module, a layout
+ * or a shared component: route modules and layouts are bundled for the browser,
+ * and authorization decisions go through `app/auth/authorization.server.ts`.
  */
 const forbiddenImports = [
   [/repository\.d1\.server/, "the D1 repository"],
   [/storage\.server/, "R2 storage access"],
   [/\bMASTERS\b/, "the private bucket binding"],
   [/originalStorageKey/, "the private master key"],
+  [/identity\.server/, "raw identity verification"],
 ];
 
-for (const directory of ["app/routes", "app/components"]) {
+/** Collected failures; declared before the scans below so they can push to it. */
+const failures = [];
+
+/** Client-bundled components must not import any `.server` module at all. */
+const serverImportPattern = /from\s+["'][^"']*\.server(?:\.[cm]?[jt]s)?["']/;
+
+for (const directory of ["app/routes", "app/components", "app/layouts"]) {
   const entries = existsSync(resolve(root, directory))
     ? readdirSync(resolve(root, directory), { recursive: true })
     : [];
@@ -92,10 +129,11 @@ for (const directory of ["app/routes", "app/components"]) {
         failures.push(`${directory}/${name} references ${label}`);
       }
     }
+    if (directory === "app/components" && serverImportPattern.test(source)) {
+      failures.push(`${directory}/${name} imports a server-only module`);
+    }
   }
 }
-
-const failures = [];
 
 const routesPath = resolve(root, "app/routes.ts");
 if (!existsSync(routesPath)) {
@@ -110,7 +148,7 @@ if (!existsSync(routesPath)) {
   }
 
   const referenced = new Set(
-    [...routesSource.matchAll(/["']((?:routes|layouts)\/[A-Za-z0-9._-]+\.tsx?)["']/g)].map(
+    [...routesSource.matchAll(/["']((?:routes|layouts)\/[A-Za-z0-9._/-]+\.tsx?)["']/g)].map(
       (match) => match[1],
     ),
   );

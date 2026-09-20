@@ -35,10 +35,23 @@
     }
   ],
 
-  // Development-only safety valve: when no D1 binding is present, public routes
-  // fall back to the development seed set instead of failing. Production must
-  // never rely on this, so set it to false for a real deployment.
+  // Development-only safety valves. Both must be "false" (or removed) for a real
+  // deployment:
+  //   ALLOW_DEVELOPMENT_SEED     — no D1 binding → serve the development seed set
+  //                                instead of failing.
+  //   ALLOW_DEVELOPMENT_IDENTITY — accept the local development identity header
+  //                                (`x-anyaparallax-development-identity`) so the
+  //                                authentication boundary can be exercised without
+  //                                Cloudflare Access. Honoured on loopback hosts
+  //                                only, and never while Access is configured.
+  //
+  // Cloudflare Access configuration (ACCESS_TEAM_DOMAIN, ACCESS_AUD) is
+  // deliberately ABSENT here: no Access application exists yet and no value
+  // belongs in the repository. The operator sets both for a deployment; see
+  // README.md under "Authentication and roles". With neither Access nor the
+  // development header available, every protected route denies (401/403).
   "vars": {
-    "ALLOW_DEVELOPMENT_SEED": "true"
+    "ALLOW_DEVELOPMENT_SEED": "true",
+    "ALLOW_DEVELOPMENT_IDENTITY": "true"
   }
 }

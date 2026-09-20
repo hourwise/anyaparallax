@@ -97,6 +97,14 @@ export function buildFixtureSql(seed) {
   const photoTags = seed.photos.flatMap((photo) =>
     photo.tags.map((tagId) => ({ photo_id: photo.id, tag_id: tagId })),
   );
+  const users = (seed.users ?? []).map((user) => ({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    active: user.active ? 1 : 0,
+    created_at: user.createdAt,
+    updated_at: user.updatedAt,
+  }));
   const covers = seed.galleries
     .filter((gallery) => gallery.coverPhotoId !== null)
     .map(
@@ -108,7 +116,8 @@ export function buildFixtureSql(seed) {
   //   1. galleries with no cover yet
   //   2. photographs (they reference their gallery)
   //   3. tags and tag links
-  //   4. covers, now that the photographs exist
+  //   4. authorised users (no foreign keys; the account directory reads them)
+  //   5. covers, now that the photographs exist
   return [
     "-- Fixture data for the D1 checks and the local development database.",
     "-- Idempotent: clears previously fixtured rows so a rerun cannot collide.",
@@ -126,6 +135,7 @@ export function buildFixtureSql(seed) {
     insert("photos", Object.keys(photos[0] ?? { id: "" }), photos),
     insert("tags", ["id", "name", "slug"], tags),
     insert("photo_tags", ["photo_id", "tag_id"], photoTags),
+    insert("users", ["id", "email", "role", "active", "created_at", "updated_at"], users),
     covers.join("\n"),
     "",
   ].join("\n");
