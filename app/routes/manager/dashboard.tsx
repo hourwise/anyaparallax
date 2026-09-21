@@ -84,13 +84,13 @@ export default function ManagerDashboardRoute() {
           <Link className="text-link" to="/manager/settings">
             Settings
           </Link>{" "}
-          <span className="muted">— reserved for deployment preferences</span>
+          <span className="muted">— application accounts and this deployment's state</span>
         </li>
         <li>
           <Link className="text-link" to="/manager/maintenance">
             Maintenance
           </Link>{" "}
-          <span className="muted">— reserved for safeguarded operations</span>
+          <span className="muted">— integrity checks and stored-object reporting</span>
         </li>
       </ul>
     </section>

@@ -4,6 +4,7 @@ import { Link, useLoaderData } from "react-router";
 import { requireAdminAccess } from "../../auth/authorization.server";
 import { appEnvironmentFrom } from "../../data/context.server";
 import { readEnquiryCounts } from "../../enquiries/enquiries.server";
+import { readEngagementInsights } from "../../engagement/insights.server";
 import { listPublishedGalleries, listPublishedPhotos } from "../../data/queries";
 
 export const meta: MetaFunction = () => [
@@ -19,10 +20,11 @@ export const meta: MetaFunction = () => [
 export async function loader({ request, context }: { request: Request; context: unknown }) {
   const user = await requireAdminAccess(request, context);
   const env = appEnvironmentFrom(context);
-  const [galleries, photos, enquiryCounts] = await Promise.all([
+  const [galleries, photos, enquiryCounts, engagement] = await Promise.all([
     listPublishedGalleries(env),
     listPublishedPhotos(env),
     readEnquiryCounts(env),
+    readEngagementInsights(env),
   ]);
   /**
    * Enquiries awaiting attention (REPAIR-09D).
@@ -42,6 +44,7 @@ export async function loader({ request, context }: { request: Request; context: 
     photoCount: photos.length,
     newEnquiryCount: enquiryCounts === null ? null : (enquiryCounts.get("new") ?? 0),
     enquiriesAvailable: enquiryCounts !== null,
+    engagement,
   };
 }
 
@@ -50,7 +53,7 @@ const areas = [
     to: "/admin/photos",
     label: "Photos",
     description:
-      "Correct metadata, gallery and tags, and publish, withdraw or feature a photograph (REPAIR-09B).",
+      "Correct metadata, gallery and tags, and publish, withdraw or feature a photograph.",
   },
   {
     to: "/admin/upload",
@@ -60,27 +63,27 @@ const areas = [
   {
     to: "/admin/enquiries",
     label: "Enquiries",
-    description: "Print enquiries and contact messages, and their handled state (Slice 08).",
+    description: "Print enquiries and contact messages, and their handled state.",
   },
   {
     to: "/admin/prints",
     label: "Print eligibility",
-    description: "Choose which photographs may be enquired about as prints (Slice 08).",
+    description: "Choose which photographs may be enquired about as prints.",
   },
   {
     to: "/admin/galleries",
     label: "Galleries",
-    description: "Create and order collections, choose covers (later slice).",
+    description: "Create collections, describe and order them, and choose each cover.",
   },
   {
     to: "/admin/settings",
     label: "Settings",
-    description: "Watermark defaults and site content for Anya's workspace (later slice).",
+    description: "Watermark defaults, social profiles, page introductions and tags.",
   },
 ] as const;
 
 export default function AdminDashboardRoute() {
-  const { user, galleryCount, photoCount, newEnquiryCount, enquiriesAvailable } =
+  const { user, galleryCount, photoCount, newEnquiryCount, enquiriesAvailable, engagement } =
     useLoaderData<typeof loader>();
 
   return (
@@ -89,9 +92,8 @@ export default function AdminDashboardRoute() {
         <p className="eyebrow">Signed in as {user.role}</p>
         <h1>Photography workspace</h1>
         <p className="lede">
-          This dashboard is real: the identity above was verified server-side and looked up
-          in the authorised-user directory on this request. Uploading, watermarking and the
-          enquiry list work; the remaining editing tools are listed below.
+          Upload and manage photographs, organise the galleries visitors browse, review
+          enquiries and set the defaults new uploads inherit.
         </p>
       </header>
 
@@ -132,6 +134,102 @@ export default function AdminDashboardRoute() {
           <p className="status-card__value">{photoCount}</p>
         </article>
       </div>
+
+      {/*
+        Engagement is an aggregate only. The application stores no IP, user agent,
+        referrer, fingerprint or browser token it could show here, and "shares" means
+        share actions initiated through this site — never a claim that an external share
+        completed.
+      */}
+      <section className="workspace-block" aria-labelledby="engagement-heading">
+        <h2 id="engagement-heading">Engagement</h2>
+        {!engagement.available ? (
+          <p className="notice notice--warning">{engagement.reason}</p>
+        ) : (
+          <>
+            <div className="status-grid">
+              <article className="status-card">
+                <p className="status-card__label">Likes</p>
+                <p className="status-card__value">{engagement.totalLikes}</p>
+              </article>
+              <article className="status-card">
+                <p className="status-card__label">Share actions initiated</p>
+                <p className="status-card__value">{engagement.totalShares}</p>
+              </article>
+            </div>
+            {engagement.totalLikes === 0 && engagement.totalShares === 0 ? (
+              <p className="field-help">
+                No likes or shares recorded yet. Both appear here once visitors use the
+                controls on a photograph's page.
+              </p>
+            ) : (
+              <div className="table-scroll">
+                <table className="admin-table">
+                  <caption className="visually-hidden">
+                    Most liked and most shared photographs, and the channels used
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Most liked</th>
+                      <th scope="col">Most shared</th>
+                      <th scope="col">Channels used</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td data-label="Most liked">
+                        {engagement.topLiked.length === 0 ? (
+                          "None yet"
+                        ) : (
+                          <ul className="plain-list">
+                            {engagement.topLiked.map((item) => (
+                              <li key={item.slug}>
+                                <Link className="text-link" to={`/photo/${item.slug}`}>
+                                  {item.title}
+                                </Link>{" "}
+                                <span className="muted">— {item.total}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                      <td data-label="Most shared">
+                        {engagement.mostShared.length === 0 ? (
+                          "None yet"
+                        ) : (
+                          <ul className="plain-list">
+                            {engagement.mostShared.map((item) => (
+                              <li key={item.slug}>
+                                <Link className="text-link" to={`/photo/${item.slug}`}>
+                                  {item.title}
+                                </Link>{" "}
+                                <span className="muted">— {item.total}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                      <td data-label="Channels used">
+                        {engagement.channels.length === 0 ? (
+                          "None yet"
+                        ) : (
+                          <ul className="plain-list">
+                            {engagement.channels.map((row) => (
+                              <li key={row.channel}>
+                                {row.channel} <span className="muted">— {row.total}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
       <h2>Operator areas</h2>
       <ul className="plain-list">

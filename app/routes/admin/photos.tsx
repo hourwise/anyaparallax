@@ -186,7 +186,8 @@ export default function AdminPhotosRoute() {
             {photos.length === 1 ? "1 photograph" : `${photos.length} photographs`} —{" "}
             {drafts === 1 ? "1 not publicly visible" : `${drafts} not publicly visible`}.
           </p>
-          <table className="status-table photo-table">
+          <div className="table-scroll">
+        <table className="status-table photo-table admin-table">
             <caption>Newest first within each group; drafts are listed first.</caption>
             <thead>
               <tr>
@@ -207,20 +208,20 @@ export default function AdminPhotosRoute() {
                     <br />
                     <span className="muted">{photo.slug}</span>
                   </th>
-                  <td>
+                  <td data-label="Public state">
                     <PublicationState photo={photo} />
                   </td>
-                  <td>
+                  <td data-label="Gallery">
                     {photo.galleryName}
                     {photo.galleryPublished ? null : <span className="muted"> (draft gallery)</span>}
                   </td>
-                  <td>
+                  <td data-label="Flags">
                     {photo.featured ? <span className="state-badge">Featured</span> : null}
                     {photo.featured ? <br /> : null}
                     {photo.printAvailable ? <span className="state-badge">Print enquiries</span> : null}
                     {photo.featured || photo.printAvailable ? null : <span className="muted">—</span>}
                   </td>
-                  <td>
+                  <td data-label="Manage">
                     <div className="photo-table__actions">
                       <Link className="button" to={`/admin/photos/${encodeURIComponent(photo.id)}`}>
                         Edit
@@ -285,6 +286,7 @@ export default function AdminPhotosRoute() {
               ))}
             </tbody>
           </table>
+        </div>
         </>
       ) : null}
 

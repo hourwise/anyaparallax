@@ -5,7 +5,12 @@ import { requireAdminAccess } from "../../auth/authorization.server";
 import { appEnvironmentFrom } from "../../data/context.server";
 import { listPublishedGalleries, listTagOptions } from "../../data/queries";
 import {
-  DEFAULT_WATERMARK_POSITION,
+  PHOTO_FIELD_LIMITS,
+  validatePhotoMetadata,
+} from "../../data/photo-management";
+import { knownReferenceIds } from "../../data/photo-management.server";
+import { readPublicSiteSettings } from "../../data/site-settings.server";
+import {
   WATERMARK_POSITIONS,
   type WatermarkPosition,
 } from "../../images/image-processor";
@@ -32,19 +37,35 @@ export async function loader({ request, context }: { request: Request; context: 
   // cannot accidentally publish into a hidden collection) and from the tag
   // registry for tags, because `photo_tags` needs tag IDS and the public
   // projection deliberately omits them.
-  const [galleries, tags] = await Promise.all([listPublishedGalleries(env), listTagOptions(env)]);
-  return { user, galleries, tags };
+  const [galleries, tags, settings] = await Promise.all([
+    listPublishedGalleries(env),
+    listTagOptions(env),
+    readPublicSiteSettings(env),
+  ]);
+  // The workspace defaults the operator set in /admin/settings. They are DEFAULTS for the
+  // form, never a restriction: the per-upload control still decides what this upload does.
+  return {
+    user,
+    galleries,
+    tags,
+    watermarkDefaults: {
+      enabled: settings.watermarkDefaultEnabled,
+      position: settings.watermarkDefaultPosition,
+    },
+  };
 }
 
 /** Read the operator's choices, rejecting anything the form could not have sent. */
 function readOptions(form: FormData) {
   const text = (name: string) => String(form.get(name) ?? "").trim();
   const requested = text("watermarkPosition");
-  const watermarkPosition: WatermarkPosition = (
+  // An unrecognised position is REPORTED, not quietly replaced: the default belongs to a
+  // form that did not choose, not to a submission that chose something impossible.
+  const watermarkPosition: WatermarkPosition | null = (
     WATERMARK_POSITIONS as readonly string[]
   ).includes(requested)
     ? (requested as WatermarkPosition)
-    : DEFAULT_WATERMARK_POSITION;
+    : null;
   return {
     title: text("title"),
     description: text("description"),
@@ -54,6 +75,7 @@ function readOptions(form: FormData) {
     captureDate: text("captureDate") || null,
     watermarkEnabled: form.get("watermarkEnabled") === "on",
     watermarkPosition,
+    rawWatermarkPosition: requested,
     published: form.get("published") === "on",
     featured: form.get("featured") === "on",
     printAvailable: form.get("printAvailable") === "on",
@@ -111,6 +133,51 @@ export async function action({ request, context }: { request: Request; context: 
 
   // 3. Parse. 4. Apply the batch policy to metadata before reading any body.
   const form = await request.formData();
+  const env = appEnvironmentFrom(context);
+
+  /**
+   * APV1-03: the metadata contract is enforced HERE, on the server, before a single byte
+   * of image data is processed and before any binding is touched.
+   *
+   * A browser's `required`, `maxlength` and `<select>` are conveniences for a person
+   * using the form; a direct POST has none of them. The rules are the SAME rules the
+   * photograph editor applies — one contract, one implementation — so an upload and an
+   * edit cannot disagree about what a valid title, description, location, capture date,
+   * gallery or tag set is.
+   */
+  const submitted = readOptions(form);
+  const references = await knownReferenceIds(env);
+  const metadata = validatePhotoMetadata(
+    {
+      title: submitted.title,
+      description: submitted.description,
+      location: submitted.location ?? "",
+      captureDate: submitted.captureDate ?? "",
+      galleryId: submitted.galleryId,
+      tags: submitted.tags,
+    },
+    references,
+  );
+  if (!metadata.ok) {
+    return {
+      report: null,
+      message:
+        Object.values(metadata.errors)[0] ??
+        "That upload's details were not understood, so nothing was uploaded.",
+    };
+  }
+  if (submitted.watermarkPosition === null) {
+    return {
+      report: null,
+      message: "Choose a watermark position this application understands, or turn the watermark off.",
+    };
+  }
+  if (submitted.title.length > PHOTO_FIELD_LIMITS.title) {
+    return {
+      report: null,
+      message: `Please keep the title to ${PHOTO_FIELD_LIMITS.title} characters or fewer.`,
+    };
+  }
   let files;
   try {
     files = fileSourcesFrom(form);
@@ -128,7 +195,6 @@ export async function action({ request, context }: { request: Request; context: 
     };
   }
 
-  const env = appEnvironmentFrom(context);
   // A bucket-less deployment (or a plain Node run) cannot upload; saying so is
   // better than a generic failure, and it never silently pretends to succeed.
   // The decision itself lives in the server module so this route never names a
@@ -140,17 +206,31 @@ export async function action({ request, context }: { request: Request; context: 
     };
   }
 
-  // 5. Read and process the files one at a time.
+  // 5. Read and process the files one at a time. The options are the SAME object the
+  // metadata validation above approved — re-reading the form here would open a gap
+  // between what was validated and what is stored.
   const report = await ingestUploads({
     env,
     files,
-    options: readOptions(form),
+    options: {
+      title: metadata.value.title,
+      description: metadata.value.description,
+      galleryId: metadata.value.galleryId,
+      tags: [...metadata.value.tags],
+      location: metadata.value.location,
+      captureDate: metadata.value.captureDate,
+      watermarkEnabled: submitted.watermarkEnabled,
+      watermarkPosition: submitted.watermarkPosition,
+      published: submitted.published,
+      featured: submitted.featured,
+      printAvailable: submitted.printAvailable,
+    },
   });
   return { report, message: null };
 }
 
 export default function AdminUploadRoute() {
-  const { user, galleries, tags } = useLoaderData<typeof loader>();
+  const { user, galleries, tags, watermarkDefaults } = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const navigation = useNavigation();
   const busy = navigation.state === "submitting";
@@ -226,7 +306,12 @@ export default function AdminUploadRoute() {
         <fieldset>
           <legend>Watermark</legend>
           <label htmlFor="watermarkEnabled" className="checkbox">
-            <input id="watermarkEnabled" name="watermarkEnabled" type="checkbox" defaultChecked />
+            <input
+              id="watermarkEnabled"
+              name="watermarkEnabled"
+              type="checkbox"
+              defaultChecked={watermarkDefaults.enabled}
+            />
             Watermark the public derivatives
           </label>
           <label htmlFor="watermarkPosition">
@@ -234,7 +319,7 @@ export default function AdminUploadRoute() {
             <select
               id="watermarkPosition"
               name="watermarkPosition"
-              defaultValue={DEFAULT_WATERMARK_POSITION}
+              defaultValue={watermarkDefaults.position}
             >
               {WATERMARK_POSITIONS.map((position) => (
                 <option key={position} value={position}>

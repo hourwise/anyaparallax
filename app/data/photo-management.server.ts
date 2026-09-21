@@ -514,6 +514,31 @@ export class PhotoManager {
  * call time and fails closed with an explanation, so a binding without `batch`
  * degrades to a truthful refusal rather than to a partial write.
  */
+/**
+ * The gallery and tag ids that currently exist, for validating a submission.
+ *
+ * The editor already validated against lists like this; the UPLOAD path did not, which
+ * was the audit finding (APV1-03): a direct POST could name a gallery or a tag that does
+ * not exist because only the browser's `<select>` had stopped it. Both paths now ask the
+ * same question of the same tables.
+ */
+export async function knownReferenceIds(
+  env: PhotoManagementEnvironment | undefined,
+): Promise<{ readonly galleryIds: readonly string[]; readonly tagIds: readonly string[] }> {
+  const db = env?.DB;
+  if (!isD1Binding(db)) {
+    return { galleryIds: [], tagIds: [] };
+  }
+  const [galleryRows, tagRows] = await Promise.all([
+    db.prepare("SELECT id FROM galleries LIMIT 500").all<{ id: string }>(),
+    db.prepare("SELECT id FROM tags LIMIT 500").all<{ id: string }>(),
+  ]);
+  return {
+    galleryIds: (galleryRows.results ?? []).map((row) => row.id),
+    tagIds: (tagRows.results ?? []).map((row) => row.id),
+  };
+}
+
 export function photoManagerFor(env: PhotoManagementEnvironment | undefined): PhotoManager | null {
   const db = env?.DB;
   return isD1Binding(db) ? new PhotoManager(db as BatchCapableBinding) : null;
