@@ -28,6 +28,8 @@ export type ManagedTag = {
 export type TagMutationResult =
   | { readonly status: "ok"; readonly persisted: ManagedTag }
   | { readonly status: "not-found" }
+  /** The same display name already exists, compared case-insensitively (APV1C-07). */
+  | { readonly status: "duplicate"; readonly name: string }
   | { readonly status: "in-use"; readonly usageCount: number }
   | { readonly status: "bad-request"; readonly error: string }
   | { readonly status: "unavailable"; readonly reason: string };
@@ -61,11 +63,34 @@ export class TaxonomyManager {
 
   async read(id: string): Promise<ManagedTag | null> {
     const { results } = await this.#db
-      .prepare(`SELECT ${TAG_COLUMNS} FROM tags t WHERE t.id = ? LIMIT 1`)
+      .prepare(`SELECT ${TAG_COLUMNS} FROM tags t WHERE t.id = ?1 LIMIT 1`)
       .bind(id)
       .all<TagRow>();
     const row = results?.[0];
     return row ? toTag(row) : null;
+  }
+
+  /**
+   * Is this display name already in use, ignoring case?
+   *
+   * Checked here because the tags table has no unique constraint on `name` and V1 adds no
+   * migration for one. That leaves a theoretical window: two simultaneous creates of the
+   * same new name could both pass this read. It is reported rather than hidden — the
+   * consequence is two tags with the same label and different slugs, which an operator can
+   * see and merge by renaming, and which no authority decision depends on.
+   */
+  async #nameTaken(name: string, exceptId: string | null): Promise<boolean> {
+    const { results } = await this.#db
+      .prepare(
+        // Every placeholder is referenced exactly ONCE. D1 counts binding slots per
+        // reference, so a re-tested parameter needs its value twice; expressing the
+        // exclusion with COALESCE removes that ambiguity. An absent exclusion compares
+        // against the empty string, which no tag id is, so nothing is excluded.
+        "SELECT id FROM tags WHERE name = ?1 COLLATE NOCASE AND id <> COALESCE(?2, '') LIMIT 1",
+      )
+      .bind(name, exceptId)
+      .all<{ id: string }>();
+    return (results ?? []).length > 0;
   }
 
   async create(value: unknown): Promise<TagMutationResult> {
@@ -73,13 +98,16 @@ export class TaxonomyManager {
     if (!validation.ok) {
       return { status: "bad-request", error: validation.error };
     }
+    if (await this.#nameTaken(validation.name, null)) {
+      return { status: "duplicate", name: validation.name };
+    }
     const { results } = await this.#db
       .prepare("SELECT slug FROM tags LIMIT 500")
       .all<{ slug: string }>();
     const slug = uniqueTagSlug(validation.slug, (results ?? []).map((row) => row.slug));
     const id = `tag-${slug}`;
     await this.#db
-      .prepare("INSERT INTO tags (id, name, slug) VALUES (?, ?, ?)")
+      .prepare("INSERT INTO tags (id, name, slug) VALUES (?1, ?2, ?3)")
       .bind(id, validation.name, slug)
       .run();
     const persisted = await this.read(id);
@@ -98,8 +126,11 @@ export class TaxonomyManager {
     if (!validation.ok) {
       return { status: "bad-request", error: validation.error };
     }
+    if (await this.#nameTaken(validation.name, id)) {
+      return { status: "duplicate", name: validation.name };
+    }
     await this.#db
-      .prepare("UPDATE tags SET name = ? WHERE id = ?")
+      .prepare("UPDATE tags SET name = ?1 WHERE id = ?2")
       .bind(validation.name, id)
       .run();
     const persisted = await this.read(id);
@@ -117,7 +148,15 @@ export class TaxonomyManager {
     if (existing.usageCount > 0) {
       return { status: "in-use", usageCount: existing.usageCount };
     }
-    await this.#db.prepare("DELETE FROM tags WHERE id = ? AND NOT EXISTS (SELECT 1 FROM photo_tags WHERE tag_id = ?)").bind(id, id).run();
+    await this.#db
+      .prepare(
+        // ONE placeholder, referenced once: D1 counts binding slots per reference, so a
+        // re-tested parameter needs its value twice. The guard still runs inside the same
+        // statement, so a concurrent tag link cannot slip between the check and the delete.
+        "DELETE FROM tags WHERE id = ?1 AND NOT EXISTS (SELECT 1 FROM photo_tags WHERE tag_id = tags.id)",
+      )
+      .bind(id)
+      .run();
     const stillThere = await this.read(id);
     if (stillThere) {
       // The row survived, which means the guarded statement refused: report the truth

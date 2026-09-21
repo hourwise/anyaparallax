@@ -47,5 +47,11 @@ export function validateTagName(value: unknown): TagValidation {
   if (name.length > TAG_FIELD_LIMITS.name) {
     return { ok: false, error: `Keep the tag to ${TAG_FIELD_LIMITS.name} characters or fewer.` };
   }
+  // A name with no letter or digit produces no meaningful slug — punctuation alone would
+  // otherwise fall back to a generic one, so several such "tags" would look identical in
+  // every URL and list (APV1C-07).
+  if (!/[a-z0-9]/i.test(name)) {
+    return { ok: false, error: "Use at least one letter or number in the tag name." };
+  }
   return { ok: true, name, slug: slugifyTagName(name) };
 }

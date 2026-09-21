@@ -728,6 +728,11 @@ try {
     ["an unknown tag", { tags: "tag-does-not-exist" }, /tag/i],
     ["an unknown watermark position", { watermarkPosition: "diagonal" }, /watermark/i],
     ["a missing gallery", { galleryId: "" }, /gallery/i],
+    // APV1C-05: a direct POST of a value a browser cannot send for a checkbox is REFUSED
+    // rather than silently read as "false", and it creates no row.
+    ["an impossible publish value", { published: "hacked" }, /publish control/i],
+    ["an arbitrary featured value", { featured: "1" }, /featured control/i],
+    ["an arbitrary print value", { printAvailable: "yes" }, /print-availability control/i],
   ]) {
     const response = await postUpload("/admin/upload", { ...validUpload, ...overrides }, { origin });
     const body = await response.text();

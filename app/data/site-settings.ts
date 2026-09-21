@@ -141,6 +141,12 @@ export function validateSocialUrl(value: unknown, network: SocialNetwork): strin
   if (url.protocol !== "https:") {
     return "Use an https:// address.";
   }
+  // A URL with embedded credentials is refused (APV1C-06): `https://user:pass@host/` is
+  // how a link can look like a profile while carrying a secret, and no social profile URL
+  // legitimately needs one.
+  if (url.username !== "" || url.password !== "") {
+    return "Remove the username and password from that address.";
+  }
   const host = url.hostname.toLowerCase().replace(/^www\./, "");
   const allowed = network.hosts.some((candidate) => host === candidate || host.endsWith(`.${candidate}`));
   if (!allowed) {

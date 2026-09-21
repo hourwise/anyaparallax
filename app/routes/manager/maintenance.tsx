@@ -120,6 +120,29 @@ export default function ManagerMaintenanceRoute() {
         <h2 id="storage-heading">Stored objects</h2>
         {!report.storage.bound ? (
           <p className="notice notice--warning">{report.storage.note}</p>
+        ) : report.storage.status === "degraded" ? (
+          <>
+            <p className="notice notice--warning">{report.storage.note}</p>
+            <div className="table-scroll">
+              <table className="admin-table">
+                <caption className="visually-hidden">Object existence probe, partially read</caption>
+                <tbody>
+                  <tr>
+                    <th scope="row">Photographs inspected</th>
+                    <td data-label="Count">{report.storage.checked}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Objects reported missing so far</th>
+                    <td data-label="Count">
+                      {report.storage.missingMasters +
+                        report.storage.missingDerivatives +
+                        report.storage.missingThumbnails}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <div className="table-scroll">
             <table className="admin-table">

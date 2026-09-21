@@ -138,6 +138,9 @@ export async function action({ request, context }: { request: Request; context: 
     if (result.status === "ok") {
       return { message: `Added the tag “${result.persisted.name}”.`, tone: "ok" as const };
     }
+    if (result.status === "duplicate") {
+      return refused({ name: `“${result.name}” is already a tag.` });
+    }
     return result.status === "bad-request"
       ? refused({ name: result.error })
       : { message: "The tag could not be saved, so nothing was changed.", tone: "warning" as const };
@@ -147,6 +150,9 @@ export async function action({ request, context }: { request: Request; context: 
     const result = await manager.rename(tagId, form.get("name"));
     if (result.status === "ok") {
       return { message: `Renamed the tag to “${result.persisted.name}”.`, tone: "ok" as const };
+    }
+    if (result.status === "duplicate") {
+      return refused({ name: `Another tag is already called “${result.name}”.` });
     }
     return result.status === "bad-request"
       ? refused({ name: result.error })

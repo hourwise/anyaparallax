@@ -4,17 +4,22 @@
  * The manager-only screen for the `users` table: who may use the operator areas, with
  * which role, and whether the account is active. Nothing here authenticates anybody.
  *
- * THE TWO RULES THIS MODULE EXISTS TO ENFORCE
+ * THE THREE RULES THIS MODULE EXISTS TO ENFORCE
  *
  *   1. AN APPLICATION ROW IS NOT AN IDENTITY. Cloudflare Access proves who a person is;
  *      a row here only decides what that proven identity may do. Adding an address that
  *      Access would never admit grants nothing, and removing every row would not open
  *      the operator areas — the guards deny on their own.
- *   2. THERE MUST ALWAYS BE ONE ACTIVE MANAGER. The check is made against the CURRENT
- *      table state inside the same call as the write, so the last active manager cannot
- *      be deactivated or demoted — including by that manager acting on their own row.
- *      A locked-out workspace would need database intervention to recover, which is
- *      exactly what V1 must not require.
+ *   2. THERE MUST ALWAYS BE ONE ACTIVE MANAGER, AND THE STATEMENT GUARANTEES IT
+ *      (APV1C-01). The invariant is part of the UPDATE predicate, not a check performed
+ *      before it: a read-then-write pair can be interleaved so that two requests both see
+ *      "another manager exists" and both remove one, leaving none. The predicate below
+ *      cannot be interleaved, because the row it examines and the row it writes are the
+ *      same row in one statement.
+ *   3. AN EMAIL ADDRESS IS AN IDENTITY; AN ACCOUNT ID IS NOT (APV1C-03). The primary key
+ *      is an application-generated UUID, because a local part is not unique —
+ *      `alice@example.com` and `alice@other.example` share one — and no authority is
+ *      ever derived from it. Access is matched against the normalised email.
  *
  * No password, token or credential is stored or read: accounts here are email addresses
  * and roles, and authentication stays entirely with Access.
@@ -80,25 +85,21 @@ export class UserManager {
 
   async read(id: string): Promise<ManagedUser | null> {
     const { results } = await this.#db
-      .prepare(`SELECT ${USER_COLUMNS} FROM users WHERE id = ? LIMIT 1`)
+      .prepare(`SELECT ${USER_COLUMNS} FROM users WHERE id = ?1 LIMIT 1`)
       .bind(id)
       .all<UserRow>();
     const row = results?.[0];
     return row ? toUser(row) : null;
   }
 
-  /**
-   * Would this change remove the last active manager?
-   *
-   * Asked BEFORE the write, against the current rows, and the change is refused rather
-   * than repaired afterwards.
-   */
-  async #wouldRemoveLastManager(id: string, next: { role: AccountRole; active: boolean }): Promise<boolean> {
-    const users = await this.list();
-    const activeManagersAfter = users.filter((user) =>
-      user.id === id ? next.active && next.role === "manager" : user.active && user.role === "manager",
-    );
-    return activeManagersAfter.length === 0;
+  /** Read one account by normalised email — used only to report a duplicate honestly. */
+  async readByEmail(email: string): Promise<ManagedUser | null> {
+    const { results } = await this.#db
+      .prepare(`SELECT ${USER_COLUMNS} FROM users WHERE email = ?1 COLLATE NOCASE LIMIT 1`)
+      .bind(email)
+      .all<UserRow>();
+    const row = results?.[0];
+    return row ? toUser(row) : null;
   }
 
   /** Add an authorised address. The email is normalised by the shared identity rule. */
@@ -107,67 +108,105 @@ export class UserManager {
     if (!validation.ok) {
       return { status: "bad-request", error: validation.error };
     }
-    const existing = await this.#db
-      .prepare("SELECT id FROM users WHERE email = ? COLLATE NOCASE LIMIT 1")
-      .bind(validation.email)
-      .all<{ id: string }>();
-    if ((existing.results ?? []).length > 0) {
+    // A courtesy fast path: the refusal below is the authority, not this read.
+    if (await this.readByEmail(validation.email)) {
       return { status: "duplicate", email: validation.email };
     }
-    const id = `user-${validation.email.split("@")[0]?.replace(/[^a-z0-9]+/g, "-") ?? "account"}`;
+
+    // An application-generated UUID (APV1C-03). A sanitised local part collides across
+    // domains, and the id is a primary key, so a collision would surface as an unrelated
+    // failure blamed on the email.
+    const id = `user-${crypto.randomUUID()}`;
     const now = new Date().toISOString();
     try {
       await this.#db
         .prepare(
-          "INSERT INTO users (id, email, role, active, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)",
+          "INSERT INTO users (id, email, role, active, created_at, updated_at) VALUES (?1, ?2, ?3, 1, ?4, ?5)",
         )
         .bind(id, validation.email, validation.role, now, now)
         .run();
     } catch {
-      // The unique index is the authority on duplicate identity; a race lands here.
-      return { status: "duplicate", email: validation.email };
+      // The UNIQUE email index is the authority. Ask WHICH constraint failed rather than
+      // reporting a primary-key problem as "that email already exists".
+      const clash = await this.readByEmail(validation.email);
+      return clash
+        ? { status: "duplicate", email: validation.email }
+        : { status: "unavailable", reason: "The account could not be created." };
     }
+
     const persisted = await this.read(id);
     return persisted
       ? { status: "ok", persisted }
       : { status: "unavailable", reason: "The account could not be read back after saving." };
   }
 
+  /**
+   * Change a role, with the last-manager invariant inside the statement (APV1C-01).
+   *
+   * The predicate reads: write this row unless it is CURRENTLY an active manager whose new
+   * role is not manager, and no OTHER active manager exists. `RETURNING` tells the caller
+   * which of the two happened — a written row, or a refusal.
+   */
   async setRole(id: string, role: unknown): Promise<UserMutationResult> {
-    const existing = await this.read(id);
-    if (!existing) {
-      return { status: "not-found" };
-    }
     const parsed = role === "manager" || role === "photographer" ? role : null;
     if (parsed === null) {
       return { status: "bad-request", error: "Choose either the photographer or the manager role." };
     }
-    if (await this.#wouldRemoveLastManager(id, { role: parsed, active: existing.active })) {
-      return { status: "last-manager" };
-    }
-    return this.#update(id, "role = ?", [parsed]);
+    return this.#guarded(
+      `UPDATE users SET role = ?1, updated_at = ?2
+       WHERE id = ?3
+         AND (
+           NOT (role = 'manager' AND active = 1)
+           OR ?4 = 'manager'
+           OR EXISTS (
+             SELECT 1 FROM users other
+             WHERE other.id <> users.id AND other.role = 'manager' AND other.active = 1
+           )
+         )
+       RETURNING ${USER_COLUMNS}`,
+      [parsed, new Date().toISOString(), id, parsed],
+      id,
+    );
   }
 
+  /** Activate or deactivate, with the same invariant in the same place. */
   async setActive(id: string, active: boolean): Promise<UserMutationResult> {
-    const existing = await this.read(id);
-    if (!existing) {
-      return { status: "not-found" };
-    }
-    if (await this.#wouldRemoveLastManager(id, { role: existing.role, active })) {
-      return { status: "last-manager" };
-    }
-    return this.#update(id, "active = ?", [active ? 1 : 0]);
+    const flag = active ? 1 : 0;
+    return this.#guarded(
+      `UPDATE users SET active = ?1, updated_at = ?2
+       WHERE id = ?3
+         AND (
+           NOT (role = 'manager' AND active = 1)
+           OR ?4 = 1
+           OR EXISTS (
+             SELECT 1 FROM users other
+             WHERE other.id <> users.id AND other.role = 'manager' AND other.active = 1
+           )
+         )
+       RETURNING ${USER_COLUMNS}`,
+      [flag, new Date().toISOString(), id, flag],
+      id,
+    );
   }
 
-  async #update(id: string, assignment: string, values: readonly unknown[]): Promise<UserMutationResult> {
-    await this.#db
-      .prepare(`UPDATE users SET ${assignment}, updated_at = ? WHERE id = ?`)
-      .bind(...values, new Date().toISOString(), id)
-      .run();
-    const persisted = await this.read(id);
-    return persisted
-      ? { status: "ok", persisted }
-      : { status: "unavailable", reason: "The account could not be read back after saving." };
+  /**
+   * Run a guarded single-statement mutation and say exactly what happened.
+   *
+   * A written row is success. No written row means EITHER the account is gone OR the
+   * predicate refused it — so the row is read back to distinguish the two rather than
+   * guessing, and a refusal is never reported as a missing account.
+   */
+  async #guarded(
+    sql: string,
+    values: readonly unknown[],
+    id: string,
+  ): Promise<UserMutationResult> {
+    const { results } = await this.#db.prepare(sql).bind(...values).all<UserRow>();
+    const row = results?.[0];
+    if (row) {
+      return { status: "ok", persisted: toUser(row) };
+    }
+    return (await this.read(id)) ? { status: "last-manager" } : { status: "not-found" };
   }
 }
 

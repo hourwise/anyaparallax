@@ -49,6 +49,11 @@ export type MaintenanceCounts = {
 
 export type StorageProbe = {
   readonly bound: boolean;
+  /**
+   * `degraded` means the report is complete but some objects could not be inspected
+   * (APV1C-04): a storage failure must never take the D1 integrity report down with it.
+   */
+  readonly status: "ok" | "degraded" | "unavailable";
   readonly checked: number;
   readonly missingMasters: number;
   readonly missingDerivatives: number;
@@ -204,10 +209,10 @@ async function probeStorage(
 ): Promise<StorageProbe> {
   const masters = env?.MASTERS;
   const images = env?.IMAGES;
-  const bound = isR2Bucket(masters) && isR2Bucket(images);
-  if (!bound) {
+  if (!isR2Bucket(masters) || !isR2Bucket(images)) {
     return {
       bound: false,
+      status: "unavailable",
       checked: 0,
       missingMasters: 0,
       missingDerivatives: 0,
@@ -216,52 +221,85 @@ async function probeStorage(
     };
   }
 
-  const { results } = await db
-    .prepare(
-      `SELECT original_storage_key, web_storage_key, thumbnail_storage_key FROM photos
-       ORDER BY published DESC, created_at DESC LIMIT ?`,
-    )
-    .bind(STORAGE_PROBE_LIMIT)
-    .all<{
-      original_storage_key: string;
-      web_storage_key: string;
-      thumbnail_storage_key: string;
-    }>();
+  let rows: readonly {
+    original_storage_key: string;
+    web_storage_key: string;
+    thumbnail_storage_key: string;
+  }[];
+  try {
+    const { results } = await db
+      .prepare(
+        `SELECT original_storage_key, web_storage_key, thumbnail_storage_key FROM photos
+         ORDER BY published DESC, created_at DESC LIMIT ?1`,
+      )
+      .bind(STORAGE_PROBE_LIMIT)
+      .all<{
+        original_storage_key: string;
+        web_storage_key: string;
+        thumbnail_storage_key: string;
+      }>();
+    rows = results ?? [];
+  } catch {
+    return {
+      bound: true,
+      status: "degraded",
+      checked: 0,
+      missingMasters: 0,
+      missingDerivatives: 0,
+      missingThumbnails: 0,
+      note: "The stored object keys could not be read, so no object was inspected. Everything above is unaffected.",
+    };
+  }
 
   const objectKey = (key: string) => key.replace(/^r2:\/\/[a-z]+\//, "");
   let missingMasters = 0;
   let missingDerivatives = 0;
   let missingThumbnails = 0;
+  let unreadable = 0;
 
-  for (const row of results ?? []) {
+  /** One object probe: a storage failure is counted, never thrown (APV1C-04). */
+  const inspect = async (
+    bucket: R2BucketBinding,
+    key: string,
+  ): Promise<"present" | "missing" | "unreadable"> => {
+    try {
+      return (await bucket.head(objectKey(key))) ? "present" : "missing";
+    } catch {
+      return "unreadable";
+    }
+  };
+
+  for (const row of rows) {
     // A development seed row names a placeholder asset rather than a stored object, so
     // only `r2://` keys are probed: anything else is not this application's object.
     if (row.original_storage_key.startsWith("r2://masters/")) {
-      const found = await (masters as R2BucketBinding).head(objectKey(row.original_storage_key));
-      if (!found) {
-        missingMasters += 1;
-      }
+      const verdict = await inspect(masters, row.original_storage_key);
+      if (verdict === "missing") missingMasters += 1;
+      if (verdict === "unreadable") unreadable += 1;
     }
     if (row.web_storage_key.startsWith("r2://images/")) {
-      const found = await (images as R2BucketBinding).head(objectKey(row.web_storage_key));
-      if (!found) {
-        missingDerivatives += 1;
-      }
+      const verdict = await inspect(images, row.web_storage_key);
+      if (verdict === "missing") missingDerivatives += 1;
+      if (verdict === "unreadable") unreadable += 1;
     }
     if (row.thumbnail_storage_key.startsWith("r2://images/")) {
-      const found = await (images as R2BucketBinding).head(objectKey(row.thumbnail_storage_key));
-      if (!found) {
-        missingThumbnails += 1;
-      }
+      const verdict = await inspect(images, row.thumbnail_storage_key);
+      if (verdict === "missing") missingThumbnails += 1;
+      if (verdict === "unreadable") unreadable += 1;
     }
   }
 
+  const inspected = rows.length;
   return {
     bound: true,
-    checked: (results ?? []).length,
+    status: unreadable === 0 ? "ok" : "degraded",
+    checked: inspected,
     missingMasters,
     missingDerivatives,
     missingThumbnails,
-    note: `Checked the most recent ${(results ?? []).length} photograph(s). Missing objects are counted, never listed.`,
+    note:
+      unreadable === 0
+        ? `Checked the most recent ${inspected} photograph(s). Missing objects are counted, never listed.`
+        : `${unreadable} object(s) could not be inspected because storage did not respond. The counts above cover what could be read; nothing else on this page is affected.`,
   };
 }

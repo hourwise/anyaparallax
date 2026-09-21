@@ -27,7 +27,8 @@ Cloudflare Access while the remaining content is prepared.
 
 Implemented so far:
 
-- Worker entry that places bindings on React Router's request context
+- Worker entry that places bindings on React Router's request context, deployed to two
+  isolated Cloudflare environments (see "Deployment state")
 - Route skeleton for `/`, `/galleries`, `/gallery/:slug`, `/photo/:slug`, `/about`,
   `/prints` and `/contact`, plus not-found and error handling
 - Image-first homepage and data-driven gallery and photograph pages
@@ -105,8 +106,9 @@ than by editing shipped configuration.
 
 ### Local operator sign-in
 
-Cloudflare Access is not configured yet, so `/admin` and `/manager` would deny every
-request. For local work only, enable `ALLOW_DEVELOPMENT_IDENTITY` in a gitignored
+In a deployment, Cloudflare Access admits the operator and this application then decides
+what they may do; in a local checkout neither exists, so `/admin` and `/manager` would deny
+every request. For local work only, enable `ALLOW_DEVELOPMENT_IDENTITY` in a gitignored
 `.dev.vars` (below); the application then accepts this header **on loopback hosts only**:
 
 ```bash
@@ -179,7 +181,7 @@ the application decides what that person may do. Neither operator needs the othe
 email account or credentials.
 
 ```text
-Cloudflare Access            (not configured yet — operator input required)
+Cloudflare Access            (configured per environment; see Deployment state)
       ↓ signed JWT on `cf-access-jwt-assertion`
 app/auth/identity.server.ts  verify signature, issuer, audience and expiry
       ↓ verified email
@@ -206,7 +208,7 @@ and every `/admin` and `/manager` response carries `Cache-Control: no-store` and
 `X-Robots-Tag: noindex, nofollow`, so operator pages and denials are never cached or
 indexed.
 
-### Setting up Cloudflare Access (operator step, not yet performed)
+### Setting up Cloudflare Access (per environment)
 
 1. Create a Cloudflare Access application covering the operator paths (`/admin`, `/manager`).
 2. Add one policy per person, matching that person's email address. Access authenticates
@@ -271,7 +273,8 @@ r2://images/thumbs/<photo-id>/<filename>       public gallery thumbnail
 into a browser URL (`publicRefUrl`) — it returns `null` for any master key.
 `app/data/storage.server.ts` adds the R2-backed implementation and refuses, by
 construction, to read a master through a public path or write a derivative into the
-private bucket. Slices 06+ generate the real derivatives; nothing is served from R2 yet.
+private bucket. Slices 06+ generate the real derivatives, and `/media/...` serves them once a photograph
+and its gallery are published.
 
 ### Public data boundary
 
@@ -344,7 +347,8 @@ worker-configuration.d.ts  generated Cloudflare runtime typings from wrangler ty
 
 ## Provisioning a real deployment (requires authorization)
 
-Nothing here has been run against Cloudflare. When publishing is authorised:
+These are the provisioning steps, recorded for completeness; both environments described
+under "Deployment state" have already been provisioned this way. For a new environment:
 
 1. `wrangler r2 bucket create anyaparallax-masters` and
    `wrangler r2 bucket create anyaparallax-images`.
@@ -363,12 +367,24 @@ Nothing here has been run against Cloudflare. When publishing is authorised:
 
 ## Deployment state
 
-Two isolated sets of Cloudflare resources exist, both provisioned from this repository:
+Two isolated sets of Cloudflare resources exist, both provisioned from this repository, each
+with its own D1 database and its own private-masters and public-derivatives R2 buckets:
 
-| Environment | Worker | Purpose |
-| --- | --- | --- |
-| Preview | `anyaparallax-preview` | presentation and verification, on its own `workers.dev` hostname |
-| Production | `anyaparallax` | the real domain, currently protected end to end by Cloudflare Access |
+| Environment | Worker | Data and objects | Reachability |
+| --- | --- | --- | --- |
+| Preview | `anyaparallax-preview` | D1 + masters bucket + derivatives bucket of its own | its own `workers.dev` hostname, protected by Cloudflare Access |
+| Production | `anyaparallax` | D1 + masters bucket + derivatives bucket of its own | the real public domain, presently protected end to end by Cloudflare Access |
+
+So the accepted state is: both Workers exist, both databases exist and are migrated, both
+sets of buckets exist, and the production domain is served **but not yet anonymously
+public** — Cloudflare Access currently covers the whole domain, and narrowing it to the
+operator paths is the outstanding operator step described below.
+
+**The source candidate is ahead of the deployment.** The V1 completion work (gallery
+management, workspace settings, tags, manager account management and the integrity report,
+the privacy notice) is committed source that has not been deployed to either environment
+yet; see the repository history for the candidate commits. Nothing in this repository
+deploys automatically.
 
 Each has its own D1 database and its own private-masters and public-derivatives R2
 buckets; nothing is shared between them, and no resource identifier, account id, Access

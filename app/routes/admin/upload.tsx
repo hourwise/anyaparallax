@@ -10,6 +10,7 @@ import {
 } from "../../data/photo-management";
 import { knownReferenceIds } from "../../data/photo-management.server";
 import { readPublicSiteSettings } from "../../data/site-settings.server";
+import { parseCheckboxes } from "../../lib/form-boolean";
 import {
   WATERMARK_POSITIONS,
   type WatermarkPosition,
@@ -73,12 +74,16 @@ function readOptions(form: FormData) {
     tags: form.getAll("tags").map((value) => String(value)),
     location: text("location") || null,
     captureDate: text("captureDate") || null,
-    watermarkEnabled: form.get("watermarkEnabled") === "on",
     watermarkPosition,
     rawWatermarkPosition: requested,
-    published: form.get("published") === "on",
-    featured: form.get("featured") === "on",
-    printAvailable: form.get("printAvailable") === "on",
+    // APV1C-05: a checkbox field is read through ONE shared parser. `=== "on"` would read
+    // `published=hacked` as "do not publish" — a refusal disguised as a decision.
+    booleans: parseCheckboxes(form, [
+      { name: "watermarkEnabled", label: "The watermark control" },
+      { name: "published", label: "The publish control" },
+      { name: "featured", label: "The featured control" },
+      { name: "printAvailable", label: "The print-availability control" },
+    ]),
   };
 }
 
@@ -146,6 +151,13 @@ export async function action({ request, context }: { request: Request; context: 
    * gallery or tag set is.
    */
   const submitted = readOptions(form);
+  if (!submitted.booleans.ok) {
+    return {
+      report: null,
+      message: submitted.booleans.errors[0] ?? "That upload's options were not understood.",
+    };
+  }
+  const flags = submitted.booleans.values;
   const references = await knownReferenceIds(env);
   const metadata = validatePhotoMetadata(
     {
@@ -219,11 +231,11 @@ export async function action({ request, context }: { request: Request; context: 
       tags: [...metadata.value.tags],
       location: metadata.value.location,
       captureDate: metadata.value.captureDate,
-      watermarkEnabled: submitted.watermarkEnabled,
+      watermarkEnabled: flags["watermarkEnabled"] ?? false,
       watermarkPosition: submitted.watermarkPosition,
-      published: submitted.published,
-      featured: submitted.featured,
-      printAvailable: submitted.printAvailable,
+      published: flags["published"] ?? false,
+      featured: flags["featured"] ?? false,
+      printAvailable: flags["printAvailable"] ?? false,
     },
   });
   return { report, message: null };
