@@ -4,22 +4,34 @@ import { SiteFooter } from "../components/SiteFooter";
 import { SiteHeader } from "../components/SiteHeader";
 import { appEnvironmentFrom } from "../data/context.server";
 import { developmentNoticesEnabled } from "../data/site";
+import { readPublicSiteSettings } from "../data/site-settings.server";
 
 /**
  * The public shell.
  *
- * REPAIR-09A: the one thing this loader does is decide whether the site's
- * development/preview notices are rendered, from the single configuration value
- * they all depend on. It is read here because the footer needs it and the footer
- * belongs to this layout; the value is also returned by the routes whose own
- * sections carry a notice or a preview meta description.
+ * REPAIR-09A: this loader decides whether the site's development/preview notices are
+ * rendered, from the single configuration value they all depend on.
+ *
+ * It also reads the operator's workspace settings, because the footer is where the
+ * configured social profiles appear. Settings are read for EVERY public page: one small
+ * query, and the alternative — a second loader on each page — would read the same table
+ * repeatedly.
  */
 export async function loader({ context }: { context: unknown }) {
-  return { showDevelopmentNotices: developmentNoticesEnabled(appEnvironmentFrom(context)) };
+  const env = appEnvironmentFrom(context);
+  const [showDevelopmentNotices, settings] = await Promise.all([
+    Promise.resolve(developmentNoticesEnabled(env)),
+    readPublicSiteSettings(env),
+  ]);
+  return {
+    showDevelopmentNotices,
+    socialLinks: settings.socialLinks,
+    strapline: settings.strapline,
+  };
 }
 
 export default function PublicLayout() {
-  const { showDevelopmentNotices } = useLoaderData<typeof loader>();
+  const { showDevelopmentNotices, socialLinks, strapline } = useLoaderData<typeof loader>();
 
   return (
     <div className="site-shell">
@@ -30,7 +42,11 @@ export default function PublicLayout() {
       <main className="site-main" id="main" tabIndex={-1}>
         <Outlet />
       </main>
-      <SiteFooter showDevelopmentNotices={showDevelopmentNotices} />
+      <SiteFooter
+        showDevelopmentNotices={showDevelopmentNotices}
+        socialLinks={socialLinks}
+        strapline={strapline}
+      />
     </div>
   );
 }

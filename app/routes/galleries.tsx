@@ -6,6 +6,7 @@ import { appEnvironmentFrom } from "../data/context.server";
 import { site } from "../data/site";
 import { galleryCover, listPublishedGalleries, publishedPhotoCounts } from "../data/queries";
 import { developmentNoticesEnabled } from "../data/site";
+import { readPublicSiteSettings } from "../data/site-settings.server";
 import { galleryPath } from "../lib/paths";
 
 /**
@@ -38,6 +39,7 @@ export async function loader({ context }: { context: unknown }) {
       galleries.map(async (gallery) => [gallery.id, await galleryCover(gallery, env)] as const),
     ),
     showDevelopmentNotices: developmentNoticesEnabled(env),
+    intro: (await readPublicSiteSettings(env)).galleriesIntro,
   };
 }
 
@@ -46,7 +48,7 @@ export async function loader({ context }: { context: unknown }) {
  * an unpublished gallery can never appear here.
  */
 export default function GalleriesRoute() {
-  const { galleries, counts, covers, showDevelopmentNotices } = useLoaderData<typeof loader>();
+  const { galleries, counts, covers, showDevelopmentNotices, intro } = useLoaderData<typeof loader>();
   const countById = new Map(counts);
   const coverById = new Map(covers);
 
@@ -55,6 +57,7 @@ export default function GalleriesRoute() {
       <header className="page__header">
         <p className="eyebrow">Galleries</p>
         <h1>Galleries</h1>
+        {intro.length > 0 ? <p className="lede">{intro}</p> : null}
         <p className="lede">
           Collections of street, stage and night work. Photography fills the page; the
           interface stays out of the way.

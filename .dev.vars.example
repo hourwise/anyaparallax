@@ -1,0 +1,16 @@
+# Local development overrides for `pnpm dev` and the served checks.
+#
+# Copy to `.dev.vars` (gitignored) and adjust. `wrangler dev` loads this file and it
+# overrides `vars` from wrangler.jsonc FOR LOCAL WORK ONLY: `wrangler deploy` does not
+# read it, so a deployment never inherits these values.
+#
+# The two development valves ship as "false" in wrangler.jsonc so that a deployment is
+# publication-safe by accident. Only the exact string "true" enables either of them.
+ALLOW_DEVELOPMENT_SEED="true"
+ALLOW_DEVELOPMENT_IDENTITY="true"
+
+# Optional: render the development/preview notices while working locally.
+# SHOW_DEVELOPMENT_NOTICES="true"
+
+# Never put real credentials, account ids, Access audiences or production resource names
+# in this file or any other committed file.

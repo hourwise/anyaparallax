@@ -41,6 +41,8 @@ export const SITEMAP_STATIC_PATHS: readonly string[] = [
   printsPath,
   "/about",
   contactPath,
+  // The privacy notice is a public page worth finding, and the footer links to it.
+  "/privacy",
 ];
 
 /** Escape the five characters XML treats specially. */

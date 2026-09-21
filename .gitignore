@@ -16,6 +16,9 @@ dist/
 !.env.example
 .dev.vars
 .dev.vars.*
+# ...but the EXAMPLE is documentation rather than local state, so it is committed on
+# purpose as a safe starting point. It contains no real value or credential.
+!.dev.vars.example
 
 # Logs and local scratch files
 *.log

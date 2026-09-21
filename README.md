@@ -2,11 +2,17 @@
 
 Photography portfolio for Anya — night cities, live music and the moments after dark.
 
-Current state: **Slice 05 — authentication, admin and manager roles**. The public site
-reads gallery and photograph data through a single query boundary that runs against
-Cloudflare D1, with a development-only seed fallback for local work. `/admin` and
-`/manager` are now behind a real server-side identity and role boundary. It remains a
-development preview, not a published site.
+Current state: **V1 feature-complete, pending operator content.** The public site reads
+gallery and photograph data through a single query boundary that runs against Cloudflare
+D1. `/admin` and `/manager` are behind a real server-side identity and role boundary:
+Cloudflare Access authenticates a person, and the `users` table authorises what that
+person may do.
+
+Anya can run the site herself: create and order galleries, choose covers, manage tags,
+upload photographs, edit their metadata, publish and withdraw them, decide print-enquiry
+eligibility, review enquiries, and set watermark, social-profile and introduction
+defaults. Production infrastructure is provisioned and currently protected end to end by
+Cloudflare Access while the remaining content is prepared.
 
 ## Stack
 
@@ -38,19 +44,21 @@ Implemented so far:
   manager role, and the manager-only `/manager` surface with live binding, storage,
   identity state and the authorised-user directory
 
-Deliberately **not** implemented yet:
+Deliberately **not** implemented, and planned separately:
 
-- The editing tools themselves (upload, metadata, galleries, settings) inside `/admin`
-  and `/manager`; those routes exist, are protected, and say so.
-- Image upload, derivative generation and watermarking (Slice 06), likes and sharing
-  (Slice 07), print enquiries and the contact form (Slice 08).
-- Serving stored R2 objects to visitors. The storage layer is in place and tested; no
-  public route serves stored objects yet.
-- Deployment. No Cloudflare resources, account IDs, secrets or deployment scripts are
-  configured; publishing requires separate authorization.
+- **Print purchasing and any ecommerce.** The print-enquiry flow is the whole of V1's
+  print story: no basket, checkout, payment, order, shipping or tax code exists, and none
+  is planned for V1. See `DOCS/ANYAPARALLAX_V2_PLAN.md`, where commerce is marked
+  `DEFERRED — NOT V1 IMPLEMENTATION`.
+- A richer site-copy CMS, scheduled publication, enquiry email notifications, backup and
+  export tooling and multi-photographer support; all are V2 candidates in that plan.
+- Any destructive maintenance console: `/manager/maintenance` reports integrity and
+  deliberately wires nothing destructive.
 
-All copy, imagery and links remain clearly marked provisional placeholders. No
-photographs, social accounts, contact addresses or final domain are assumed.
+Operator content is still outstanding and is tracked rather than assumed: the final About
+biography and portrait, the public copy review (see the copy glossary), social profile
+addresses, privacy controller/retention wording, final watermark artwork, and the real
+production photography.
 
 ## Requirements
 
@@ -352,3 +360,40 @@ Nothing here has been run against Cloudflare. When publishing is authorised:
    half-configured Access deployment fails closed and denies every operator request.
 6. Do not seed production with development placeholder rows; real content arrives
    through the admin upload flow.
+
+## Deployment state
+
+Two isolated sets of Cloudflare resources exist, both provisioned from this repository:
+
+| Environment | Worker | Purpose |
+| --- | --- | --- |
+| Preview | `anyaparallax-preview` | presentation and verification, on its own `workers.dev` hostname |
+| Production | `anyaparallax` | the real domain, currently protected end to end by Cloudflare Access |
+
+Each has its own D1 database and its own private-masters and public-derivatives R2
+buckets; nothing is shared between them, and no resource identifier, account id, Access
+audience or credential is committed here. The deployment configuration is derived at
+deploy time from the generated Vite/Cloudflare payload, so the repository stays free of
+environment-specific values.
+
+**Public release is an operator step.** Cloudflare Access currently protects the whole
+domain; narrowing it to the operator paths (`/admin`, `/admin/*`, `/manager`,
+`/manager/*` — both the parent and its descendants) is what makes the public routes
+anonymous, and it happens only after the outstanding content is approved. Production
+photography is uploaded by Anya through `/admin`.
+
+## Documentation for the operator
+
+- `DOCS/ANYAPARALLAX_V1_COPY_GLOSSARY.md` — every user-visible string with a stable ID, so
+  copy can be rewritten by reference (`PUB-HOME-002 → replace with "…"`) without another
+  discovery pass. A CSV export of the same table sits beside it.
+- `DOCS/ANYAPARALLAX_V2_PLAN.md` — what V2 could do, ordered by value, and what is
+  explicitly deferred.
+- `DOCS/ANYAPARALLAX — V1 GOAL, IMPLEMENTATION.md` — the governing V1 specification.
+
+## Development variables
+
+`wrangler.jsonc` ships the publication-safe values, so nothing has to be disabled before
+a deployment. To enable the two development valves locally, copy `.dev.vars.example` to
+`.dev.vars` (gitignored) and adjust it; the served checks write their own values there
+and restore whatever they found.

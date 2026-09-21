@@ -5,6 +5,7 @@ import { EnquiryForm } from "../components/EnquiryForm";
 import { siteOriginFrom } from "../data/canonical-origin";
 import { appEnvironmentFrom } from "../data/context.server";
 import { site } from "../data/site";
+import { readPublicSiteSettings } from "../data/site-settings.server";
 import { abuseEvidenceFrom, screenEnquirySubmission } from "../enquiries/abuse-guard";
 import { ENQUIRY_COPY } from "../enquiries/enquiry";
 import { submitEnquiry } from "../enquiries/enquiries.server";
@@ -48,6 +49,7 @@ const MAX_ENQUIRY_REQUEST_BYTES = 16 * 1024;
  * several visitors and collapse their later enquiries into one.
  */
 export async function loader({ context }: { context: unknown }) {
+  const siteSettings = await readPublicSiteSettings(appEnvironmentFrom(context));
   const env = appEnvironmentFrom(context);
   const origin = siteOriginFrom(env);
 
@@ -64,6 +66,9 @@ export async function loader({ context }: { context: unknown }) {
       submissionToken: crypto.randomUUID(),
       // The timing half of the abuse guard: the moment this form was rendered.
       formIssuedAt: String(Date.now()),
+      // The operator's introduction, blank unless configured. It travels through the
+      // loader because a loader value is the only thing a component may read.
+      contactIntro: siteSettings.contactIntro,
     },
     { headers: { "cache-control": "no-store" } },
   );
@@ -177,7 +182,7 @@ export async function action({ request, context }: { request: Request; context: 
 }
 
 export default function ContactRoute() {
-  const { submissionToken, formIssuedAt } = useLoaderData<typeof loader>();
+  const { submissionToken, formIssuedAt, contactIntro } = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const navigation = useNavigation();
   const busy = navigation.state === "submitting";
@@ -187,6 +192,7 @@ export default function ContactRoute() {
       <header className="page__header">
         <p className="eyebrow">Contact</p>
         <h1>Contact</h1>
+        {contactIntro.length > 0 ? <p className="lede">{contactIntro}</p> : null}
         <p className="lede">
           Band, gig, event, car and print enquiries all reach Anya through this form, and she
           answers them personally.

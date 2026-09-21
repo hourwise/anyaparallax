@@ -7,6 +7,7 @@ import { siteOriginFrom } from "../data/canonical-origin";
 import { appEnvironmentFrom } from "../data/context.server";
 import { listPublishedGalleries } from "../data/queries";
 import { developmentNoticesEnabled, site } from "../data/site";
+import { readPublicSiteSettings } from "../data/site-settings.server";
 import { metadataTags, pageMetadataFor } from "../engagement/metadata";
 import { contactPath, galleriesPath } from "../lib/paths";
 
@@ -48,6 +49,7 @@ export async function loader({ context }: { context: unknown }) {
   return {
     galleries,
     showDevelopmentNotices,
+    intro: (await readPublicSiteSettings(env)).aboutIntro,
     metadata: pageMetadataFor(origin, {
       path: "/about",
       title: "About",
@@ -67,13 +69,14 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
 };
 
 export default function AboutRoute() {
-  const { galleries, showDevelopmentNotices } = useLoaderData<typeof loader>();
+  const { galleries, showDevelopmentNotices, intro } = useLoaderData<typeof loader>();
 
   return (
     <section className="page container">
       <header className="page__header">
         <p className="eyebrow">About</p>
         <h1>About</h1>
+        {intro.length > 0 ? <p className="lede">{intro}</p> : null}
       </header>
 
       {showDevelopmentNotices ? (

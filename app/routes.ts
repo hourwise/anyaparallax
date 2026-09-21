@@ -27,6 +27,9 @@ export default [
     route("gallery/:slug", "routes/gallery.tsx"),
     route("photo/:slug", "routes/photo.tsx"),
     route("about", "routes/about.tsx"),
+    // Privacy notice: the public destination the footer links to. Accurate about what
+    // the application actually stores, with the operator-supplied facts marked as such.
+    route("privacy", "routes/privacy.tsx"),
     route("prints", "routes/prints.tsx"),
     // Slice 08 print enquiry path. The form and its acknowledgement are separate
     // routes so a successful submission can REDIRECT (303) to a page that holds
