@@ -1758,3 +1758,228 @@ main:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+
+/* ==== V1 completion: workspace surfaces and narrow-width behaviour ==== */
+/*
+ * The operator workspace surfaces (galleries, settings, manager tools) and the
+ * narrow-width behaviour requested after the audit (APV1-04). Everything here uses the
+ * existing palette and spacing variables: this is applied styling for new screens, not a
+ * redesign of the site's visual identity.
+ */
+
+.workspace-block {
+  margin-block: var(--space-lg);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.workspace-block > h2 {
+  margin-bottom: var(--space-xs);
+}
+
+.field-help {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-block: 0.25rem 0.75rem;
+}
+
+/* A refusal the operator must act on, distinct from the muted help text beside it. */
+.notice--ok {
+  border-color: var(--border-strong);
+  background: var(--surface-inset);
+}
+
+.stack-form,
+.inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 42rem;
+}
+
+.stack-form label,
+.inline-form label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.stack-form input,
+.stack-form textarea,
+.stack-form select,
+.inline-form input,
+.inline-form textarea,
+.inline-form select {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  background: var(--surface-inset);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.stack-form button,
+.inline-form button {
+  align-self: start;
+  margin-top: 0.25rem;
+}
+
+.inline-form {
+  margin-block: 0.5rem;
+}
+
+.fieldset {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin-block: 0.5rem;
+}
+
+/*
+ * Tables scroll rather than clip. The audit's mobile finding was that a wide operator
+ * table pushed its controls off-screen with no way to reach them; a scroll container is
+ * the minimum honest fix, and the narrow-width rules below go further by stacking rows.
+ */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+
+.admin-table thead th {
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-table tbody tr:last-child th,
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.state-badge[data-state="published"] {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.state-badge[data-state="draft"] {
+  color: var(--text-muted);
+}
+
+.state-badge--attention {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.gallery-admin-list,
+.tag-admin-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.gallery-admin-item,
+.tag-admin-item {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.9rem;
+  background: var(--surface-raised);
+}
+
+.gallery-admin-item__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.gallery-admin-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+}
+
+.footer__social ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer__credit {
+  font-size: 0.85rem;
+}
+
+/*
+ * APV1-04 (narrow widths, ~390px): an operator table becomes a stack of labelled rows
+ * rather than a horizontally clipped grid. Each cell carries its own label in
+ * `data-label`, which is why the audit's "precision horizontal hunting" disappears: no
+ * column is off-screen, and no control needs a sideways drag to reach.
+ */
+@media (max-width: 640px) {
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table th,
+  .admin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table tr {
+    padding-block: 0.5rem;
+    border-bottom: 1px solid var(--border-strong);
+  }
+
+  .admin-table th {
+    color: var(--text-secondary);
+  }
+
+  .admin-table td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .table-scroll {
+    overflow-x: visible;
+    border: none;
+  }
+
+  .stack-form,
+  .inline-form {
+    max-width: none;
+  }
+
+  .inline-form {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .inline-form button {
+    justify-self: start;
+  }
+}
