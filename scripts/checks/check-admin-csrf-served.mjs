@@ -60,6 +60,8 @@ await seedLocalD1(seed);
 
 const IDENTITY_HEADER = "x-anyaparallax-development-identity";
 const PHOTOGRAPHER = "photographer@anyaparallax.test";
+/** The manager identity, needed now that a manager-only action is in the matrix. */
+const MANAGER = "manager@anyaparallax.test";
 const INACTIVE = "deactivated@anyaparallax.test";
 const UNKNOWN = "stranger@anyaparallax.test";
 
@@ -215,6 +217,7 @@ async function stateDigest() {
     "SELECT id, title, published, published_at, featured, print_available, gallery_id FROM photos ORDER BY id",
     "SELECT id, status FROM enquiries ORDER BY id",
     "SELECT COUNT(*) AS total FROM photo_tags",
+    "SELECT key, value FROM site_settings ORDER BY key",
   ];
   const { stdout } = await runWrangler([
     "d1",
@@ -350,6 +353,64 @@ const ACTIONS = [
     refused: { enquiryId: null, status: "read" },
   },
   {
+    label: "the gallery manager",
+    path: "/admin/galleries",
+    accepted: [
+      {
+        fields: { intent: "create", name: "CSRF Gallery A", description: "", displayOrder: "", published: "draft" },
+        expect: /Created/,
+      },
+      {
+        fields: { intent: "create", name: "CSRF Gallery B", description: "", displayOrder: "", published: "draft" },
+        expect: /Created/,
+      },
+    ],
+    refused: {
+      intent: "create",
+      name: "CSRF Attack Gallery",
+      description: "",
+      displayOrder: "",
+      published: "published",
+    },
+  },
+  {
+    label: "workspace settings",
+    path: "/admin/settings",
+    accepted: [
+      {
+        fields: { intent: "settings", watermarkEnabled: "enabled", watermarkPosition: "bottom-right" },
+        expect: /Settings saved/,
+      },
+      {
+        fields: { intent: "settings", watermarkEnabled: "disabled", watermarkPosition: "center" },
+        expect: /Settings saved/,
+      },
+    ],
+    refused: {
+      intent: "settings",
+      watermarkEnabled: "enabled",
+      watermarkPosition: "bottom-right",
+      "site.strapline": "CSRF attack strapline",
+    },
+  },
+  {
+    label: "manager account management",
+    path: "/manager/settings",
+    identity: MANAGER,
+    extraAuthCases: [[PHOTOGRAPHER, 403, "a photographer"]],
+    accepted: [
+      {
+        fields: { intent: "create", email: "csrf.matrix.a@example.com", role: "photographer" },
+        expect: /now has the photographer role/,
+      },
+      {
+        fields: { intent: "create", email: "csrf.matrix.b@example.com", role: "manager" },
+        expect: /now has the manager role/,
+      },
+    ],
+    refused: { intent: "create", email: "csrf.attack@example.com", role: "manager" },
+  },
+  {
     label: "the upload pipeline",
     path: "/admin/upload",
     multipart: true,
@@ -393,7 +454,11 @@ try {
     "routes/admin/upload.tsx",
     "routes/admin/enquiries.tsx",
     "routes/admin/prints.tsx",
+    "routes/admin/galleries.tsx",
+    "routes/admin/settings.tsx",
   ];
+  /** Manager-only mutations, held to the same boundary and to the manager guard. */
+  const MANAGER_ACTIONS = ["routes/manager/settings.tsx"];
   for (const file of OPERATOR_ACTIONS) {
     const source = readFileSync(resolve(root, "app", file), "utf8");
     const guarded =
@@ -433,8 +498,8 @@ try {
       /export\s+(async\s+)?function\s+action/.test(readFileSync(resolve(root, "app", name), "utf8")),
   );
   check(
-    managerActionFiles.length === 0,
-    `manager routes with a mutating action: ${JSON.stringify(managerActionFiles)} (none exist, so none is covered here)`,
+    JSON.stringify(managerActionFiles) === JSON.stringify(MANAGER_ACTIONS),
+    `manager routes with a mutating action are ${JSON.stringify(managerActionFiles)}, and this check tests ${JSON.stringify(MANAGER_ACTIONS)}`,
   );
 
   // --- B. An enquiry to act on ---------------------------------------------
@@ -478,10 +543,11 @@ try {
   // --- C. The matrix, for every mutating operator action -------------------
 
   for (const action of ACTIONS) {
+    const identity = action.identity ?? PHOTOGRAPHER;
     const send = (body, headers) =>
       action.multipart
-        ? postUpload(action.path, body.fields, { identity: PHOTOGRAPHER, ...headers })
-        : postForm(action.path, body.fields, { identity: PHOTOGRAPHER, ...headers });
+        ? postUpload(action.path, body.fields, { identity, ...headers })
+        : postForm(action.path, body.fields, { identity, ...headers });
 
     // (1, 2) Both accepted forms reach the action's normal behaviour: the first
     // request through an exact origin, the second — its inverse — through a
@@ -525,7 +591,10 @@ try {
     // authenticated request is refused by the origin guard, and an unauthenticated
     // one by the guard it has always been refused by.
     const beforeAuth = await stateDigest();
-    for (const [identity, expected, label, extra] of AUTH_CASES) {
+    for (const [identity, expected, label, extra] of [
+      ...AUTH_CASES,
+      ...(action.extraAuthCases ?? []),
+    ]) {
       const response = await send({ fields: action.refused }, { origin, identity, ...extra });
       await response.text();
       check(
@@ -724,9 +793,7 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  "Operator CSRF check passed: the same-origin guard has exactly one definition, every one of the five mutating " +
-    "operator actions (photo library, editor, print eligibility, enquiry queue and upload) uses it, and no manager " +
-    "route has a write path; for each action an exact same-origin Origin and a same-origin Referer reached normal " +
+  "Operator CSRF check passed: the same-origin guard has exactly one definition, every one of the seven mutating operator actions (photo library, editor, print eligibility, enquiry queue, upload, gallery manager and workspace settings) uses it, and the one mutating manager action (account management) is held to the same boundary and to the manager guard itself; for each action an exact same-origin Origin and a same-origin Referer reached normal " +
     "behaviour, while a hostile Origin, a hostile Origin beside a friendly Referer, an opaque `Origin: null`, a " +
     "hostile Referer alone, the absence of both headers and a malformed Referer were all refused with an unchanged " +
     "database and object storage — the framework's own origin check answering 400 for a contradicted Origin and this " +

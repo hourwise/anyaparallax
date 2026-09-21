@@ -1,0 +1,1487 @@
+# Anyaparallax V1 — copy glossary
+
+**Scope.** This is an inventory of every string a person can see or hear in the Anyaparallax application as it stands in this repository: public pages, the photographer area, the manager area, and the error, refusal and validation copy around them. It is a description of the code, not a rewrite: no copy has been changed.
+
+**How to use it.** Every entry has a stable ID (`PUB-HOME-002`, `ADM-EDIT-014`, `MGR-MAINT-009`, `SYS-ENQVAL-003`, …). IDs do not change when the wording does, so an operator can work from this document alone. To change a string, reply with the ID and the new wording, for example:
+
+```
+PUB-HOME-002 → replace with "..."
+```
+
+Several IDs can be batched in one reply, one per line. An entry marked `via settings` or `yes` in the **UI-editable?** column can be changed in the running site without a source edit (admin Settings, or the manager area); every other entry is source copy and needs a code change.
+
+**Conventions.** `{placeholders}` mark values the application interpolates at render time. Typographic punctuation is reproduced exactly as the source holds it. Where one source constant renders on more than one surface, each rendering has its own ID and the Notes column names the shared constant and the sibling ID, so a single source edit is understood to change both. `SHOW_DEVELOPMENT_NOTICES` gates every entry Notes describes as *gated*: with the switch off (the default) that string is not rendered at all.
+
+**Surface map.** `PUB-*` is the public site, `ADM-*` the photographer's `/admin` area, `MGR-*` the manager's `/manager` area, and `SYS-*` the shared errors, refusals, validation messages and document metadata.
+
+---
+
+## Public header and navigation — `PUB-NAV`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-NAV-001 | PUBLIC | Every public page (header brand) | body | Anyaparallax | `app/components/SiteHeader.tsx:37` (`site.name`, `app/data/site.ts:54`) | no | Wordmark half one; shared with the footer brand line and the operator-area brand. |
+| PUB-NAV-002 | PUBLIC | Every public page (header brand) | body | Photography | `app/components/SiteHeader.tsx:38` (`site.secondary`, `app/data/site.ts:55`) | no | Wordmark half two. |
+| PUB-NAV-003 | PUBLIC | Every public page (header brand) | accessibility label | Anyaparallax Photography — home | `app/components/SiteHeader.tsx:36` | no | Accessible name of the brand link. |
+| PUB-NAV-004 | PUBLIC | Every public page (mobile nav toggle) | button | Menu | `app/components/SiteHeader.tsx:49` | no | Shown while the mobile menu is closed. |
+| PUB-NAV-005 | PUBLIC | Every public page (mobile nav toggle) | button | Close | `app/components/SiteHeader.tsx:49` | no | Shown while the mobile menu is open. |
+| PUB-NAV-006 | PUBLIC | Every public page (primary nav) | accessibility label | Primary | `app/components/SiteHeader.tsx:56` | no | Accessible name of the primary navigation landmark. |
+| PUB-NAV-007 | PUBLIC | Header navigation, footer Explore list and the 404 suggestion list | navigation | Home | `app/data/site.ts:82` (`primaryNav`) | no | One source constant renders on three surfaces; a rewrite changes all three. |
+| PUB-NAV-008 | PUBLIC | Header navigation, footer Explore list and the 404 suggestion list | navigation | Galleries | `app/data/site.ts:83` (`primaryNav`) | no | As above. |
+| PUB-NAV-009 | PUBLIC | Header navigation, footer Explore list and the 404 suggestion list | navigation | Prints | `app/data/site.ts:84` (`primaryNav`) | no | As above. |
+| PUB-NAV-010 | PUBLIC | Header navigation, footer Explore list and the 404 suggestion list | navigation | About | `app/data/site.ts:85` (`primaryNav`) | no | As above. |
+| PUB-NAV-011 | PUBLIC | Header navigation, footer Explore list and the 404 suggestion list | navigation | Contact | `app/data/site.ts:86` (`primaryNav`) | no | As above. |
+| PUB-NAV-012 | PUBLIC | Every public page (skip link) | accessibility label | Skip to content | `app/layouts/public.tsx:35` | no | Keyboard-only skip link, visible on focus. |
+
+## Public footer — `PUB-FOOTER`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-FOOTER-001 | PUBLIC | Every public page (footer brand) | footer | Anyaparallax Photography | `app/components/SiteFooter.tsx:40` (`site.name` + `site.secondary`) | no | Composed from the two brand constants. |
+| PUB-FOOTER-002 | PUBLIC | Every public page (footer note) | footer | Provisional placeholder content: wording, imagery and links are not approved final content. | `app/components/SiteFooter.tsx:42` (`site.provisionalNote`, `app/data/site.ts:71`) | no | Gated by `SHOW_DEVELOPMENT_NOTICES`. Development/preview wording; the operator must decide whether the switch stays on at launch. |
+| PUB-FOOTER-003 | PUBLIC | Every public page (footer nav) | accessibility label | Footer | `app/components/SiteFooter.tsx:45` | no | Accessible name of the footer navigation landmark. |
+| PUB-FOOTER-004 | PUBLIC | Every public page (footer nav) | heading | Explore | `app/components/SiteFooter.tsx:46` | no | Heading above the repeated primary links (see `PUB-NAV-007`). |
+| PUB-FOOTER-005 | PUBLIC | Every public page (footer social) | accessibility label | Social profiles | `app/components/SiteFooter.tsx:57` | no | Rendered only when at least one social URL is configured. |
+| PUB-FOOTER-006 | PUBLIC | Every public page (footer social) | heading | Follow | `app/components/SiteFooter.tsx:58` | no | Rendered only when at least one social URL is configured. |
+| PUB-FOOTER-007 | PUBLIC | Every public page (footer social link) | accessibility label |  (opens in a new tab) | `app/components/SiteFooter.tsx:64` | no | Leading space is intentional; read after each social link name. |
+| PUB-FOOTER-008 | PUBLIC | Public footer Follow link; also the `/admin/settings` social field label | navigation | Instagram | `app/data/site-settings.ts:50` (`SOCIAL_NETWORKS`) | no | The label is source copy; the URL that makes the link appear is the `social.instagram` setting. |
+| PUB-FOOTER-009 | PUBLIC | Public footer Follow link; also the `/admin/settings` social field label | navigation | Facebook | `app/data/site-settings.ts:51` (`SOCIAL_NETWORKS`) | no | URL comes from the `social.facebook` setting. |
+| PUB-FOOTER-010 | PUBLIC | Public footer Follow link; also the `/admin/settings` social field label | navigation | TikTok | `app/data/site-settings.ts:52` (`SOCIAL_NETWORKS`) | no | URL comes from the `social.tiktok` setting. |
+| PUB-FOOTER-011 | PUBLIC | Public footer Follow link; also the `/admin/settings` social field label | navigation | Threads | `app/data/site-settings.ts:53` (`SOCIAL_NETWORKS`) | no | URL comes from the `social.threads` setting. |
+| PUB-FOOTER-012 | PUBLIC | Public footer Follow link; also the `/admin/settings` social field label | navigation | Bluesky | `app/data/site-settings.ts:54` (`SOCIAL_NETWORKS`) | no | URL comes from the `social.bluesky` setting. |
+| PUB-FOOTER-013 | PUBLIC | Public footer Follow link; also the `/admin/settings` social field label | navigation | X | `app/data/site-settings.ts:55` (`SOCIAL_NETWORKS`) | no | URL comes from the `social.x` setting. |
+| PUB-FOOTER-014 | PUBLIC | Public footer Follow link; also the `/admin/settings` social field label | navigation | YouTube | `app/data/site-settings.ts:56` (`SOCIAL_NETWORKS`) | no | URL comes from the `social.youtube` setting. |
+| PUB-FOOTER-015 | PUBLIC | Every public page (footer meta) | footer | © {year} Anyaparallax Photography | `app/components/SiteFooter.tsx:74` | no | `{year}` is the current calendar year at render time. |
+| PUB-FOOTER-016 | PUBLIC | Every public page (footer meta) | footer | Privacy | `app/components/SiteFooter.tsx:77` | no | Link label only; the destination page's wording is `PUB-PRIVACY-*`. |
+| PUB-FOOTER-017 | PUBLIC | Every public page (footer credit) | footer | Built by PCGSoft © 2026 | `app/components/SiteFooter.tsx:80`-`84` | no | Hard-coded year and an outbound credit link; operator decides whether to keep the credit. |
+| PUB-FOOTER-018 | PUBLIC | Every public page (footer note) | footer | Development preview. Not approved final content. | `app/components/SiteFooter.tsx:87` (`site.provisionalFooterNote`, `app/data/site.ts:73`) | no | Gated by `SHOW_DEVELOPMENT_NOTICES`. |
+
+## Home page — `PUB-HOME`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-HOME-001 | PUBLIC | `/` hero | accessibility label | Cities · People · Music · Moments | `app/components/home-sections.tsx:31` (`hero.headline`, `app/data/home.ts:39`) | no | Screen-reader-only `h1`; the visible hero words are `aria-hidden` duplicates. |
+| PUB-HOME-002 | PUBLIC | `/` hero | warning | Development preview — photography, copy and galleries are placeholders. | `app/components/home-sections.tsx:45` (`hero.note`, `app/data/home.ts:59`) | no | Gated by `SHOW_DEVELOPMENT_NOTICES`. |
+| PUB-HOME-003 | PUBLIC | `/` hero | body | Street photography, live music and the energy of the night. | `app/data/home.ts:40` (`hero.supporting`) | no | The page's main supporting sentence. |
+| PUB-HOME-004 | PUBLIC | `/` hero | button | Explore galleries | `app/data/home.ts:41` (`hero.action.label`) | no | Links to `/galleries`. |
+| PUB-HOME-005 | PUBLIC | `/` hero image | accessibility label | (empty string) | `app/data/home.ts:55` (`hero.photo.alt`) | no | Deliberately empty: the current hero is an abstract development graphic with nothing nameable to describe. Needs an approved hero photograph and real alt text. |
+| PUB-HOME-006 | PUBLIC | `/` featured section | heading | Featured work | `app/components/home-sections.tsx:74` | no | Eyebrow above the section heading. |
+| PUB-HOME-007 | PUBLIC | `/` featured section | heading | Selected photographs | `app/components/home-sections.tsx:75` | no | Section `h2`. |
+| PUB-HOME-008 | PUBLIC | `/` featured section | body | A working edit, arranged editorially rather than as a uniform grid. | `app/components/home-sections.tsx:76`-`78` | no | Names an editorial working method; operator may want different framing. |
+| PUB-HOME-009 | PUBLIC | `/` featured, latest and related-photograph grids | accessibility label | {photo.title} — photograph page | `app/components/home-sections.tsx:93` and `:202` | no | Link `title` attribute built from the photograph's own title. |
+| PUB-HOME-010 | PUBLIC | `/` featured and latest grids | accessibility label | {photo.galleryLabel} gallery | `app/components/home-sections.tsx:98` and `:207` | no | Link `title` attribute built from the gallery name. |
+| PUB-HOME-011 | PUBLIC | `/` galleries section | heading | Explore galleries | `app/components/home-sections.tsx:122` | no | Eyebrow; the same words are the hero button (`PUB-HOME-004`) from a different constant. |
+| PUB-HOME-012 | PUBLIC | `/` galleries section | heading | Find your way in | `app/components/home-sections.tsx:123` | no | Section `h2`. |
+| PUB-HOME-013 | PUBLIC | `/` galleries section | body | Street, stage and the hours in between — every collection is drawn from the published portfolio. | `app/components/home-sections.tsx:124`-`127` | no | Describes the collections generally. |
+| PUB-HOME-014 | PUBLIC | `/` galleries section | warning | Provisional collections, counts and imagery. Galleries are administrator-managed once the storage slices land, and no name or count here is approved final content. | `app/components/home-sections.tsx:132`-`133` | no | Gated by `SHOW_DEVELOPMENT_NOTICES`. Names internal build history ("storage slices") and seed content; a launch rewrite is recommended if the switch stays on. |
+| PUB-HOME-015 | PUBLIC | `/` galleries section | accessibility label | {gallery.name} gallery | `app/components/home-sections.tsx:140` | no | Link `title` attribute on each collection card. |
+| PUB-HOME-016 | PUBLIC | `/` galleries section | metadata | 1 photograph, or {count} photographs | `app/components/home-sections.tsx:159` | no | Singular/plural count under each collection card. |
+| PUB-HOME-017 | PUBLIC | `/` latest section | heading | Latest | `app/components/home-sections.tsx:180` | no | Eyebrow. |
+| PUB-HOME-018 | PUBLIC | `/` latest section | heading | Recently added | `app/components/home-sections.tsx:181` | no | Section `h2`. |
+| PUB-HOME-019 | PUBLIC | `/` latest section | navigation | Browse all galleries | `app/components/home-sections.tsx:185` | no | Text link to `/galleries`. |
+| PUB-HOME-020 | PUBLIC | `/` about preview | heading | About | `app/components/home-sections.tsx:221` | no | Eyebrow. |
+| PUB-HOME-021 | PUBLIC | `/` about preview | heading | About Anya | `app/data/home.ts:64` (`aboutPreview.title`) | no | Section `h2`. |
+| PUB-HOME-022 | PUBLIC | `/` about preview | body | I'm Anya — a photographer drawn to the energy of cities, live music, cars and the moments that happen after dark. Anyaparallax is where that work gathers. | `app/data/home.ts:65` (`aboutPreview.body`) | no | Provisional biography wording; the About page says the final biography is still to be supplied. |
+| PUB-HOME-023 | PUBLIC | `/` about preview | navigation | More about Anya | `app/data/home.ts:67` (`aboutPreview.linkLabel`) | no | Text link to `/about`. |
+| PUB-HOME-024 | PUBLIC | `/` about preview portrait | accessibility label | (empty string) | `app/data/home.ts:75` (`aboutPreview.photo.alt`) | no | Deliberately empty: the frame holds a development stand-in graphic. Needs an approved portrait plus real alt text. |
+
+## Shared public components — `PUB-UI`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-UI-001 | PUBLIC | Any public grid or card with no usable image path | empty state | Image unavailable | `app/components/PhotoFigure.tsx:89` | no | Fail-closed stand-in when a stored reference cannot be converted to a public path. |
+| PUB-UI-002 | PUBLIC | `/about` reserved portrait space (component default) | accessibility label | Placeholder image: {label} | `app/components/PlaceholderFrame.tsx:31` | no | `{label}` is the caller's text; the only current caller passes `Portrait placeholder` (`PUB-ABOUT-007`). |
+| PUB-UI-003 | PUBLIC | Public 404 body | heading | 404 | `app/components/NotFoundContent.tsx:21` | no | Eyebrow. |
+| PUB-UI-004 | PUBLIC | Public 404 body | heading | Page not found | `app/components/NotFoundContent.tsx:22` | no | Page `h1`. |
+| PUB-UI-005 | PUBLIC | Public 404 body | body | That address does not exist. Try one of these instead: | `app/components/NotFoundContent.tsx:26` | no | Default, stage-neutral wording. |
+| PUB-UI-006 | PUBLIC | Public 404 body | body | That address does not exist in this development preview. Try one of these instead: | `app/components/NotFoundContent.tsx:25` | no | Gated by `SHOW_DEVELOPMENT_NOTICES`; development wording. |
+| PUB-UI-007 | PUBLIC | Public 404 body | button | Back to home | `app/components/NotFoundContent.tsx:37` | no | Links to `/`. |
+
+## Galleries index — `PUB-GALLERIES`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-GALLERIES-001 | PUBLIC | `/galleries` header | heading | Galleries | `app/routes/galleries.tsx:56` | no | Eyebrow. |
+| PUB-GALLERIES-002 | PUBLIC | `/galleries` header | heading | Galleries | `app/routes/galleries.tsx:57` | no | Page `h1`. |
+| PUB-GALLERIES-003 | PUBLIC | `/galleries` header | body | Collections of street, stage and night work. Photography fills the page; the interface stays out of the way. | `app/routes/galleries.tsx:58`-`61` | no | Page lede. |
+| PUB-GALLERIES-004 | PUBLIC | `/galleries` | warning | Development preview — gallery names and metadata are provisional seed data, not approved final content. | `app/routes/galleries.tsx:65`-`68` | no | Gated by `SHOW_DEVELOPMENT_NOTICES`. Names seed data, an implementation detail. |
+| PUB-GALLERIES-005 | PUBLIC | `/galleries` collection card | accessibility label | {gallery.name} gallery | `app/routes/galleries.tsx:81` | no | Link `title` attribute. |
+| PUB-GALLERIES-006 | PUBLIC | `/galleries` collection card | metadata | 1 photograph, or {count} photographs | `app/routes/galleries.tsx:108` | no | Count under each collection card. |
+| PUB-GALLERIES-007 | PUBLIC | `/galleries` footer action | button | Print information | `app/routes/galleries.tsx:120` | no | Links to `/prints`. |
+
+## Gallery detail — `PUB-GALLERY`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-GALLERY-001 | PUBLIC | `/gallery/:slug` breadcrumb | navigation | Galleries | `app/routes/gallery.tsx:43` | no | Links back to `/galleries`. |
+| PUB-GALLERY-002 | PUBLIC | `/gallery/:slug` header | heading | {gallery.name} | `app/routes/gallery.tsx:45` (`galleries.name`) | via settings | Operator content: the gallery name is created and edited on `/admin/galleries`. |
+| PUB-GALLERY-003 | PUBLIC | `/gallery/:slug` header | body | {gallery.description} | `app/routes/gallery.tsx:46` (`galleries.description`) | via settings | Operator content: the gallery description is edited on `/admin/galleries`. |
+| PUB-GALLERY-004 | PUBLIC | `/gallery/:slug` header | metadata | 1 photograph, or {count} photographs | `app/routes/gallery.tsx:48` | no | Count of published photographs in this gallery. |
+| PUB-GALLERY-005 | PUBLIC | `/gallery/:slug` | warning | Development preview — photographs are placeholder assets and metadata is provisional seed data. | `app/routes/gallery.tsx:53`-`56` | no | Gated by `SHOW_DEVELOPMENT_NOTICES`. Names seed data and placeholder assets. |
+| PUB-GALLERY-006 | PUBLIC | `/gallery/:slug` | empty state | No photographs are published in this gallery yet. | `app/routes/gallery.tsx:60` | no | Shown when the gallery holds no published photographs. |
+| PUB-GALLERY-007 | PUBLIC | `/gallery/:slug` footer action | button | All galleries | `app/routes/gallery.tsx:91` | no | Links back to `/galleries`. |
+| PUB-GALLERY-008 | PUBLIC | `/gallery/:slug` grid | accessibility label | {photo.title} — photograph page | `app/routes/gallery.tsx:82` | no | Link `title` attribute on each photograph. |
+
+## Photograph page — `PUB-PHOTO`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-PHOTO-001 | PUBLIC | `/photo/:slug` breadcrumb | navigation | Galleries | `app/routes/photo.tsx:113` | no | First breadcrumb step. |
+| PUB-PHOTO-002 | PUBLIC | `/photo/:slug` breadcrumb | body | / | `app/routes/photo.tsx:114` | no | Decorative separator, `aria-hidden`; not announced. |
+| PUB-PHOTO-003 | PUBLIC | `/photo/:slug` image frame | empty state | This photograph’s display image is unavailable. | `app/routes/photo.tsx:144` | no | Shown when no public derivative path exists. |
+| PUB-PHOTO-004 | PUBLIC | `/photo/:slug` metadata list | field label | Gallery | `app/routes/photo.tsx:164` | no | Term in the description list. |
+| PUB-PHOTO-005 | PUBLIC | `/photo/:slug` metadata list | field label | Location | `app/routes/photo.tsx:171` | no | Rendered only when the photograph has a location. |
+| PUB-PHOTO-006 | PUBLIC | `/photo/:slug` metadata list | field label | Captured | `app/routes/photo.tsx:177` | no | Rendered only when a capture date exists; the value is formatted en-GB. |
+| PUB-PHOTO-007 | PUBLIC | `/photo/:slug` metadata list | field label | Tags | `app/routes/photo.tsx:183` | no | Rendered only when the photograph carries tags. |
+| PUB-PHOTO-008 | PUBLIC | `/photo/:slug` print action | button | Enquire about a print | `app/routes/photo.tsx:207` | no | Rendered only when the photograph is marked available for print enquiries. |
+| PUB-PHOTO-009 | PUBLIC | `/photo/:slug` print action | helper text | Print enquiries are answered personally. There is no basket, checkout or payment on this site. | `app/routes/photo.tsx:210`-`211` | no | Honest capability statement beside the print button. |
+| PUB-PHOTO-010 | PUBLIC | `/photo/:slug` previous/next | accessibility label | Photograph navigation | `app/routes/photo.tsx:234` | no | Accessible name of the previous/next landmark. |
+| PUB-PHOTO-011 | PUBLIC | `/photo/:slug` previous link | navigation | Previous | `app/routes/photo.tsx:237` | no | Followed by the previous photograph's title. |
+| PUB-PHOTO-012 | PUBLIC | `/photo/:slug` next link | navigation | Next | `app/routes/photo.tsx:245` | no | Followed by the next photograph's title. |
+| PUB-PHOTO-013 | PUBLIC | `/photo/:slug` related section | heading | More from this collection | `app/routes/photo.tsx:257` | no | Eyebrow above the gallery name. |
+| PUB-PHOTO-014 | PUBLIC | `/photo/:slug` related section | heading | {gallery.name} | `app/routes/photo.tsx:258` | via settings | Operator content: gallery name, edited on `/admin/galleries`. |
+| PUB-PHOTO-015 | PUBLIC | `/photo/:slug` related section | navigation | View the gallery | `app/routes/photo.tsx:262` | no | Text link to the gallery. |
+| PUB-PHOTO-016 | PUBLIC | `/photo/:slug` related grid | accessibility label | {item.title} — photograph page | `app/routes/photo.tsx:283` | no | Link `title` attribute on each related photograph. |
+
+## Photograph engagement controls — `PUB-ENGAGE`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-ENGAGE-001 | PUBLIC | `/photo/:slug` like and share block | accessibility label | Photograph engagement | `app/components/EngagementControls.tsx:171` | no | Accessible name of the control group. |
+| PUB-ENGAGE-002 | PUBLIC | `/photo/:slug` like button | button | Like | `app/components/EngagementControls.tsx:181` | no | Shown when this browser has not liked the photograph. |
+| PUB-ENGAGE-003 | PUBLIC | `/photo/:slug` like button | button | Unlike | `app/components/EngagementControls.tsx:181` | no | Shown when this browser has liked the photograph. |
+| PUB-ENGAGE-004 | PUBLIC | `/photo/:slug` like button | button | Working… | `app/components/EngagementControls.tsx:181` | no | Shown while the like request is in flight; no optimistic count is displayed. |
+| PUB-ENGAGE-005 | PUBLIC | `/photo/:slug` like count | metadata | like, or likes | `app/components/EngagementControls.tsx:189` | no | Singular/plural label beside the stored count; announced politely via `aria-live`. |
+| PUB-ENGAGE-006 | PUBLIC | `/photo/:slug` like count | metadata | Likes unavailable | `app/components/EngagementControls.tsx:193` | no | Shown when engagement storage could not be read; no fabricated count. |
+| PUB-ENGAGE-007 | PUBLIC | `/photo/:slug` share button | button | Share | `app/engagement/engagement.ts:38` (`SHARE_CHANNEL_LABELS.native`) | no | Opens the Web Share sheet where the browser provides one. |
+| PUB-ENGAGE-008 | PUBLIC | `/photo/:slug` share disclosure | button | More sharing options | `app/components/EngagementControls.tsx:212` | no | Shown while the fallback list is collapsed. |
+| PUB-ENGAGE-009 | PUBLIC | `/photo/:slug` share disclosure | button | Hide sharing options | `app/components/EngagementControls.tsx:212` | no | Shown while the fallback list is expanded. |
+| PUB-ENGAGE-010 | PUBLIC | `/photo/:slug` share fallbacks | field label | Link | `app/components/EngagementControls.tsx:235` | no | Label for the read-only canonical URL input. |
+| PUB-ENGAGE-011 | PUBLIC | `/photo/:slug` share fallbacks | helper text | These open the service in a new tab. Nothing here confirms that a share was completed, and no count of shares is shown. | `app/components/EngagementControls.tsx:254`-`255` | no | States the limit of what the application can know; the operator should keep this truthful if share channels change. |
+| PUB-ENGAGE-012 | PUBLIC | `/photo/:slug` share fallbacks | button | Copy link | `app/engagement/engagement.ts:39` (`SHARE_CHANNEL_LABELS.copy_link`) | no | The one share action with a confirmable outcome. |
+| PUB-ENGAGE-013 | PUBLIC | `/photo/:slug` share fallbacks | button | WhatsApp | `app/engagement/engagement.ts:40` (`SHARE_CHANNEL_LABELS.whatsapp`) | no | Opens an outbound link in a new tab. |
+| PUB-ENGAGE-014 | PUBLIC | `/photo/:slug` share fallbacks | button | Facebook | `app/engagement/engagement.ts:41` (`SHARE_CHANNEL_LABELS.facebook`) | no | Opens an outbound link in a new tab. |
+| PUB-ENGAGE-015 | PUBLIC | `/photo/:slug` share fallbacks | button | X | `app/engagement/engagement.ts:42` (`SHARE_CHANNEL_LABELS.x`) | no | Opens an outbound link in a new tab. |
+| PUB-ENGAGE-016 | PUBLIC | `/photo/:slug` share fallbacks | button | Pinterest | `app/engagement/engagement.ts:43` (`SHARE_CHANNEL_LABELS.pinterest`) | no | Opens an outbound link in a new tab; omits the image when none is public. |
+| PUB-ENGAGE-017 | PUBLIC | `/photo/:slug` share fallbacks | button | Email | `app/engagement/engagement.ts:44` (`SHARE_CHANNEL_LABELS.email`) | no | Opens the visitor's own mail client. |
+| PUB-ENGAGE-018 | PUBLIC | `/photo/:slug` share status | confirmation | Share panel opened. | `app/engagement/engagement.ts:84` (`SHARE_STATUS_COPY.nativeOpened`) | no | Deliberately claims only that the sheet opened. |
+| PUB-ENGAGE-019 | PUBLIC | `/photo/:slug` share status | warning | This browser cannot open a share panel. Use one of the options below. | `app/engagement/engagement.ts:86` (`SHARE_STATUS_COPY.nativeUnavailable`) | no | Fallback message. |
+| PUB-ENGAGE-020 | PUBLIC | `/photo/:slug` share status | confirmation | Opened in a new tab. Complete the share there. | `app/engagement/engagement.ts:88` (`SHARE_STATUS_COPY.outboundOpened`) | no | Claims initiation only. |
+| PUB-ENGAGE-021 | PUBLIC | `/photo/:slug` share status | confirmation | Link copied. | `app/engagement/engagement.ts:90` (`SHARE_STATUS_COPY.linkCopied`) | no | Shown only after a completed clipboard write. |
+| PUB-ENGAGE-022 | PUBLIC | `/photo/:slug` share status | warning | Could not copy automatically. Select the link and copy it manually. | `app/engagement/engagement.ts:92` (`SHARE_STATUS_COPY.copyFailed`) | no | Shown on clipboard failure. |
+| PUB-ENGAGE-023 | PUBLIC | `/photo/:slug` engagement note | warning | Likes are unavailable right now. Nothing is recorded and no count is shown. | `app/engagement/engagement.server.ts:55` | no | Availability reason rendered beside the controls when engagement storage is unreachable. |
+
+## Prints information — `PUB-PRINTS`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-PRINTS-001 | PUBLIC | `/prints` header | heading | Prints | `app/routes/prints.tsx:74` | no | Eyebrow. |
+| PUB-PRINTS-002 | PUBLIC | `/prints` header | heading | Fine art prints | `app/routes/prints.tsx:75` | no | Page `h1`. |
+| PUB-PRINTS-003 | PUBLIC | `/prints` header | body | Bring the city to your walls. Selected photographs are offered as prints, and every enquiry is handled personally by Anya. | `app/routes/prints.tsx:76`-`79` | no | Page lede. |
+| PUB-PRINTS-004 | PUBLIC | `/prints` notice; also the enquiry form notice on `/contact` and `/prints/enquire` | warning | Print enquiries are handled personally by email. This site has no basket, no checkout and no payment: no price is charged here, and no availability is guaranteed until Anya replies. | `app/routes/prints.tsx:87` (`ENQUIRY_COPY.noCheckoutNotice`, `app/enquiries/enquiry.ts:197`) | no | One constant renders on three surfaces; a rewrite changes all three. |
+| PUB-PRINTS-005 | PUBLIC | `/prints` how-it-works | heading | How it works | `app/routes/prints.tsx:90` | no | Section `h2`. |
+| PUB-PRINTS-006 | PUBLIC | `/prints` how-it-works | body | Find a photograph marked as available for prints. | `app/routes/prints.tsx:92` | no | Ordered-step 1. |
+| PUB-PRINTS-007 | PUBLIC | `/prints` how-it-works | body | Send an enquiry, saying which format and size you have in mind. | `app/routes/prints.tsx:93` | no | Ordered-step 2. |
+| PUB-PRINTS-008 | PUBLIC | `/prints` how-it-works | body | Anya replies to confirm availability, dimensions, format and price. | `app/routes/prints.tsx:94` | no | Ordered-step 3. |
+| PUB-PRINTS-009 | PUBLIC | `/prints` how-it-works | body | Because each print is prepared to order, nothing on this site is a live product: there is no basket to fill, no price to pay here and no delivery date promised by a machine. | `app/routes/prints.tsx:97`-`98` | no | Capability statement; keep truthful if print fulfilment ever changes. |
+| PUB-PRINTS-010 | PUBLIC | `/prints` offered grid | heading | Available to enquire about | `app/routes/prints.tsx:105` | no | Eyebrow. |
+| PUB-PRINTS-011 | PUBLIC | `/prints` offered grid | heading | Photographs offered as prints | `app/routes/prints.tsx:106` | no | Section `h2`. |
+| PUB-PRINTS-012 | PUBLIC | `/prints` offered grid | navigation | Enquire about a print | `app/routes/prints.tsx:126` | no | Caption link on each offered photograph. |
+| PUB-PRINTS-013 | PUBLIC | `/prints` empty state | empty state | No photographs are currently marked as available for prints. You can still register interest, and Anya will let you know when prints open. | `app/routes/prints.tsx:140`-`141` | no | Shown when no photograph is print-eligible. |
+| PUB-PRINTS-014 | PUBLIC | `/prints` footer actions | button | Register print interest | `app/routes/prints.tsx:147` | no | Links to `/prints/enquire`. |
+| PUB-PRINTS-015 | PUBLIC | `/prints` footer actions | button | Browse the galleries | `app/routes/prints.tsx:150` | no | Links to `/galleries`. |
+| PUB-PRINTS-016 | PUBLIC | `/prints` offered grid | accessibility label | {photo.title} — photograph page | `app/routes/prints.tsx:132` | no | Link `title` attribute. |
+
+## Print enquiry form — `PUB-PRINTSENQ`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-PRINTSENQ-001 | PUBLIC | `/prints/enquire` breadcrumb | navigation | Prints | `app/routes/prints.enquire.tsx:214` | no | Links back to `/prints`. |
+| PUB-PRINTSENQ-002 | PUBLIC | `/prints/enquire` header | heading | Print enquiry | `app/routes/prints.enquire.tsx:217` (`FORM_TITLE`) | no | Shown when no photograph is named. |
+| PUB-PRINTSENQ-003 | PUBLIC | `/prints/enquire?photo=…` header | heading | Enquire about “{photo.title}” | `app/routes/prints.enquire.tsx:217` | no | Names the photograph the server accepted for this enquiry. |
+| PUB-PRINTSENQ-004 | PUBLIC | `/prints/enquire?photo=…` header | body | Send an enquiry about a print of this photograph. | `app/routes/prints.enquire.tsx:220` | no | Photograph-specific lede. |
+| PUB-PRINTSENQ-005 | PUBLIC | `/prints/enquire` header | body | Register interest in prints, or ask about a particular photograph. | `app/routes/prints.enquire.tsx:221` | no | General lede. |
+| PUB-PRINTSENQ-006 | PUBLIC | `/prints/enquire` header | body | Anya replies personally to confirm availability, format, size and price. | `app/routes/prints.enquire.tsx:222` | no | Second sentence of the lede, appended to `PUB-PRINTSENQ-004` or `-005`. |
+| PUB-PRINTSENQ-007 | PUBLIC | `/prints/enquire` sidebar | heading | What happens next | `app/routes/prints.enquire.tsx:260` | no | Sidebar `h2`. |
+| PUB-PRINTSENQ-008 | PUBLIC | `/prints/enquire` sidebar | body | Anya reads the enquiry and replies to the email address you give. | `app/routes/prints.enquire.tsx:262` | no | List item. |
+| PUB-PRINTSENQ-009 | PUBLIC | `/prints/enquire` sidebar | body | Availability, format, size and price are confirmed in that reply. | `app/routes/prints.enquire.tsx:263` | no | List item. |
+| PUB-PRINTSENQ-010 | PUBLIC | `/prints/enquire` sidebar | body | Nothing is charged here, and no print is promised until she confirms it. | `app/routes/prints.enquire.tsx:264` | no | List item; honest capability statement. |
+| PUB-PRINTSENQ-011 | PUBLIC | `/prints/enquire` sidebar | helper text | Only the details on this form are stored: your name, email address, what the enquiry is about and your message. No address, browser details or tracking identifiers are recorded. | `app/routes/prints.enquire.tsx:267`-`269` | no | Data statement; keep aligned with the privacy notice. |
+| PUB-PRINTSENQ-012 | PUBLIC | `/prints/enquire?photo=…` sidebar | navigation | Back to the photograph | `app/routes/prints.enquire.tsx:274` | no | Rendered only when a photograph is named. |
+| PUB-PRINTSENQ-013 | PUBLIC | `/prints/enquire` submitting state | metadata | Sending… | `app/routes/prints.enquire.tsx:253` | no | Live-region status while the form is in flight. |
+
+## Contact — `PUB-CONTACT`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-CONTACT-001 | PUBLIC | `/contact` header | heading | Contact | `app/routes/contact.tsx:188` | no | Eyebrow. |
+| PUB-CONTACT-002 | PUBLIC | `/contact` header | heading | Contact | `app/routes/contact.tsx:189` | no | Page `h1`. |
+| PUB-CONTACT-003 | PUBLIC | `/contact` header | body | Band, gig, event, car and print enquiries all reach Anya through this form, and she answers them personally. | `app/routes/contact.tsx:190`-`193` | no | Page lede. |
+| PUB-CONTACT-004 | PUBLIC | `/contact` | body | No public email address is published here, and nothing you send is forwarded anywhere automatically: your message is stored in Anya’s enquiry list, and she replies from her own email. | `app/routes/contact.tsx:198`-`200` | no | Explains why there is no address; the operator may later want to publish one. |
+| PUB-CONTACT-005 | PUBLIC | `/contact` submitting state | metadata | Sending… | `app/routes/contact.tsx:229` | no | Live-region status while the form is in flight. |
+| PUB-CONTACT-006 | PUBLIC | `/contact` sidebar | heading | Print enquiries | `app/routes/contact.tsx:236` | no | Sidebar `h2`. |
+| PUB-CONTACT-007 | PUBLIC | `/contact` sidebar | body | Print interest has its own form, because it asks about a format and a size and can name the photograph you are interested in. | `app/routes/contact.tsx:238`-`239` | no | Explains the split between the two journeys. |
+| PUB-CONTACT-008 | PUBLIC | `/contact` sidebar | navigation | Register interest in a print | `app/routes/contact.tsx:243` | no | Text link to `/prints/enquire`. |
+| PUB-CONTACT-009 | PUBLIC | `/contact` sidebar | helper text | Only what you type here is stored: your name, email address, what the enquiry is about and your message. No address, browser details or tracking identifiers are recorded. | `app/routes/contact.tsx:247`-`249` | no | Data statement; keep aligned with the privacy notice. |
+
+## Enquiry form (shared by `/contact` and `/prints/enquire`) — `PUB-FORM`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-FORM-001 | PUBLIC | Both enquiry forms (bot trap) | accessibility label | Website | `app/components/EnquiryForm.tsx:85` | no | Honeypot field inside an `aria-hidden` wrapper, removed from the tab order; a person never sees or hears it. Wording is chosen to look like an ordinary optional field. |
+| PUB-FORM-002 | PUBLIC | Both enquiry forms | warning | Enquiries cannot be recorded in this environment, so nothing has been saved. Please try again later. | `app/components/EnquiryForm.tsx:112` (`ENQUIRY_COPY.unavailable`, `app/enquiries/enquiry.ts:206`) | no | Shown when the enquiry could not be stored at all. |
+| PUB-FORM-003 | PUBLIC | Print enquiry form | warning | That photograph is not currently offered for print enquiries. You can still register interest below and Anya will let you know if that changes. | `app/components/EnquiryForm.tsx:119` (`ENQUIRY_COPY.photoNotOffered`, `app/enquiries/enquiry.ts:210`) | no | Shown when a named photograph is published but not print-eligible. |
+| PUB-FORM-004 | PUBLIC | Both enquiry forms | validation/error | Please check the following and send the form again. | `app/components/EnquiryForm.tsx:125` | no | Heading of the error summary; the individual messages follow in a list. |
+| PUB-FORM-005 | PUBLIC | Both enquiry forms | warning | Print enquiries are handled personally by email. This site has no basket, no checkout and no payment: no price is charged here, and no availability is guaranteed until Anya replies. | `app/components/EnquiryForm.tsx:134` (`ENQUIRY_COPY.noCheckoutNotice`, `app/enquiries/enquiry.ts:197`) | no | Same constant as `PUB-PRINTS-004`. |
+| PUB-FORM-006 | PUBLIC | Print enquiry form | body | Enquiring about: {photo.title} | `app/components/EnquiryForm.tsx:140` | no | Names the photograph the server resolved; the title is a stored record value. |
+| PUB-FORM-007 | PUBLIC | Print enquiry form | body | Registering interest in prints, without naming a particular photograph. | `app/components/EnquiryForm.tsx:143` | no | Shown when no photograph was named. |
+| PUB-FORM-008 | PUBLIC | Both enquiry forms | field label | Your name | `app/components/EnquiryForm.tsx:149` | no | Required, `maxlength` 120. |
+| PUB-FORM-009 | PUBLIC | Both enquiry forms | field label | Your email | `app/components/EnquiryForm.tsx:168` | no | Required, `maxlength` 254. |
+| PUB-FORM-010 | PUBLIC | Contact form | field label | What is this about? | `app/components/EnquiryForm.tsx:189` | no | Category selector; not shown on the print form. |
+| PUB-FORM-011 | PUBLIC | Contact form | field label | Please choose… | `app/components/EnquiryForm.tsx:197` | no | Empty leading option of the category selector. |
+| PUB-FORM-012 | PUBLIC | Print enquiry form | field label | Print format preference (optional) | `app/components/EnquiryForm.tsx:216` | no | Print-only field. |
+| PUB-FORM-013 | PUBLIC | Print enquiry form | field label | No preference | `app/components/EnquiryForm.tsx:218` | no | Empty leading option of the format selector; note the separate option `No preference — please advise` (`PUB-FORM-032`). |
+| PUB-FORM-014 | PUBLIC | Print enquiry form | field label | Preferred size (optional) | `app/components/EnquiryForm.tsx:229` | no | Bounded free text, `maxlength` 40. |
+| PUB-FORM-015 | PUBLIC | Print enquiry form | helper text | For example: about 40 × 50 cm | `app/components/EnquiryForm.tsx:236` | no | Placeholder text inside the size field. |
+| PUB-FORM-016 | PUBLIC | Print enquiry form | helper text | Dimensions and prices are confirmed with Anya, so there is no fixed size list here. | `app/components/EnquiryForm.tsx:241` | no | Explains the absence of a size taxonomy. |
+| PUB-FORM-017 | PUBLIC | Print enquiry form | field label | Anything else about the print | `app/components/EnquiryForm.tsx:248` | no | Message field label, print mode. |
+| PUB-FORM-018 | PUBLIC | Contact form | field label | Your message | `app/components/EnquiryForm.tsx:248` | no | Message field label, contact mode. |
+| PUB-FORM-019 | PUBLIC | Print enquiry form | button | Send print enquiry | `app/components/EnquiryForm.tsx:272` | no | Submit button, print mode. |
+| PUB-FORM-020 | PUBLIC | Contact form | button | Send message | `app/components/EnquiryForm.tsx:272` | no | Submit button, contact mode. |
+| PUB-FORM-021 | PUBLIC | Both enquiry forms | helper text | Availability, dimensions, format and price are confirmed in that reply — they are not shown as a fixed offer on this page. | `app/components/EnquiryForm.tsx:275` (`ENQUIRY_COPY.responseExpectation`, `app/enquiries/enquiry.ts:201`) | no | Followed immediately by `PUB-FORM-022`. |
+| PUB-FORM-022 | PUBLIC | Both enquiry forms | helper text | Your details are used only to answer this enquiry. | `app/components/EnquiryForm.tsx:275` | no | Data-use sentence; keep aligned with the privacy notice. |
+| PUB-FORM-023 | PUBLIC | Contact form category selector; also the enquiries table on `/admin/enquiries` | field label | Band / artist photography | `app/enquiries/enquiry.ts:74` (`ENQUIRY_CATEGORY_LABELS`) | no | Stored category value `band-artist-photography`. |
+| PUB-FORM-024 | PUBLIC | Contact form category selector; also the enquiries table on `/admin/enquiries` | field label | Gig photography | `app/enquiries/enquiry.ts:75` (`ENQUIRY_CATEGORY_LABELS`) | no | Stored category value `gig-photography`. |
+| PUB-FORM-025 | PUBLIC | Contact form category selector; also the enquiries table on `/admin/enquiries` | field label | Event photography | `app/enquiries/enquiry.ts:76` (`ENQUIRY_CATEGORY_LABELS`) | no | Stored category value `event-photography`. |
+| PUB-FORM-026 | PUBLIC | Contact form category selector; also the enquiries table on `/admin/enquiries` | field label | Car photography | `app/enquiries/enquiry.ts:77` (`ENQUIRY_CATEGORY_LABELS`) | no | Stored category value `car-photography`. |
+| PUB-FORM-027 | PUBLIC | Contact form category selector; also the enquiries table on `/admin/enquiries` and the print enquiry form's hidden category | field label | Print enquiry | `app/enquiries/enquiry.ts:78` (`ENQUIRY_CATEGORY_LABELS`) | no | Also the heading of the acknowledgement page (`PUB-ACK-001`). |
+| PUB-FORM-028 | PUBLIC | Contact form category selector; also the enquiries table on `/admin/enquiries` | field label | Something else | `app/enquiries/enquiry.ts:79` (`ENQUIRY_CATEGORY_LABELS`) | no | Stored category value `other`. |
+| PUB-FORM-029 | PUBLIC | Print enquiry form format selector; also the enquiries table on `/admin/enquiries` | field label | Photographic print | `app/enquiries/enquiry.ts:67` (`PRINT_FORMAT_LABELS`) | no | Format preference, not a product on sale. |
+| PUB-FORM-030 | PUBLIC | Print enquiry form format selector; also the enquiries table on `/admin/enquiries` | field label | Fine-art print | `app/enquiries/enquiry.ts:68` (`PRINT_FORMAT_LABELS`) | no | Format preference. |
+| PUB-FORM-031 | PUBLIC | Print enquiry form format selector; also the enquiries table on `/admin/enquiries` | field label | Framed print | `app/enquiries/enquiry.ts:69` (`PRINT_FORMAT_LABELS`) | no | Format preference. |
+| PUB-FORM-032 | PUBLIC | Print enquiry form format selector; also the enquiries table on `/admin/enquiries` | field label | No preference — please advise | `app/enquiries/enquiry.ts:70` (`PRINT_FORMAT_LABELS`) | no | Distinct from the empty option `PUB-FORM-013`. |
+| PUB-FORM-033 | PUBLIC | Both enquiry forms | warning | That message could not be accepted. Please reload the page and send it again. | `app/enquiries/enquiry.ts:219` (`ENQUIRY_COPY.submissionNotAccepted`), rendered at `app/components/EnquiryForm.tsx:112` | no | General refusal wording; deliberately does not name the rule that refused the submission. |
+| PUB-FORM-034 | PUBLIC | Both enquiry forms | warning | Please send the message without links in it — Anya will ask if she needs to see one. | `app/enquiries/enquiry.ts:228` (`ENQUIRY_COPY.linksNotAccepted`), rendered at `app/components/EnquiryForm.tsx:112` | no | The one specific refusal, because a real visitor can cause it by accident. |
+
+## Enquiry acknowledgements — `PUB-ACK`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-ACK-001 | PUBLIC | `/prints/enquire/received` | heading | Print enquiry | `app/components/EnquiryAcknowledgement.tsx:35` | no | Eyebrow. |
+| PUB-ACK-002 | PUBLIC | `/contact/received` | heading | Contact | `app/components/EnquiryAcknowledgement.tsx:35` | no | Eyebrow. |
+| PUB-ACK-003 | PUBLIC | `/prints/enquire/received` | heading | Thanks — your enquiry has been received. | `app/components/EnquiryAcknowledgement.tsx:38` (`ENQUIRY_COPY.acknowledgementHeading`, `app/enquiries/enquiry.ts:187`) | no | Claims receipt only. |
+| PUB-ACK-004 | PUBLIC | `/contact/received` | heading | Thanks — your message has been received. | `app/components/EnquiryAcknowledgement.tsx:39` (`ENQUIRY_COPY.acknowledgementHeadingContact`, `app/enquiries/enquiry.ts:192`) | no | Claims receipt only. |
+| PUB-ACK-005 | PUBLIC | `/prints/enquire/received` | body | Anya will reply to the email address you gave to confirm availability, format, size and price. Nothing has been ordered and no payment has been taken: this site has no basket and no checkout. | `app/components/EnquiryAcknowledgement.tsx:46` (`ENQUIRY_COPY.acknowledgementBody`, `app/enquiries/enquiry.ts:188`) | no | Two sentences joined from one constant. |
+| PUB-ACK-006 | PUBLIC | `/contact/received` | body | Anya will reply to the email address you gave. Nothing further has been created by sending it, and no payment is involved. | `app/components/EnquiryAcknowledgement.tsx:47` (`ENQUIRY_COPY.acknowledgementBodyContact`, `app/enquiries/enquiry.ts:193`) | no | Two sentences joined from one constant. |
+| PUB-ACK-007 | PUBLIC | `/prints/enquire/received` | body | Print enquiries are answered personally, so a reply may take a few days. Nothing is reserved or charged while you wait. | `app/components/EnquiryAcknowledgement.tsx:51`-`52` | no | Sets a response expectation without promising one. |
+| PUB-ACK-008 | PUBLIC | `/contact/received` | body | Messages are read in Anya’s enquiry list and answered from her own email, so a reply may take a few days. | `app/components/EnquiryAcknowledgement.tsx:56`-`57` | no | Sets a response expectation without promising one. |
+| PUB-ACK-009 | PUBLIC | `/prints/enquire/received` | navigation | Back to prints | `app/routes/prints.enquire.received.tsx:28` | no | Return button. |
+| PUB-ACK-010 | PUBLIC | `/contact/received` | navigation | Back to contact | `app/routes/contact.received.tsx:22` | no | Return button. |
+
+## Privacy notice — `PUB-PRIVACY`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-PRIVACY-001 | PUBLIC | `/privacy` header | heading | Privacy | `app/routes/privacy.tsx:32` | no | Eyebrow. |
+| PUB-PRIVACY-002 | PUBLIC | `/privacy` header | heading | Privacy | `app/routes/privacy.tsx:33` | no | Page `h1`. |
+| PUB-PRIVACY-003 | PUBLIC | `/privacy` header | body | What this site stores, why, and what it deliberately does not collect. Written to describe how the site actually works. | `app/routes/privacy.tsx:34`-`37` | no | Page lede. |
+| PUB-PRIVACY-004 | PUBLIC | `/privacy` operator task block | heading | To be completed before public launch | `app/routes/privacy.tsx:41` | no | States that a legal task is outstanding; must be resolved by the operator before launch. |
+| PUB-PRIVACY-005 | PUBLIC | `/privacy` operator task block | warning | Three facts are the site owner's to decide, so they are shown here rather than guessed: the identity of the data controller, the retention period for enquiries, and the contact address for data requests. Replace this block with those details. | `app/routes/privacy.tsx:42`-`46` | no | The three facts cannot be known from the code; the block must be replaced with operator-supplied details. |
+| PUB-PRIVACY-006 | PUBLIC | `/privacy` | heading | When you send an enquiry | `app/routes/privacy.tsx:50` | no | Section `h2`. |
+| PUB-PRIVACY-007 | PUBLIC | `/privacy` | body | The contact form and the print enquiry form ask for your name, your email address and your message, plus the category of enquiry and, for a print enquiry, the photograph and the format you are interested in. Those details are stored so the enquiry can be answered. | `app/routes/privacy.tsx:51`-`56` | no | Describes the stored columns; keep aligned with the form if fields change. |
+| PUB-PRIVACY-008 | PUBLIC | `/privacy` | body | The stored enquiry does not include your IP address, your browser or device details, the page you came from, or any identifier for your browser. The forms also carry a one-time submission token so that pressing send twice does not create two enquiries. | `app/routes/privacy.tsx:57`-`61` | no | A factual claim about the code; must be re-verified if the write path changes. |
+| PUB-PRIVACY-009 | PUBLIC | `/privacy` | body | Enquiries are read only in the site's private operator area, behind Cloudflare Access. | `app/routes/privacy.tsx:62`-`64` | no | Names the identity provider. |
+| PUB-PRIVACY-010 | PUBLIC | `/privacy` | heading | Likes and shares | `app/routes/privacy.tsx:68` | no | Section `h2`. |
+| PUB-PRIVACY-011 | PUBLIC | `/privacy` | body | Liking a photograph stores a random identifier that lives in your browser, so the same browser is not counted twice. It is generated by this site, contains nothing about your device or your network, and is not shared with anybody. Clearing your browser storage removes it. | `app/routes/privacy.tsx:69`-`74` | no | Describes the anonymous browser identifier accurately; needs review if the cookie changes. |
+| PUB-PRIVACY-012 | PUBLIC | `/privacy` | body | When you use a share control, this site records that a share action was started and which channel you chose. It cannot see whether the share completed, and it does not send anything to those services on your behalf. | `app/routes/privacy.tsx:75`-`79` | no | Describes share-initiation recording. |
+| PUB-PRIVACY-013 | PUBLIC | `/privacy` | heading | What this site does not do | `app/routes/privacy.tsx:83` | no | Section `h2`. |
+| PUB-PRIVACY-014 | PUBLIC | `/privacy` | body | No third-party analytics, advertising or tracking scripts. | `app/routes/privacy.tsx:85` | no | List item; a factual claim about the code. |
+| PUB-PRIVACY-015 | PUBLIC | `/privacy` | body | No IP address, user agent or referrer is stored with any visitor action. | `app/routes/privacy.tsx:86` | no | List item; a factual claim about the code. |
+| PUB-PRIVACY-016 | PUBLIC | `/privacy` | body | No fingerprinting, and no attempt to recognise a device across sites. | `app/routes/privacy.tsx:87` | no | List item; a factual claim about the code. |
+| PUB-PRIVACY-017 | PUBLIC | `/privacy` | body | No account is needed to browse, like or share. | `app/routes/privacy.tsx:88` | no | List item. |
+| PUB-PRIVACY-018 | PUBLIC | `/privacy` | body | No cookie is set for visitors; the only cookie in play is Cloudflare's for operators. | `app/routes/privacy.tsx:89` | no | List item; names the identity provider. |
+| PUB-PRIVACY-019 | PUBLIC | `/privacy` | heading | Operator sign-in | `app/routes/privacy.tsx:94` | no | Section `h2`. |
+| PUB-PRIVACY-020 | PUBLIC | `/privacy` | body | The site's own management areas are protected by Cloudflare Access. Only the people the site owner has authorised can reach them, and this site never sees or stores their passwords. Visitors are unaffected by that arrangement. | `app/routes/privacy.tsx:95`-`99` | no | Describes the operator access arrangement. |
+| PUB-PRIVACY-021 | PUBLIC | `/privacy` | heading | Questions or requests | `app/routes/privacy.tsx:103` | no | Section `h2`. |
+| PUB-PRIVACY-022 | PUBLIC | `/privacy` | body | To ask about an enquiry you have sent, or to ask for it to be corrected or removed, write to the address published on the contact page. | `app/routes/privacy.tsx:105`-`106` | no | Points at an address that `/contact` currently says is not published; the operator must resolve this contradiction. |
+| PUB-PRIVACY-023 | PUBLIC | `/privacy` | navigation | contact page | `app/routes/privacy.tsx:106` | no | Inline link text inside `PUB-PRIVACY-022`, pointing at `/contact`. |
+
+## About — `PUB-ABOUT`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-ABOUT-001 | PUBLIC | `/about` header | heading | About | `app/routes/about.tsx:75` | no | Eyebrow. |
+| PUB-ABOUT-002 | PUBLIC | `/about` header | heading | About | `app/routes/about.tsx:76` | no | Page `h1`. |
+| PUB-ABOUT-003 | PUBLIC | `/about` | warning | Provisional wording. The biography below is the placeholder from the build sheet, not approved final copy, and the portrait is reserved space rather than a photograph. Nothing about Anya’s history, training, clients or credentials is stated here because none has been supplied. | `app/routes/about.tsx:81`-`84` | no | Gated by `SHOW_DEVELOPMENT_NOTICES`. Names the internal build sheet; a launch rewrite is recommended if the switch stays on. |
+| PUB-ABOUT-004 | PUBLIC | `/about` biography | body | I’m Anya — a photographer drawn to the energy of cities, live music, cars and the moments that happen after dark. | `app/routes/about.tsx:91`-`92` | no | Provisional biography text; the approved biography is still to be supplied. |
+| PUB-ABOUT-005 | PUBLIC | `/about` biography | body | The final biography, portrait and selected supporting photographs are supplied by the photographer before publication. | `app/routes/about.tsx:95`-`96` | no | Process statement that becomes false once the biography is supplied. |
+| PUB-ABOUT-006 | PUBLIC | `/about` biography | body | The work on this site is arranged into collections rather than a single stream, so it can be read the way it was photographed — a night out, a set, a skyline, a car park at dusk. | `app/routes/about.tsx:99`-`102` | no | Editorial description of the site's structure. |
+| PUB-ABOUT-007 | PUBLIC | `/about` reserved portrait space | body | Portrait placeholder | `app/routes/about.tsx:112` | no | Gated by `SHOW_DEVELOPMENT_NOTICES`; also read aloud as `Placeholder image: Portrait placeholder` (`PUB-UI-002`). |
+| PUB-ABOUT-008 | PUBLIC | `/about` collections | heading | Collections | `app/routes/about.tsx:121` | no | Eyebrow. |
+| PUB-ABOUT-009 | PUBLIC | `/about` collections | heading | What is on the site | `app/routes/about.tsx:122` | no | Section `h2`. |
+| PUB-ABOUT-010 | PUBLIC | `/about` collections list | body | {gallery.name} — {gallery.description} | `app/routes/about.tsx:128`-`130` | via settings | Operator content: one list item per published gallery, edited on `/admin/galleries`. |
+| PUB-ABOUT-011 | PUBLIC | `/about` collections | body | Copyright in every photograph remains with the photographer. Nothing here may be reproduced without permission — ask first and the answer is usually yes. | `app/routes/about.tsx:135`-`137` | no | Rights statement with a colloquial second sentence; legal review recommended. |
+| PUB-ABOUT-012 | PUBLIC | `/about` enquiries | heading | Working together | `app/routes/about.tsx:143` | no | Eyebrow. |
+| PUB-ABOUT-013 | PUBLIC | `/about` enquiries | heading | Enquiries | `app/routes/about.tsx:144` | no | Section `h2`. |
+| PUB-ABOUT-014 | PUBLIC | `/about` enquiries | body | Shoots, licensing and print interest all start the same way: a message describing what you have in mind. There is no booking system and no checkout on this site — every enquiry is answered personally. | `app/routes/about.tsx:148`-`151` | no | Capability statement. |
+| PUB-ABOUT-015 | PUBLIC | `/about` enquiries | button | Send an enquiry | `app/routes/about.tsx:155` | no | Links to `/contact`. |
+| PUB-ABOUT-016 | PUBLIC | `/about` enquiries | button | Explore galleries | `app/routes/about.tsx:158` | no | Links to `/galleries`. |
+
+## Watermark applied to published derivatives — `PUB-WATERMARK`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-WATERMARK-001 | PUBLIC | Every public derivative whose upload was watermarked | metadata | ANYAPARALLAX | `app/images/watermark-asset.ts:130` (`renderWordmark`) | via settings | Rasterised into the watermark PNG, not HTML text; drawn only when the watermark is enabled for that upload (default from the `watermark.default_enabled` setting). |
+| PUB-WATERMARK-002 | PUBLIC | Every public derivative whose upload was watermarked | metadata | PHOTOGRAPHY | `app/images/watermark-asset.ts:131` (`renderWordmark`) | via settings | Second line of the watermark wordmark. The overlay's internal `label` string is developer-facing and never rendered. |
+
+## Operator chrome shared by `/admin` and `/manager` — `ADM-NAV`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADM-NAV-001 | PHOTOGRAPHER | `/admin` brand tagline | body | Admin | `app/layouts/admin.tsx:40` (`areaName`) | no | The manager area renders `Manager` in the same slot (`MGR-NAV-001`). |
+| ADM-NAV-002 | PHOTOGRAPHER | `/admin` brand link | accessibility label | {site.name} — public site | `app/components/AreaShell.tsx:50` | no | Resolves to `Anyaparallax — public site`. |
+| ADM-NAV-003 | PHOTOGRAPHER | `/admin` identity line | body | Photographer | `app/components/AreaShell.tsx:21` (`ROLE_LABELS`) | no | Shown when the signed-in role is photographer; managers see `Manager`. |
+| ADM-NAV-004 | PHOTOGRAPHER | `/admin` identity line | body | Manager | `app/components/AreaShell.tsx:22` (`ROLE_LABELS`) | no | Shown when the signed-in role is manager. |
+| ADM-NAV-005 | PHOTOGRAPHER | `/admin` identity line | body | {operator.email} | `app/components/AreaShell.tsx:58` | yes | Account content from the `users` table, added and changed on `/manager/settings`. |
+| ADM-NAV-006 | PHOTOGRAPHER | `/admin` identity line | metadata | development identity | `app/components/AreaShell.tsx:60` | no | Shown only when the local development identity header is in use. |
+| ADM-NAV-007 | PHOTOGRAPHER | `/admin` identity line | metadata | Cloudflare Access | `app/components/AreaShell.tsx:60` | no | Shown when the identity was proven by Access. |
+| ADM-NAV-008 | PHOTOGRAPHER | `/admin` area navigation | accessibility label | {areaName} navigation | `app/components/AreaShell.tsx:64` | no | Resolves to `Admin navigation` or `Manager navigation`. |
+| ADM-NAV-009 | PHOTOGRAPHER | `/admin` area navigation | navigation | Dashboard | `app/layouts/admin.tsx:18` | no | Exact-path match, so it is not always active. |
+| ADM-NAV-010 | PHOTOGRAPHER | `/admin` area navigation | navigation | Photos | `app/layouts/admin.tsx:19` | no | Duplicated as a dashboard link label (`ADM-DASH-023`) from a separate constant. |
+| ADM-NAV-011 | PHOTOGRAPHER | `/admin` area navigation | navigation | Upload photos | `app/layouts/admin.tsx:20` | no | Duplicated as `ADM-DASH-024`. |
+| ADM-NAV-012 | PHOTOGRAPHER | `/admin` area navigation | navigation | Galleries | `app/layouts/admin.tsx:21` | no | Duplicated as `ADM-DASH-027`. |
+| ADM-NAV-013 | PHOTOGRAPHER | `/admin` area navigation | navigation | Enquiries | `app/layouts/admin.tsx:22` | no | Duplicated as `ADM-DASH-025`. |
+| ADM-NAV-014 | PHOTOGRAPHER | `/admin` area navigation | navigation | Print eligibility | `app/layouts/admin.tsx:23` | no | Duplicated as `ADM-DASH-026`. |
+| ADM-NAV-015 | PHOTOGRAPHER | `/admin` area navigation | navigation | Settings | `app/layouts/admin.tsx:24` | no | Duplicated as `ADM-DASH-028`. |
+| ADM-NAV-016 | PHOTOGRAPHER | `/admin` area navigation | navigation | View public site | `app/components/AreaShell.tsx:83` | no | Links to `/`. |
+| ADM-NAV-017 | PHOTOGRAPHER | `/admin` area navigation | navigation | Log out | `app/components/AreaShell.tsx:87` | no | Rendered only when an Access logout URL is configured. |
+| ADM-NAV-018 | PHOTOGRAPHER | `/admin` area navigation | navigation | Log out via Cloudflare Access | `app/components/AreaShell.tsx:91` | no | Static text shown when no logout URL is available. |
+| ADM-NAV-019 | PHOTOGRAPHER | `/admin` main | warning | Development identity in use. Cloudflare Access is not configured in this environment; this header is accepted on loopback only and must not be enabled in a deployment. | `app/components/AreaShell.tsx:100`-`104` | no | Rendered only for a loopback development identity. Names implementation state; keep only for local work. |
+
+## Admin dashboard — `ADM-DASH`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADM-DASH-001 | PHOTOGRAPHER | `/admin` header | heading | Signed in as {user.role} | `app/routes/admin/dashboard.tsx:92` | no | Eyebrow naming the signed-in role. |
+| ADM-DASH-002 | PHOTOGRAPHER | `/admin` header | heading | Photography workspace | `app/routes/admin/dashboard.tsx:93` | no | Page `h1`. |
+| ADM-DASH-003 | PHOTOGRAPHER | `/admin` header | body | Upload and manage photographs, organise the galleries visitors browse, review enquiries and set the defaults new uploads inherit. | `app/routes/admin/dashboard.tsx:94`-`97` | no | Page lede. |
+| ADM-DASH-004 | PHOTOGRAPHER | `/admin` attention card | heading | Enquiries awaiting a reply | `app/routes/admin/dashboard.tsx:107` | no | Label of the first, people-facing card. |
+| ADM-DASH-005 | PHOTOGRAPHER | `/admin` attention card | metadata | Unavailable | `app/routes/admin/dashboard.tsx:112` | no | Shown when the enquiry count could not be read; never a fabricated zero. |
+| ADM-DASH-006 | PHOTOGRAPHER | `/admin` attention card | metadata | No new enquiries | `app/routes/admin/dashboard.tsx:114` | no | Truthful zero. |
+| ADM-DASH-007 | PHOTOGRAPHER | `/admin` attention card | metadata | {n} new enquiry, or {n} new enquiries | `app/routes/admin/dashboard.tsx:115` | no | Singular/plural count of enquiries in the `new` state. |
+| ADM-DASH-008 | PHOTOGRAPHER | `/admin` attention card | helper text | Print enquiries and contact messages that have not been marked as read yet. | `app/routes/admin/dashboard.tsx:119` | no | Explains what the number means. |
+| ADM-DASH-009 | PHOTOGRAPHER | `/admin` attention card | warning | The enquiry list could not be read in this environment. | `app/routes/admin/dashboard.tsx:120` | no | Shown instead of `ADM-DASH-008` when the read failed. |
+| ADM-DASH-010 | PHOTOGRAPHER | `/admin` attention card | navigation | Open the enquiry list | `app/routes/admin/dashboard.tsx:122` | no | Links to `/admin/enquiries`. |
+| ADM-DASH-011 | PHOTOGRAPHER | `/admin` status grid | metadata | Published galleries | `app/routes/admin/dashboard.tsx:129` | no | Card label; the value is a live count. |
+| ADM-DASH-012 | PHOTOGRAPHER | `/admin` status grid | metadata | Published photographs | `app/routes/admin/dashboard.tsx:133` | no | Card label; the value is a live count. |
+| ADM-DASH-013 | PHOTOGRAPHER | `/admin` engagement block | heading | Engagement | `app/routes/admin/dashboard.tsx:145` | no | Section `h2`. |
+| ADM-DASH-014 | PHOTOGRAPHER | `/admin` engagement block | metadata | Likes | `app/routes/admin/dashboard.tsx:152` | no | Card label; aggregate only. |
+| ADM-DASH-015 | PHOTOGRAPHER | `/admin` engagement block | metadata | Share actions initiated | `app/routes/admin/dashboard.tsx:156` | no | Deliberately says "initiated": the application cannot know whether a share completed. |
+| ADM-DASH-016 | PHOTOGRAPHER | `/admin` engagement block | empty state | No likes or shares recorded yet. Both appear here once visitors use the controls on a photograph's page. | `app/routes/admin/dashboard.tsx:161`-`164` | no | Shown when both totals are zero. |
+| ADM-DASH-017 | PHOTOGRAPHER | `/admin` engagement table | accessibility label | Most liked and most shared photographs, and the channels used | `app/routes/admin/dashboard.tsx:168`-`170` | no | Table caption, visually hidden. |
+| ADM-DASH-018 | PHOTOGRAPHER | `/admin` engagement table | metadata | Most liked | `app/routes/admin/dashboard.tsx:173` | no | Column heading. |
+| ADM-DASH-019 | PHOTOGRAPHER | `/admin` engagement table | metadata | Most shared | `app/routes/admin/dashboard.tsx:174` | no | Column heading. |
+| ADM-DASH-020 | PHOTOGRAPHER | `/admin` engagement table | metadata | Channels used | `app/routes/admin/dashboard.tsx:175` | no | Column heading. |
+| ADM-DASH-021 | PHOTOGRAPHER | `/admin` engagement table | empty state | None yet | `app/routes/admin/dashboard.tsx:182`, `:198`, `:214` | no | Rendered in each of the three columns that has no rows. |
+| ADM-DASH-022 | PHOTOGRAPHER | `/admin` operator areas | heading | Operator areas | `app/routes/admin/dashboard.tsx:234` | no | Section `h2`. |
+| ADM-DASH-023 | PHOTOGRAPHER | `/admin` operator areas | navigation | Photos | `app/routes/admin/dashboard.tsx:54` | no | Duplicate wording of `ADM-NAV-010` from a separate constant. |
+| ADM-DASH-024 | PHOTOGRAPHER | `/admin` operator areas | navigation | Upload photos | `app/routes/admin/dashboard.tsx:60` | no | Duplicate wording of `ADM-NAV-011`. |
+| ADM-DASH-025 | PHOTOGRAPHER | `/admin` operator areas | navigation | Enquiries | `app/routes/admin/dashboard.tsx:65` | no | Duplicate wording of `ADM-NAV-013`. |
+| ADM-DASH-026 | PHOTOGRAPHER | `/admin` operator areas | navigation | Print eligibility | `app/routes/admin/dashboard.tsx:70` | no | Duplicate wording of `ADM-NAV-014`. |
+| ADM-DASH-027 | PHOTOGRAPHER | `/admin` operator areas | navigation | Galleries | `app/routes/admin/dashboard.tsx:75` | no | Duplicate wording of `ADM-NAV-012`. |
+| ADM-DASH-028 | PHOTOGRAPHER | `/admin` operator areas | navigation | Settings | `app/routes/admin/dashboard.tsx:80` | no | Duplicate wording of `ADM-NAV-015`. |
+| ADM-DASH-029 | PHOTOGRAPHER | `/admin` operator areas | helper text | Correct metadata, gallery and tags, and publish, withdraw or feature a photograph. | `app/routes/admin/dashboard.tsx:55`-`56` | no | Description beside the Photos link. |
+| ADM-DASH-030 | PHOTOGRAPHER | `/admin` operator areas | helper text | Upload originals, generate derivatives and watermarks. | `app/routes/admin/dashboard.tsx:61` | no | Description beside the Upload photos link. |
+| ADM-DASH-031 | PHOTOGRAPHER | `/admin` operator areas | helper text | Print enquiries and contact messages, and their handled state. | `app/routes/admin/dashboard.tsx:66` | no | Description beside the Enquiries link. |
+| ADM-DASH-032 | PHOTOGRAPHER | `/admin` operator areas | helper text | Choose which photographs may be enquired about as prints. | `app/routes/admin/dashboard.tsx:71` | no | Description beside the Print eligibility link. |
+| ADM-DASH-033 | PHOTOGRAPHER | `/admin` operator areas | helper text | Create collections, describe and order them, and choose each cover. | `app/routes/admin/dashboard.tsx:76` | no | Description beside the Galleries link. |
+| ADM-DASH-034 | PHOTOGRAPHER | `/admin` operator areas | helper text | Watermark defaults, social profiles, page introductions and tags. | `app/routes/admin/dashboard.tsx:81` | no | Description beside the Settings link. |
+| ADM-DASH-035 | PHOTOGRAPHER | `/admin` footer note | helper text | Unpublished photographs and galleries stay hidden from the public site. Marking a photograph as available for print enquiries does not publish it. | `app/routes/admin/dashboard.tsx:247`-`248` | no | States the two visibility rules. |
+
+## Photo library — `ADM-PHOTOS`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADM-PHOTOS-001 | PHOTOGRAPHER | `/admin/photos` header | heading | Photos | `app/routes/admin/photos.tsx:155` | no | Eyebrow. |
+| ADM-PHOTOS-002 | PHOTOGRAPHER | `/admin/photos` header | heading | Photo library | `app/routes/admin/photos.tsx:156` | no | Page `h1`. |
+| ADM-PHOTOS-003 | PHOTOGRAPHER | `/admin/photos` header | body | Every uploaded photograph, drafts first. Metadata, gallery, tags, featured state and publication state can be changed here — including withdrawing a published photograph, which stops it being served publicly on the next request. | `app/routes/admin/photos.tsx:157`-`161` | no | Page lede; explains the withdrawal mechanism. |
+| ADM-PHOTOS-004 | PHOTOGRAPHER | `/admin/photos` action result | warning | No database is configured in this environment, so nothing was changed. | `app/routes/admin/photos.tsx:64` | no | Same wording as several other operator surfaces. |
+| ADM-PHOTOS-005 | PHOTOGRAPHER | `/admin/photos` action result | warning | That action was not recognised, so nothing was changed. | `app/routes/admin/photos.tsx:73` | no | Unrecognised intent. |
+| ADM-PHOTOS-006 | PHOTOGRAPHER | `/admin/photos` action result | warning | That photograph no longer exists, so nothing was changed. | `app/routes/admin/photos.tsx:91` | no | Record disappeared between render and submit. |
+| ADM-PHOTOS-007 | PHOTOGRAPHER | `/admin/photos` action result | warning | That request was not understood, so nothing was changed. | `app/routes/admin/photos.tsx:97` | no | Fallback for a refused submission. |
+| ADM-PHOTOS-008 | PHOTOGRAPHER | `/admin/photos` action result | confirmation | “{title}” is now published and visible on the public site. | `app/routes/admin/photos.tsx:117` | no | Written from the state read back from the database. |
+| ADM-PHOTOS-009 | PHOTOGRAPHER | `/admin/photos` action result | warning | “{title}” is now published, but its gallery ({galleryName}) is still a draft, so it is not visible on the public site yet. | `app/routes/admin/photos.tsx:118` | no | Distinguishes published from publicly visible. |
+| ADM-PHOTOS-010 | PHOTOGRAPHER | `/admin/photos` action result | confirmation | “{title}” is now a draft. It is no longer served on the public site, and its image is no longer served through /media. | `app/routes/admin/photos.tsx:120` | no | Names the implementation path `/media`; operator may want plainer wording. |
+| ADM-PHOTOS-011 | PHOTOGRAPHER | `/admin/photos` action result | confirmation | “{title}” is now featured, so it can appear in the homepage selection. | `app/routes/admin/photos.tsx:122` | no | Feature success. |
+| ADM-PHOTOS-012 | PHOTOGRAPHER | `/admin/photos` action result | confirmation | “{title}” is no longer featured and has been removed from the homepage selection. | `app/routes/admin/photos.tsx:124` | no | Unfeature success. |
+| ADM-PHOTOS-013 | PHOTOGRAPHER | `/admin/photos` table badge | metadata | Draft — not public | `app/routes/admin/photos.tsx:131` | no | Publication badge. |
+| ADM-PHOTOS-014 | PHOTOGRAPHER | `/admin/photos` table badge | metadata | Published, but {galleryName} is a draft gallery, so it is not public | `app/routes/admin/photos.tsx:136` | no | Publication badge for the ambiguous case. |
+| ADM-PHOTOS-015 | PHOTOGRAPHER | `/admin/photos` table badge | metadata | Published — public | `app/routes/admin/photos.tsx:140` | no | Publication badge. |
+| ADM-PHOTOS-016 | PHOTOGRAPHER | `/admin/photos` empty state | empty state | No photographs have been uploaded yet. Upload photographs to begin. | `app/routes/admin/photos.tsx:178` | no | The words "Upload photographs" are an inline link to `/admin/upload`. |
+| ADM-PHOTOS-017 | PHOTOGRAPHER | `/admin/photos` list summary | metadata | {n} photograph, or {n} photographs — {m} not publicly visible. | `app/routes/admin/photos.tsx:186`-`187` | no | Count summary with singular/plural handling. |
+| ADM-PHOTOS-018 | PHOTOGRAPHER | `/admin/photos` table | metadata | Newest first within each group; drafts are listed first. | `app/routes/admin/photos.tsx:191` | no | Table caption describing the ordering. |
+| ADM-PHOTOS-019 | PHOTOGRAPHER | `/admin/photos` table | metadata | Photograph | `app/routes/admin/photos.tsx:194` | no | Column heading. |
+| ADM-PHOTOS-020 | PHOTOGRAPHER | `/admin/photos` table | metadata | Public state | `app/routes/admin/photos.tsx:195` | no | Column heading. |
+| ADM-PHOTOS-021 | PHOTOGRAPHER | `/admin/photos` table | metadata | Gallery | `app/routes/admin/photos.tsx:196` | no | Column heading. |
+| ADM-PHOTOS-022 | PHOTOGRAPHER | `/admin/photos` table | metadata | Flags | `app/routes/admin/photos.tsx:197` | no | Column heading. |
+| ADM-PHOTOS-023 | PHOTOGRAPHER | `/admin/photos` table | metadata | Manage | `app/routes/admin/photos.tsx:198` | no | Column heading. |
+| ADM-PHOTOS-024 | PHOTOGRAPHER | `/admin/photos` table | metadata | (draft gallery) | `app/routes/admin/photos.tsx:216` | no | Suffix after the gallery name. |
+| ADM-PHOTOS-025 | PHOTOGRAPHER | `/admin/photos` table | metadata | Featured | `app/routes/admin/photos.tsx:219` | no | Flag badge. |
+| ADM-PHOTOS-026 | PHOTOGRAPHER | `/admin/photos` table | metadata | Print enquiries | `app/routes/admin/photos.tsx:221` | no | Flag badge. |
+| ADM-PHOTOS-027 | PHOTOGRAPHER | `/admin/photos` table | metadata | — | `app/routes/admin/photos.tsx:222` | no | Em dash shown when a photograph carries no flags. |
+| ADM-PHOTOS-028 | PHOTOGRAPHER | `/admin/photos` table | button | Edit | `app/routes/admin/photos.tsx:227` | no | Links to the per-photograph editor. |
+| ADM-PHOTOS-029 | PHOTOGRAPHER | `/admin/photos` table | button | Unpublish | `app/routes/admin/photos.tsx:246` | no | The withdrawal control; named for the state it produces. |
+| ADM-PHOTOS-030 | PHOTOGRAPHER | `/admin/photos` table | button | Publish | `app/routes/admin/photos.tsx:256` | no | Named for the state it produces. |
+| ADM-PHOTOS-031 | PHOTOGRAPHER | `/admin/photos` table | button | Unfeature | `app/routes/admin/photos.tsx:270` | no | Named for the state it produces. |
+| ADM-PHOTOS-032 | PHOTOGRAPHER | `/admin/photos` table | button | Feature | `app/routes/admin/photos.tsx:280` | no | Named for the state it produces. |
+| ADM-PHOTOS-033 | PHOTOGRAPHER | `/admin/photos` table | accessibility label | Withdraw “{title}” from the public site | `app/routes/admin/photos.tsx:243` | no | Button `title` attribute. |
+| ADM-PHOTOS-034 | PHOTOGRAPHER | `/admin/photos` table | accessibility label | Publish “{title}” | `app/routes/admin/photos.tsx:253` | no | Button `title` attribute. |
+| ADM-PHOTOS-035 | PHOTOGRAPHER | `/admin/photos` table | accessibility label | Remove “{title}” from the homepage selection | `app/routes/admin/photos.tsx:267` | no | Button `title` attribute. |
+| ADM-PHOTOS-036 | PHOTOGRAPHER | `/admin/photos` table | accessibility label | Feature “{title}” on the homepage | `app/routes/admin/photos.tsx:277` | no | Button `title` attribute. |
+| ADM-PHOTOS-037 | PHOTOGRAPHER | `/admin/photos` footer note | helper text | Print eligibility has its own screen: print eligibility. Deleting a photograph is not available in V1 — unpublishing is how a photograph is withdrawn. | `app/routes/admin/photos.tsx:294`-`296` | no | Names the product version ("V1") and repeats two navigation labels; a review candidate. |
+
+## Photograph editor — `ADM-EDIT`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADM-EDIT-001 | PHOTOGRAPHER | `/admin/photos/:photoId` breadcrumb | navigation | Photos | `app/routes/admin/photos.$photoId.tsx:276` | no | Links back to the library. |
+| ADM-EDIT-002 | PHOTOGRAPHER | `/admin/photos/:photoId` header | heading | {photo.title} | `app/routes/admin/photos.$photoId.tsx:279` | yes | Operator content: the photograph title, edited in this screen's Title field. |
+| ADM-EDIT-003 | PHOTOGRAPHER | `/admin/photos/:photoId` header | body | This photograph is visible on the public site. | `app/routes/admin/photos.$photoId.tsx:282` | no | Visibility summary. |
+| ADM-EDIT-004 | PHOTOGRAPHER | `/admin/photos/:photoId` header | body | Published, but not public: its gallery ({galleryName}) is a draft gallery. | `app/routes/admin/photos.$photoId.tsx:284` | no | Visibility summary. |
+| ADM-EDIT-005 | PHOTOGRAPHER | `/admin/photos/:photoId` header | body | This photograph is a draft and is not served on the public site. | `app/routes/admin/photos.$photoId.tsx:285` | no | Visibility summary. |
+| ADM-EDIT-006 | PHOTOGRAPHER | `/admin/photos/:photoId` unavailable state | heading | Photograph unavailable | `app/routes/admin/photos.$photoId.tsx:241` | no | Shown when the record could not be read. |
+| ADM-EDIT-007 | PHOTOGRAPHER | `/admin/photos/:photoId` unavailable state | navigation | Back to the photo library | `app/routes/admin/photos.$photoId.tsx:248` | no | Also rendered in the footer actions of the normal view. |
+| ADM-EDIT-008 | PHOTOGRAPHER | `/admin/photos/:photoId` action result | warning | No database is configured in this environment, so nothing was changed. | `app/routes/admin/photos.$photoId.tsx:130` | no | Same wording as `ADM-PHOTOS-004`. |
+| ADM-EDIT-009 | PHOTOGRAPHER | `/admin/photos/:photoId` action result | warning | This form cannot change {refused fields}. Storage identity and image geometry are fixed when a photograph is uploaded, and nothing was changed. | `app/routes/admin/photos.$photoId.tsx:141` | no | Names internal column vocabulary (`original_storage_key`, `width`, …); suitable for an operator, but worth reviewing for plainness. |
+| ADM-EDIT-010 | PHOTOGRAPHER | `/admin/photos/:photoId` action result | warning | The publication and featured states must be chosen from the listed options, so nothing was changed. | `app/routes/admin/photos.$photoId.tsx:178`-`179` | no | Strict allow-list refusal. |
+| ADM-EDIT-011 | PHOTOGRAPHER | `/admin/photos/:photoId` action result | warning | That photograph no longer exists, so nothing was changed. | `app/routes/admin/photos.$photoId.tsx:207` | no | Same wording as `ADM-PHOTOS-006`. |
+| ADM-EDIT-012 | PHOTOGRAPHER | `/admin/photos/:photoId` action result | warning | Nothing was saved — please correct the fields below. | `app/routes/admin/photos.$photoId.tsx:214` | no | Accompanies the per-field error list. |
+| ADM-EDIT-013 | PHOTOGRAPHER | `/admin/photos/:photoId` action result | warning | That request was not understood, so nothing was changed. | `app/routes/admin/photos.$photoId.tsx:221` | no | Same wording as `ADM-PHOTOS-007`. |
+| ADM-EDIT-014 | PHOTOGRAPHER | `/admin/photos/:photoId` action result | confirmation | Saved. {visibility} Featured: yes, or no. Print enquiries: offered, or not offered. | `app/routes/admin/photos.$photoId.tsx:100`-`102` | no | One sentence assembled from the state read back from the database. |
+| ADM-EDIT-015 | PHOTOGRAPHER | `/admin/photos/:photoId` action result | confirmation | It is visible on the public site. | `app/routes/admin/photos.$photoId.tsx:96` | no | Visibility clause inside `ADM-EDIT-014`. |
+| ADM-EDIT-016 | PHOTOGRAPHER | `/admin/photos/:photoId` action result | confirmation | It is published, but its gallery ({galleryName}) is still a draft, so it is not visible on the public site. | `app/routes/admin/photos.$photoId.tsx:98` | no | Visibility clause inside `ADM-EDIT-014`. |
+| ADM-EDIT-017 | PHOTOGRAPHER | `/admin/photos/:photoId` action result | confirmation | It is a draft, so it is not served on the public site. | `app/routes/admin/photos.$photoId.tsx:99` | no | Visibility clause inside `ADM-EDIT-014`. |
+| ADM-EDIT-018 | PHOTOGRAPHER | `/admin/photos/:photoId` facts | field label | Slug | `app/routes/admin/photos.$photoId.tsx:305` | no | Read-only fact; the editor cannot change a slug. |
+| ADM-EDIT-019 | PHOTOGRAPHER | `/admin/photos/:photoId` facts | field label | Public | `app/routes/admin/photos.$photoId.tsx:309` | no | Followed by `Yes` or `No`. |
+| ADM-EDIT-020 | PHOTOGRAPHER | `/admin/photos/:photoId` facts | field label | Print | `app/routes/admin/photos.$photoId.tsx:313` | no | Followed by `Offered for print enquiries` or `Not offered`. |
+| ADM-EDIT-021 | PHOTOGRAPHER | `/admin/photos/:photoId` facts | metadata | Yes, or No | `app/routes/admin/photos.$photoId.tsx:310` | no | Public-state value. |
+| ADM-EDIT-022 | PHOTOGRAPHER | `/admin/photos/:photoId` facts | metadata | Offered for print enquiries, or Not offered | `app/routes/admin/photos.$photoId.tsx:315` | no | Print-state value. |
+| ADM-EDIT-023 | PHOTOGRAPHER | `/admin/photos/:photoId` facts | navigation | change print eligibility | `app/routes/admin/photos.$photoId.tsx:317` | no | Link to `/admin/prints`. |
+| ADM-EDIT-024 | PHOTOGRAPHER | `/admin/photos/:photoId` facts | field label | Updated | `app/routes/admin/photos.$photoId.tsx:322` | no | Followed by the stored timestamp. |
+| ADM-EDIT-025 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Text | `app/routes/admin/photos.$photoId.tsx:329` | no | Fieldset legend. |
+| ADM-EDIT-026 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Title | `app/routes/admin/photos.$photoId.tsx:331` | no | Required, `maxlength` 120. |
+| ADM-EDIT-027 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Description | `app/routes/admin/photos.$photoId.tsx:342` | no | `maxlength` 600. |
+| ADM-EDIT-028 | PHOTOGRAPHER | `/admin/photos/:photoId` form | helper text | The description doubles as this photograph’s alternative text when it has one, so write it as something a visitor would want read out. | `app/routes/admin/photos.$photoId.tsx:351`-`354` | no | Explains the alt-text fallback rule. |
+| ADM-EDIT-029 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Location | `app/routes/admin/photos.$photoId.tsx:356` | no | `maxlength` 120. |
+| ADM-EDIT-030 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Capture date | `app/routes/admin/photos.$photoId.tsx:366` | no | `type="date"`. |
+| ADM-EDIT-031 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Gallery and tags | `app/routes/admin/photos.$photoId.tsx:379` | no | Fieldset legend. |
+| ADM-EDIT-032 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Gallery | `app/routes/admin/photos.$photoId.tsx:381` | no | Required selector. |
+| ADM-EDIT-033 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | {gallery.name} — draft gallery (photographs in it are not public) | `app/routes/admin/photos.$photoId.tsx:392` | via settings | Gallery option label; the name is operator content, the suffix is source copy. |
+| ADM-EDIT-034 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Tags | `app/routes/admin/photos.$photoId.tsx:398` | no | Multi-select sized to the tag list. |
+| ADM-EDIT-035 | PHOTOGRAPHER | `/admin/photos/:photoId` form | helper text | Select several with Ctrl or Cmd. Clearing the selection removes every tag from this photograph; other photographs are unaffected. | `app/routes/admin/photos.$photoId.tsx:413`-`416` | no | Explains multi-select and the consequence of clearing. |
+| ADM-EDIT-036 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Visibility | `app/routes/admin/photos.$photoId.tsx:420` | no | Fieldset legend. |
+| ADM-EDIT-037 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Publication state | `app/routes/admin/photos.$photoId.tsx:426` | no | Two-option selector. |
+| ADM-EDIT-038 | PHOTOGRAPHER | `/admin/photos/:photoId` form | field label | Homepage | `app/routes/admin/photos.$photoId.tsx:436` | no | Featured-state selector. |
+| ADM-EDIT-039 | PHOTOGRAPHER | `/admin/photos/:photoId` form | helper text | Setting this photograph to draft withdraws it: the public page, its image through /media, its place in galleries and the homepage, and print enquiries about it all stop on the next request. The original and its derivatives are kept, so publishing it again restores all of it. Up to five featured photographs appear on the homepage. | `app/routes/admin/photos.$photoId.tsx:445`-`450` | no | Names the implementation path `/media`; otherwise the most useful explanation on the screen. |
+| ADM-EDIT-040 | PHOTOGRAPHER | `/admin/photos/:photoId` form | button | Save changes | `app/routes/admin/photos.$photoId.tsx:454` | no | Idle state. |
+| ADM-EDIT-041 | PHOTOGRAPHER | `/admin/photos/:photoId` form | button | Saving… | `app/routes/admin/photos.$photoId.tsx:454` | no | Submitting state. |
+| ADM-EDIT-042 | PHOTOGRAPHER | `/admin/photos/:photoId` footer actions | navigation | Back to the photo library | `app/routes/admin/photos.$photoId.tsx:460` | no | Same wording as `ADM-EDIT-007`. |
+| ADM-EDIT-043 | PHOTOGRAPHER | `/admin/photos/:photoId` footer actions | navigation | View the public page | `app/routes/admin/photos.$photoId.tsx:464` | no | Rendered only while the photograph is publicly visible. |
+| ADM-EDIT-044 | PHOTOGRAPHER | `/admin/photos/:photoId` publication selector | field label | Draft — not visible to visitors | `app/data/photo-management.ts:66` (`PUBLICATION_STATE_LABELS`) | no | Publication option. |
+| ADM-EDIT-045 | PHOTOGRAPHER | `/admin/photos/:photoId` publication selector | field label | Published — visible to visitors (when its gallery is published) | `app/data/photo-management.ts:67` (`PUBLICATION_STATE_LABELS`) | no | Publication option; states the two-part visibility rule. |
+| ADM-EDIT-046 | PHOTOGRAPHER | `/admin/photos/:photoId` featured selector | field label | Not featured | `app/data/photo-management.ts:71` (`FEATURED_STATE_LABELS`) | no | Featured-state option. |
+| ADM-EDIT-047 | PHOTOGRAPHER | `/admin/photos/:photoId` featured selector | field label | Featured on the homepage | `app/data/photo-management.ts:72` (`FEATURED_STATE_LABELS`) | no | Featured-state option. |
+
+## Upload photos — `ADM-UPLOAD`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADM-UPLOAD-001 | PHOTOGRAPHER | `/admin/upload` header | heading | Upload | `app/routes/admin/upload.tsx:228` | no | Eyebrow. |
+| ADM-UPLOAD-002 | PHOTOGRAPHER | `/admin/upload` header | heading | Upload photos | `app/routes/admin/upload.tsx:229` | no | Page `h1`. |
+| ADM-UPLOAD-003 | PHOTOGRAPHER | `/admin/upload` header | body | Originals are stored privately and never altered, watermarked or served. Public derivatives are generated from them and are the only images a visitor can fetch. | `app/routes/admin/upload.tsx:230`-`233` | no | Page lede explaining the storage model. |
+| ADM-UPLOAD-004 | PHOTOGRAPHER | `/admin/upload` form | field label | Files | `app/routes/admin/upload.tsx:238` | no | Fieldset legend. |
+| ADM-UPLOAD-005 | PHOTOGRAPHER | `/admin/upload` form | field label | Photographs (JPEG or PNG, several allowed) | `app/routes/admin/upload.tsx:240` | no | File input label; accepts JPEG and PNG only. |
+| ADM-UPLOAD-006 | PHOTOGRAPHER | `/admin/upload` form | field label | Metadata | `app/routes/admin/upload.tsx:253` | no | Fieldset legend. |
+| ADM-UPLOAD-007 | PHOTOGRAPHER | `/admin/upload` form | field label | Title | `app/routes/admin/upload.tsx:255` | no | `maxlength` 120. |
+| ADM-UPLOAD-008 | PHOTOGRAPHER | `/admin/upload` form | field label | Description | `app/routes/admin/upload.tsx:259` | no | `maxlength` 600. |
+| ADM-UPLOAD-009 | PHOTOGRAPHER | `/admin/upload` form | field label | Gallery | `app/routes/admin/upload.tsx:263` | no | Required; offers published galleries only. |
+| ADM-UPLOAD-010 | PHOTOGRAPHER | `/admin/upload` form | field label | Tags | `app/routes/admin/upload.tsx:273` | no | Multi-select of registry tags. |
+| ADM-UPLOAD-011 | PHOTOGRAPHER | `/admin/upload` form | field label | Location | `app/routes/admin/upload.tsx:283` | no | `maxlength` 120. |
+| ADM-UPLOAD-012 | PHOTOGRAPHER | `/admin/upload` form | field label | Capture date | `app/routes/admin/upload.tsx:287` | no | `type="date"`. |
+| ADM-UPLOAD-013 | PHOTOGRAPHER | `/admin/upload` form | field label | Watermark | `app/routes/admin/upload.tsx:293` | no | Fieldset legend. |
+| ADM-UPLOAD-014 | PHOTOGRAPHER | `/admin/upload` form | field label | Watermark the public derivatives | `app/routes/admin/upload.tsx:296` | no | Checkbox, checked by default. |
+| ADM-UPLOAD-015 | PHOTOGRAPHER | `/admin/upload` form | field label | Position | `app/routes/admin/upload.tsx:299` | no | Selector over `WATERMARK_POSITIONS`. |
+| ADM-UPLOAD-016 | PHOTOGRAPHER | `/admin/upload` form | helper text | The archival master is never watermarked, whichever position is chosen. | `app/routes/admin/upload.tsx:313` | no | Reassures that the master is untouched. |
+| ADM-UPLOAD-017 | PHOTOGRAPHER | `/admin/upload` form | field label | Publication | `app/routes/admin/upload.tsx:318` | no | Fieldset legend. |
+| ADM-UPLOAD-018 | PHOTOGRAPHER | `/admin/upload` form | field label | Publish immediately | `app/routes/admin/upload.tsx:321` | no | Checkbox. |
+| ADM-UPLOAD-019 | PHOTOGRAPHER | `/admin/upload` form | field label | Feature on the homepage | `app/routes/admin/upload.tsx:325` | no | Checkbox. |
+| ADM-UPLOAD-020 | PHOTOGRAPHER | `/admin/upload` form | field label | Prints available | `app/routes/admin/upload.tsx:329` | no | Checkbox; does not publish the photograph. |
+| ADM-UPLOAD-021 | PHOTOGRAPHER | `/admin/upload` form | button | Upload | `app/routes/admin/upload.tsx:334` | no | Idle state. |
+| ADM-UPLOAD-022 | PHOTOGRAPHER | `/admin/upload` form | button | Processing… | `app/routes/admin/upload.tsx:334` | no | Submitting state. |
+| ADM-UPLOAD-023 | PHOTOGRAPHER | `/admin/upload` form | field label | none | `app/routes/admin/upload.tsx:307` | no | Watermark position option, lower-cased from the stored value. |
+| ADM-UPLOAD-024 | PHOTOGRAPHER | `/admin/upload` form | field label | center | `app/routes/admin/upload.tsx:307` | no | Watermark position option, lower-cased and hyphen-stripped from the stored value. |
+| ADM-UPLOAD-025 | PHOTOGRAPHER | `/admin/upload` form | field label | bottom right | `app/routes/admin/upload.tsx:307` | no | Watermark position option, lower-cased and hyphen-stripped; the settings screen words the same value as `Bottom right (recommended)` (`ADM-SETTINGS-012`). |
+| ADM-UPLOAD-026 | PHOTOGRAPHER | `/admin/upload` result | heading | Result | `app/routes/admin/upload.tsx:346` | no | Heading of the per-file report. |
+| ADM-UPLOAD-027 | PHOTOGRAPHER | `/admin/upload` result | metadata | {accepted} accepted, {rejected} refused. | `app/routes/admin/upload.tsx:348`-`350` | no | Shown when the upload persisted. |
+| ADM-UPLOAD-028 | PHOTOGRAPHER | `/admin/upload` result | warning | {accepted} accepted, {rejected} refused — not persisted: this environment serves the development seed set, so the upload lasts only for this process. | `app/routes/admin/upload.tsx:351` | no | Development/process wording shown when running on the seed source. |
+| ADM-UPLOAD-029 | PHOTOGRAPHER | `/admin/upload` result | metadata | — stored as “{title}” ({slug}), original {width}×{height}, public {webWidth}×{webHeight}, watermarked, or no watermark | `app/routes/admin/upload.tsx:359`-`362` | no | Per-file success line. |
+| ADM-UPLOAD-030 | PHOTOGRAPHER | `/admin/upload` result | validation/error | — refused: {message} | `app/routes/admin/upload.tsx:365` | no | Per-file refusal line; the message comes from the upload and image validation vocabulary. |
+| ADM-UPLOAD-031 | PHOTOGRAPHER | `/admin/upload` footer note | helper text | Signed in as {role}. A refused file is listed with the reason and nothing is stored for it; the other files in the same submission are still processed. | `app/routes/admin/upload.tsx:374`-`375` | no | Explains partial-batch behaviour. |
+| ADM-UPLOAD-032 | PHOTOGRAPHER | `/admin/upload` action result | warning | The upload could not be accepted. | `app/routes/admin/upload.tsx:116` | no | Generic refusal when the thrown error is not a known upload error. |
+| ADM-UPLOAD-033 | PHOTOGRAPHER | `/admin/upload` action result | warning | That upload's details were not understood, so nothing was uploaded. | `app/routes/admin/upload.tsx:152` | no | Shown when the metadata contract refuses the submission. |
+| ADM-UPLOAD-034 | PHOTOGRAPHER | `/admin/upload` action result | warning | Choose a watermark position this application understands, or turn the watermark off. | `app/routes/admin/upload.tsx:158` | no | Unrecognised watermark position. |
+| ADM-UPLOAD-035 | PHOTOGRAPHER | `/admin/upload` action result | warning | Choose at least one JPEG or PNG to upload. | `app/routes/admin/upload.tsx:180` | no | Empty file selection. |
+| ADM-UPLOAD-036 | PHOTOGRAPHER | `/admin/upload` action result | warning | Storage is not configured in this environment, so uploads are unavailable. | `app/routes/admin/upload.tsx:191` | no | Names environment configuration. |
+
+## Manage galleries — `ADM-GALLERY`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADM-GALLERY-001 | PHOTOGRAPHER | `/admin/galleries` header | heading | Galleries | `app/routes/admin/galleries.tsx:209` | no | Eyebrow. |
+| ADM-GALLERY-002 | PHOTOGRAPHER | `/admin/galleries` header | heading | Manage galleries | `app/routes/admin/galleries.tsx:210` | no | Page `h1`. |
+| ADM-GALLERY-003 | PHOTOGRAPHER | `/admin/galleries` header | body | Galleries are the collections visitors browse. A photograph belongs to one gallery, and it appears publicly only when both it and its gallery are published. | `app/routes/admin/galleries.tsx:211`-`214` | no | States the two-part publication rule. |
+| ADM-GALLERY-004 | PHOTOGRAPHER | `/admin/galleries` create form | heading | Create a gallery | `app/routes/admin/galleries.tsx:227` | no | Section `h2`. |
+| ADM-GALLERY-005 | PHOTOGRAPHER | `/admin/galleries` create form | field label | Name | `app/routes/admin/galleries.tsx:230` | no | Required, `maxlength` 80. |
+| ADM-GALLERY-006 | PHOTOGRAPHER | `/admin/galleries` create form | field label | Description | `app/routes/admin/galleries.tsx:240` | no | `maxlength` 600. |
+| ADM-GALLERY-007 | PHOTOGRAPHER | `/admin/galleries` create form | field label | Display order (optional) | `app/routes/admin/galleries.tsx:251` | no | Whole number 0–9999. |
+| ADM-GALLERY-008 | PHOTOGRAPHER | `/admin/galleries` create form | helper text | Lower numbers appear first. Leave blank to add it last. | `app/routes/admin/galleries.tsx:260` | no | Explains ordering and the blank case. |
+| ADM-GALLERY-009 | PHOTOGRAPHER | `/admin/galleries` create form | field label | Visibility | `app/routes/admin/galleries.tsx:266` | no | Fieldset legend. |
+| ADM-GALLERY-010 | PHOTOGRAPHER | `/admin/galleries` create form | field label | Keep it a draft | `app/routes/admin/galleries.tsx:268` | no | Default radio option. |
+| ADM-GALLERY-011 | PHOTOGRAPHER | `/admin/galleries` create form | field label | Publish it | `app/routes/admin/galleries.tsx:271` | no | Radio option. |
+| ADM-GALLERY-012 | PHOTOGRAPHER | `/admin/galleries` create form | button | Create gallery | `app/routes/admin/galleries.tsx:276` | no | Submit. |
+| ADM-GALLERY-013 | PHOTOGRAPHER | `/admin/galleries` list | heading | No galleries yet | `app/routes/admin/galleries.tsx:284` | no | List heading when the site has no galleries. |
+| ADM-GALLERY-014 | PHOTOGRAPHER | `/admin/galleries` list | heading | {n} gallery, or {n} galleries | `app/routes/admin/galleries.tsx:285` | no | Singular/plural list heading. |
+| ADM-GALLERY-015 | PHOTOGRAPHER | `/admin/galleries` list | empty state | Create the first gallery above. Photographs are uploaded into a gallery, so this is the first step before any photograph can appear on the public site. | `app/routes/admin/galleries.tsx:288`-`291` | no | Empty state explaining the ordering of the work. |
+| ADM-GALLERY-016 | PHOTOGRAPHER | `/admin/galleries` item | metadata | Published | `app/routes/admin/galleries.tsx:302` | no | Publication badge. |
+| ADM-GALLERY-017 | PHOTOGRAPHER | `/admin/galleries` item | metadata | Draft — not public | `app/routes/admin/galleries.tsx:302` | no | Publication badge. |
+| ADM-GALLERY-018 | PHOTOGRAPHER | `/admin/galleries` item | helper text | /gallery/{slug} · position {n} · {count} photograph, or photographs ({n} published) · cover: {title, or none} | `app/routes/admin/galleries.tsx:305`-`309` | no | One summary line with singular/plural handling and a `none` fallback. |
+| ADM-GALLERY-019 | PHOTOGRAPHER | `/admin/galleries` edit form | field label | Name | `app/routes/admin/galleries.tsx:319` | no | Duplicate wording of `ADM-GALLERY-005` from a separate occurrence. |
+| ADM-GALLERY-020 | PHOTOGRAPHER | `/admin/galleries` edit form | field label | Description | `app/routes/admin/galleries.tsx:327` | no | Duplicate wording of `ADM-GALLERY-006`. |
+| ADM-GALLERY-021 | PHOTOGRAPHER | `/admin/galleries` edit form | field label | Display order | `app/routes/admin/galleries.tsx:335` | no | Whole number 0–9999. |
+| ADM-GALLERY-022 | PHOTOGRAPHER | `/admin/galleries` edit form | button | Save changes | `app/routes/admin/galleries.tsx:346` | no | Saves name, description and order together. |
+| ADM-GALLERY-023 | PHOTOGRAPHER | `/admin/galleries` order form | field label | Set position | `app/routes/admin/galleries.tsx:354` | no | Order-only control. |
+| ADM-GALLERY-024 | PHOTOGRAPHER | `/admin/galleries` order form | button | Save position | `app/routes/admin/galleries.tsx:365` | no | Submit. |
+| ADM-GALLERY-025 | PHOTOGRAPHER | `/admin/galleries` publication form | button | Withdraw to draft | `app/routes/admin/galleries.tsx:377` | no | Named for the state it produces. |
+| ADM-GALLERY-026 | PHOTOGRAPHER | `/admin/galleries` publication form | button | Publish gallery | `app/routes/admin/galleries.tsx:377` | no | Named for the state it produces. |
+| ADM-GALLERY-027 | PHOTOGRAPHER | `/admin/galleries` cover form | field label | Cover photograph | `app/routes/admin/galleries.tsx:385` | no | Offers only photographs that belong to this gallery. |
+| ADM-GALLERY-028 | PHOTOGRAPHER | `/admin/galleries` cover form | field label | No photographs in this gallery yet | `app/routes/admin/galleries.tsx:392` | no | Only option when the gallery has no photographs. |
+| ADM-GALLERY-029 | PHOTOGRAPHER | `/admin/galleries` cover form | field label | No cover | `app/routes/admin/galleries.tsx:392` | no | Empty option when photographs exist. |
+| ADM-GALLERY-030 | PHOTOGRAPHER | `/admin/galleries` cover form | field label | (draft) | `app/routes/admin/galleries.tsx:397` | no | Suffix after an unpublished photograph's title. |
+| ADM-GALLERY-031 | PHOTOGRAPHER | `/admin/galleries` cover form | button | Save cover | `app/routes/admin/galleries.tsx:402` | no | Submit. |
+| ADM-GALLERY-032 | PHOTOGRAPHER | `/admin/galleries` cover form | button | Remove cover | `app/routes/admin/galleries.tsx:411` | no | Rendered only when a cover is set. |
+| ADM-GALLERY-033 | PHOTOGRAPHER | `/admin/galleries` action result | warning | That request was not understood, so nothing was changed. | `app/routes/admin/galleries.tsx:59` | no | Same wording as `ADM-PHOTOS-007`. |
+| ADM-GALLERY-034 | PHOTOGRAPHER | `/admin/galleries` action result | warning | No database is configured in this environment, so nothing was changed. | `app/routes/admin/galleries.tsx:109` | no | Same wording as `ADM-PHOTOS-004`. |
+| ADM-GALLERY-035 | PHOTOGRAPHER | `/admin/galleries` action result | warning | That action was not recognised, so nothing was changed. | `app/routes/admin/galleries.tsx:118`, `:183` | no | Same wording as `ADM-PHOTOS-005`. |
+| ADM-GALLERY-036 | PHOTOGRAPHER | `/admin/galleries` action result | warning | That gallery no longer exists, so nothing was changed. | `app/routes/admin/galleries.tsx:92` | no | Record disappeared between render and submit. |
+| ADM-GALLERY-037 | PHOTOGRAPHER | `/admin/galleries` action result | validation/error | Choose whether the gallery starts as a draft or published. | `app/routes/admin/galleries.tsx:128` | no | Create-form refusal. |
+| ADM-GALLERY-038 | PHOTOGRAPHER | `/admin/galleries` action result | validation/error | Choose whether the gallery is a draft or published. | `app/routes/admin/galleries.tsx:145` | no | Update-form refusal. |
+| ADM-GALLERY-039 | PHOTOGRAPHER | `/admin/galleries` action result | validation/error | Choose a photograph from this gallery. | `app/routes/admin/galleries.tsx:174` | no | Cover refusal. |
+| ADM-GALLERY-040 | PHOTOGRAPHER | `/admin/galleries` action result | validation/error | Use a whole number between 0 and 9999. | `app/routes/admin/galleries.tsx:166` (`MAX_GALLERY_ORDER`) | no | Order refusal; the same wording comes from `validateGallery` (`SYS-VALID-004`). |
+| ADM-GALLERY-041 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | “{name}” {verb}. {visibility} It holds {n} photograph, or photographs, {m} of them published. | `app/routes/admin/galleries.tsx:78`-`80` | no | Built from the persisted gallery, with singular/plural handling. |
+| ADM-GALLERY-042 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | It is published, so it appears on the public site once it holds a published photograph. | `app/routes/admin/galleries.tsx:74`-`76` | no | Visibility clause when the gallery holds no published photograph. |
+| ADM-GALLERY-043 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | It is a draft, so it is not visible on the public site. | `app/routes/admin/galleries.tsx:77` | no | Visibility clause for a draft gallery. |
+| ADM-GALLERY-044 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | Created “{name}”. | `app/routes/admin/galleries.tsx:139` | no | Create success. |
+| ADM-GALLERY-045 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | is created | `app/routes/admin/galleries.tsx:138` | no | Verb inserted into `ADM-GALLERY-041`; only used when the create response carries no explicit message. |
+| ADM-GALLERY-046 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | is saved | `app/routes/admin/galleries.tsx:154` | no | Verb inserted into `ADM-GALLERY-041`. |
+| ADM-GALLERY-047 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | is published | `app/routes/admin/galleries.tsx:161` | no | Verb inserted into `ADM-GALLERY-041`. |
+| ADM-GALLERY-048 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | is withdrawn to a draft | `app/routes/admin/galleries.tsx:161` | no | Verb inserted into `ADM-GALLERY-041`. |
+| ADM-GALLERY-049 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | now sits at position {n} | `app/routes/admin/galleries.tsx:168` | no | Verb inserted into `ADM-GALLERY-041`. |
+| ADM-GALLERY-050 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | has a new cover | `app/routes/admin/galleries.tsx:178` | no | Verb inserted into `ADM-GALLERY-041`. |
+| ADM-GALLERY-051 | PHOTOGRAPHER | `/admin/galleries` action result | confirmation | no longer has a cover | `app/routes/admin/galleries.tsx:178` | no | Verb inserted into `ADM-GALLERY-041`. |
+| ADM-GALLERY-052 | PHOTOGRAPHER | `/admin/galleries` unavailable state | warning | No database is configured in this environment, so gallery management is unavailable. | `app/data/gallery-management.server.ts:111` | no | Shown instead of the whole screen. |
+| ADM-GALLERY-053 | PHOTOGRAPHER | `/admin/galleries` action result | validation/error | That photograph is not in this gallery, so it cannot be its cover. | `app/data/gallery-management.server.ts:332` | no | Cover refusal from the mutation layer. |
+| ADM-GALLERY-054 | PHOTOGRAPHER | `/admin/galleries` action result | warning | The gallery could not be read back after saving. | `app/data/gallery-management.server.ts:226`, `:326`, `:349` | no | Fail-closed read-back failure. |
+
+## Enquiries — `ADM-ENQ`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADM-ENQ-001 | PHOTOGRAPHER | `/admin/enquiries` header | heading | Enquiries | `app/routes/admin/enquiries.tsx:101` | no | Eyebrow. |
+| ADM-ENQ-002 | PHOTOGRAPHER | `/admin/enquiries` header | heading | Enquiries | `app/routes/admin/enquiries.tsx:102` | no | Page `h1`. |
+| ADM-ENQ-003 | PHOTOGRAPHER | `/admin/enquiries` header | body | Print enquiries and contact messages, newest first. Reply from your own email; this application does not send mail itself. | `app/routes/admin/enquiries.tsx:103`-`106` | no | Page lede; states that no mail is sent. |
+| ADM-ENQ-004 | PHOTOGRAPHER | `/admin/enquiries` action result | confirmation | Marked as {status}. | `app/routes/admin/enquiries.tsx:63` | no | `{status}` is the lower-cased handled state. |
+| ADM-ENQ-005 | PHOTOGRAPHER | `/admin/enquiries` action result | warning | That enquiry no longer exists, so nothing was changed. | `app/routes/admin/enquiries.tsx:65` | no | Record disappeared between render and submit. |
+| ADM-ENQ-006 | PHOTOGRAPHER | `/admin/enquiries` action result | warning | That state is not one this application recognises. | `app/routes/admin/enquiries.tsx:67` | no | Allow-list refusal. |
+| ADM-ENQ-007 | PHOTOGRAPHER | `/admin/enquiries` action result | warning | The change could not be saved, so the enquiry is unchanged. | `app/routes/admin/enquiries.tsx:70` | no | Storage failure. |
+| ADM-ENQ-008 | PHOTOGRAPHER | `/admin/enquiries` empty state | empty state | No enquiries have been received yet. | `app/routes/admin/enquiries.tsx:125` | no | Shown when the list read succeeded and is empty. |
+| ADM-ENQ-009 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | 1 enquiry, or {n} enquiries, newest first | `app/routes/admin/enquiries.tsx:131`-`133` | no | Table caption with singular/plural handling. |
+| ADM-ENQ-010 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | Received | `app/routes/admin/enquiries.tsx:137` | no | Column heading. |
+| ADM-ENQ-011 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | From | `app/routes/admin/enquiries.tsx:138` | no | Column heading. |
+| ADM-ENQ-012 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | About | `app/routes/admin/enquiries.tsx:139` | no | Column heading. |
+| ADM-ENQ-013 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | Preference | `app/routes/admin/enquiries.tsx:140` | no | Column heading. |
+| ADM-ENQ-014 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | Message | `app/routes/admin/enquiries.tsx:141` | no | Column heading. |
+| ADM-ENQ-015 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | State | `app/routes/admin/enquiries.tsx:142` | no | Column heading. |
+| ADM-ENQ-016 | PHOTOGRAPHER | `/admin/enquiries` table | accessibility label | Handled state for the enquiry from {name} | `app/routes/admin/enquiries.tsx:189` | no | Visually hidden label for the status selector; `{name}` is customer-supplied. |
+| ADM-ENQ-017 | PHOTOGRAPHER | `/admin/enquiries` table | button | Save | `app/routes/admin/enquiries.tsx:203` | no | Saves the handled state. |
+| ADM-ENQ-018 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | — | `app/routes/admin/enquiries.tsx:181` | no | Em dash shown when no format or size preference was given. |
+| ADM-ENQ-019 | PHOTOGRAPHER | `/admin/enquiries` table | field label | New | `app/enquiries/enquiry.ts:97` (`ENQUIRY_STATUS_LABELS`) | no | Handled-state option. |
+| ADM-ENQ-020 | PHOTOGRAPHER | `/admin/enquiries` table | field label | Read | `app/enquiries/enquiry.ts:98` (`ENQUIRY_STATUS_LABELS`) | no | Handled-state option. |
+| ADM-ENQ-021 | PHOTOGRAPHER | `/admin/enquiries` table | field label | Archived | `app/enquiries/enquiry.ts:99` (`ENQUIRY_STATUS_LABELS`) | no | Handled-state option. |
+| ADM-ENQ-022 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | {enquiry.name}, {enquiry.email} | `app/routes/admin/enquiries.tsx:150`-`154` | no | Customer-supplied values; the email is a `mailto:` link opened in the operator's own client. |
+
+## Print eligibility — `ADM-PRINTS`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADM-PRINTS-001 | PHOTOGRAPHER | `/admin/prints` header | heading | Prints | `app/routes/admin/prints.tsx:91` | no | Eyebrow. |
+| ADM-PRINTS-002 | PHOTOGRAPHER | `/admin/prints` header | heading | Print eligibility | `app/routes/admin/prints.tsx:92` | no | Page `h1`. |
+| ADM-PRINTS-003 | PHOTOGRAPHER | `/admin/prints` header | body | Choose which photographs may be enquired about as prints. This changes only the print flag: it never publishes a photograph, and it never makes a draft visible. | `app/routes/admin/prints.tsx:93`-`96` | no | Page lede; states the isolation of the flag. |
+| ADM-PRINTS-004 | PHOTOGRAPHER | `/admin/prints` action result | confirmation | This photograph is now offered for print enquiries. | `app/routes/admin/prints.tsx:66` | no | Success. |
+| ADM-PRINTS-005 | PHOTOGRAPHER | `/admin/prints` action result | confirmation | This photograph is no longer offered for print enquiries. | `app/routes/admin/prints.tsx:67` | no | Success. |
+| ADM-PRINTS-006 | PHOTOGRAPHER | `/admin/prints` action result | warning | That photograph no longer exists, so nothing was changed. | `app/routes/admin/prints.tsx:71` | no | Record disappeared between render and submit. |
+| ADM-PRINTS-007 | PHOTOGRAPHER | `/admin/prints` action result | warning | That request was not understood, so nothing was changed. | `app/routes/admin/prints.tsx:73` | no | Refusal. |
+| ADM-PRINTS-008 | PHOTOGRAPHER | `/admin/prints` action result | warning | The change could not be saved, so print eligibility is unchanged. | `app/routes/admin/prints.tsx:76` | no | Storage failure. |
+| ADM-PRINTS-009 | PHOTOGRAPHER | `/admin/prints` empty state | empty state | No photographs have been uploaded yet. | `app/routes/admin/prints.tsx:112` | no | Shown when no photographs exist. |
+| ADM-PRINTS-010 | PHOTOGRAPHER | `/admin/prints` table | metadata | 1 photograph, or {n} photographs | `app/routes/admin/prints.tsx:118` | no | Table caption. |
+| ADM-PRINTS-011 | PHOTOGRAPHER | `/admin/prints` table | metadata | Photograph | `app/routes/admin/prints.tsx:122` | no | Column heading. |
+| ADM-PRINTS-012 | PHOTOGRAPHER | `/admin/prints` table | metadata | Publicly visible | `app/routes/admin/prints.tsx:123` | no | Column heading. |
+| ADM-PRINTS-013 | PHOTOGRAPHER | `/admin/prints` table | metadata | Offered for print | `app/routes/admin/prints.tsx:124` | no | Column heading. |
+| ADM-PRINTS-014 | PHOTOGRAPHER | `/admin/prints` table | metadata | Save | `app/routes/admin/prints.tsx:125` | no | Column heading. |
+| ADM-PRINTS-015 | PHOTOGRAPHER | `/admin/prints` table | metadata | Published | `app/routes/admin/prints.tsx:143` | no | Publication state cell. |
+| ADM-PRINTS-016 | PHOTOGRAPHER | `/admin/prints` table | metadata | Draft — not public | `app/routes/admin/prints.tsx:143` | no | Publication state cell. |
+| ADM-PRINTS-017 | PHOTOGRAPHER | `/admin/prints` table | field label | Available for print enquiries | `app/routes/admin/prints.tsx:155` | no | Checkbox label per photograph. |
+| ADM-PRINTS-018 | PHOTOGRAPHER | `/admin/prints` table | button | Save | `app/routes/admin/prints.tsx:158` | no | Submit for one photograph. |
+| ADM-PRINTS-019 | PHOTOGRAPHER | `/admin/prints` table | metadata | Offered | `app/routes/admin/prints.tsx:163` | no | Print state cell. |
+| ADM-PRINTS-020 | PHOTOGRAPHER | `/admin/prints` table | metadata | Not offered | `app/routes/admin/prints.tsx:163` | no | Print state cell. |
+| ADM-PRINTS-021 | PHOTOGRAPHER | `/admin/prints` table | metadata | (still a draft) | `app/routes/admin/prints.tsx:164` | no | Suffix after the print state of an unpublished photograph. |
+| ADM-PRINTS-022 | PHOTOGRAPHER | `/admin/prints` footer note | helper text | A draft marked here stays invisible on the public site, is not listed on /prints, and cannot be attached to an enquiry. | `app/routes/admin/prints.tsx:173`-`177` | no | Names the public path `/prints`. |
+
+## Workspace settings — `ADM-SETTINGS`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADM-SETTINGS-001 | PHOTOGRAPHER | `/admin/settings` header | heading | Workspace | `app/routes/admin/settings.tsx:178` | no | Eyebrow. |
+| ADM-SETTINGS-002 | PHOTOGRAPHER | `/admin/settings` header | heading | Settings | `app/routes/admin/settings.tsx:179` | no | Page `h1`. |
+| ADM-SETTINGS-003 | PHOTOGRAPHER | `/admin/settings` header | body | Defaults and public details for your site. Anything left blank is simply not shown. | `app/routes/admin/settings.tsx:180`-`182` | no | Page lede. |
+| ADM-SETTINGS-004 | PHOTOGRAPHER | `/admin/settings` | heading | Watermark defaults | `app/routes/admin/settings.tsx:198` | no | Section `h2`. |
+| ADM-SETTINGS-005 | PHOTOGRAPHER | `/admin/settings` | helper text | These apply to future uploads. A photograph's own setting always wins, and nothing already uploaded changes. | `app/routes/admin/settings.tsx:199`-`202` | no | Explains the scope of the default. |
+| ADM-SETTINGS-006 | PHOTOGRAPHER | `/admin/settings` | field label | New uploads | `app/routes/admin/settings.tsx:204` | no | Fieldset legend. |
+| ADM-SETTINGS-007 | PHOTOGRAPHER | `/admin/settings` | field label | Watermark new uploads by default | `app/data/site-settings.ts:80` (`WATERMARK_DEFAULT_LABELS`) | yes | Stored as `watermark.default_enabled`. |
+| ADM-SETTINGS-008 | PHOTOGRAPHER | `/admin/settings` | field label | Do not watermark new uploads by default | `app/data/site-settings.ts:81` (`WATERMARK_DEFAULT_LABELS`) | yes | Stored as `watermark.default_enabled`. |
+| ADM-SETTINGS-009 | PHOTOGRAPHER | `/admin/settings` | field label | Default watermark position | `app/routes/admin/settings.tsx:220` | no | Selector label. |
+| ADM-SETTINGS-010 | PHOTOGRAPHER | `/admin/settings` | field label | No watermark | `app/data/site-settings.ts:92` (`WATERMARK_POSITION_LABELS`) | yes | Stored as `watermark.default_position`. |
+| ADM-SETTINGS-011 | PHOTOGRAPHER | `/admin/settings` | field label | Centre | `app/data/site-settings.ts:93` (`WATERMARK_POSITION_LABELS`) | yes | Stored as `watermark.default_position`. |
+| ADM-SETTINGS-012 | PHOTOGRAPHER | `/admin/settings` | field label | Bottom right (recommended) | `app/data/site-settings.ts:94` (`WATERMARK_POSITION_LABELS`) | yes | Stored as `watermark.default_position`; the upload form words the same value as `bottom right` (`ADM-UPLOAD-025`). |
+| ADM-SETTINGS-013 | PHOTOGRAPHER | `/admin/settings` | heading | Social profiles | `app/routes/admin/settings.tsx:234` | no | Section `h2`. |
+| ADM-SETTINGS-014 | PHOTOGRAPHER | `/admin/settings` | helper text | Paste the full https:// address for each profile you use. Leave the rest blank and no link appears anywhere on the public site. | `app/routes/admin/settings.tsx:235`-`238` | no | Explains the blank-means-absent rule. |
+| ADM-SETTINGS-015 | PHOTOGRAPHER | `/admin/settings` | helper text | https://… | `app/routes/admin/settings.tsx:247` | no | Placeholder inside each social URL field. |
+| ADM-SETTINGS-016 | PHOTOGRAPHER | `/admin/settings` | heading | Introductions | `app/routes/admin/settings.tsx:258` | no | Section `h2`. |
+| ADM-SETTINGS-017 | PHOTOGRAPHER | `/admin/settings` | helper text | Short optional text shown on the public pages. A blank field renders nothing at all. | `app/routes/admin/settings.tsx:259`-`262` | no | Explains the blank-means-absent rule. |
+| ADM-SETTINGS-018 | PHOTOGRAPHER | `/admin/settings` | field label | Short strapline | `app/data/site-settings.ts:64` (`TEXT_SETTING_FIELDS`) | no | Label for the `site.strapline` setting; limit 120 characters. |
+| ADM-SETTINGS-019 | PHOTOGRAPHER | `/admin/settings` | field label | Galleries page introduction | `app/data/site-settings.ts:67` (`TEXT_SETTING_FIELDS`) | no | Label for the `site.galleries_intro` setting; limit 300 characters. |
+| ADM-SETTINGS-020 | PHOTOGRAPHER | `/admin/settings` | field label | About introduction | `app/data/site-settings.ts:70` (`TEXT_SETTING_FIELDS`) | no | Label for the `site.about_intro` setting; limit 300 characters. |
+| ADM-SETTINGS-021 | PHOTOGRAPHER | `/admin/settings` | field label | Contact page introduction | `app/data/site-settings.ts:72`-`75` (`TEXT_SETTING_FIELDS`) | no | Label for the `site.contact_intro` setting; limit 300 characters. |
+| ADM-SETTINGS-022 | PHOTOGRAPHER | `/admin/settings` | body | (operator-supplied; blank by default) | `site_settings` key `site.strapline` | via settings | The strapline value itself. No public surface currently renders this setting. |
+| ADM-SETTINGS-023 | PHOTOGRAPHER | `/admin/settings` | body | (operator-supplied; blank by default) | `site_settings` key `site.galleries_intro` | via settings | The galleries introduction value. No public surface currently renders this setting. |
+| ADM-SETTINGS-024 | PHOTOGRAPHER | `/admin/settings` | body | (operator-supplied; blank by default) | `site_settings` key `site.about_intro` | via settings | The about introduction value. No public surface currently renders this setting. |
+| ADM-SETTINGS-025 | PHOTOGRAPHER | `/admin/settings` | body | (operator-supplied; blank by default) | `site_settings` key `site.contact_intro` | via settings | The contact introduction value. No public surface currently renders this setting. |
+| ADM-SETTINGS-026 | PHOTOGRAPHER | `/admin/settings` | button | Save settings | `app/routes/admin/settings.tsx:280` | no | Submits the settings form. |
+| ADM-SETTINGS-027 | PHOTOGRAPHER | `/admin/settings` | heading | Tags | `app/routes/admin/settings.tsx:285` | no | Section `h2`. |
+| ADM-SETTINGS-028 | PHOTOGRAPHER | `/admin/settings` | helper text | Tags group photographs across galleries. They appear on a photograph's page and can be browsed by visitors. | `app/routes/admin/settings.tsx:286`-`289` | no | Explains tags; no public tag index exists yet, so "browsed by visitors" is aspirational. |
+| ADM-SETTINGS-029 | PHOTOGRAPHER | `/admin/settings` | empty state | No tags yet. Add the first one below. | `app/routes/admin/settings.tsx:295` | no | Empty state. |
+| ADM-SETTINGS-030 | PHOTOGRAPHER | `/admin/settings` | field label | Tag name | `app/routes/admin/settings.tsx:303` | no | Label for each tag's rename field; `maxlength` 40. |
+| ADM-SETTINGS-031 | PHOTOGRAPHER | `/admin/settings` | button | Rename | `app/routes/admin/settings.tsx:312` | no | Per-tag rename. |
+| ADM-SETTINGS-032 | PHOTOGRAPHER | `/admin/settings` | helper text | used by {n} photograph, or photographs | `app/routes/admin/settings.tsx:315` | no | Usage count beside each tag. |
+| ADM-SETTINGS-033 | PHOTOGRAPHER | `/admin/settings` | button | Delete unused tag | `app/routes/admin/settings.tsx:323` | no | Offered only when the tag is used by no photograph. |
+| ADM-SETTINGS-034 | PHOTOGRAPHER | `/admin/settings` | field label | Add a tag | `app/routes/admin/settings.tsx:334` | no | New tag field label; `maxlength` 40, required. |
+| ADM-SETTINGS-035 | PHOTOGRAPHER | `/admin/settings` | button | Add tag | `app/routes/admin/settings.tsx:340` | no | Creates the tag. |
+| ADM-SETTINGS-036 | PHOTOGRAPHER | `/admin/settings` | confirmation | Settings saved. Watermark defaults apply to future uploads; photographs you have already uploaded are unchanged. | `app/routes/admin/settings.tsx:120`-`121` | no | Save success. |
+| ADM-SETTINGS-037 | PHOTOGRAPHER | `/admin/settings` | warning | {reason} Nothing was changed. | `app/routes/admin/settings.tsx:117` | no | Prefixes the storage module's own reason. |
+| ADM-SETTINGS-038 | PHOTOGRAPHER | `/admin/settings` | confirmation | Added the tag “{name}”. | `app/routes/admin/settings.tsx:139` | no | Tag create success. |
+| ADM-SETTINGS-039 | PHOTOGRAPHER | `/admin/settings` | confirmation | Renamed the tag to “{name}”. | `app/routes/admin/settings.tsx:149` | no | Tag rename success. |
+| ADM-SETTINGS-040 | PHOTOGRAPHER | `/admin/settings` | confirmation | Deleted the unused tag “{name}”. | `app/routes/admin/settings.tsx:158` | no | Tag delete success. |
+| ADM-SETTINGS-041 | PHOTOGRAPHER | `/admin/settings` | warning | {n} photograph, or photographs, still use that tag, so it was not deleted. Remove it from those photographs first. | `app/routes/admin/settings.tsx:163` | no | In-use refusal. |
+| ADM-SETTINGS-042 | PHOTOGRAPHER | `/admin/settings` | warning | That tag no longer exists, so nothing was changed. | `app/routes/admin/settings.tsx:153`, `:167` | no | Rename and delete not-found. |
+| ADM-SETTINGS-043 | PHOTOGRAPHER | `/admin/settings` | warning | The tag could not be saved, so nothing was changed. | `app/routes/admin/settings.tsx:143` | no | Tag create failure. |
+| ADM-SETTINGS-044 | PHOTOGRAPHER | `/admin/settings` | warning | That action was not recognised, so nothing was changed. | `app/routes/admin/settings.tsx:130` | no | Unrecognised intent. |
+| ADM-SETTINGS-045 | PHOTOGRAPHER | `/admin/settings` | warning | No database is configured in this environment, so nothing was changed. | `app/routes/admin/settings.tsx:67` | no | Same wording as `ADM-PHOTOS-004`. |
+| ADM-SETTINGS-046 | PHOTOGRAPHER | `/admin/settings` | warning | (dynamic) the reason the tag list or the settings save failed | `app/routes/admin/settings.tsx:291` and `:117` | no | Renders the store's own sentence — see `SYS-AREA-015`, `SYS-AREA-016` and `SYS-AREA-017`; the settings case is prefixed by `ADM-SETTINGS-037`. |
+
+## Admin 404 — `ADM-NOTFOUND`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADM-NOTFOUND-001 | PHOTOGRAPHER | Unknown `/admin/...` path | heading | 404 | `app/routes/admin/not-found.tsx:24` | no | Eyebrow. |
+| ADM-NOTFOUND-002 | PHOTOGRAPHER | Unknown `/admin/...` path | heading | That admin page does not exist | `app/routes/admin/not-found.tsx:25` | no | Page `h1`. |
+| ADM-NOTFOUND-003 | PHOTOGRAPHER | Unknown `/admin/...` path | body | Check the address, or return to your dashboard. | `app/routes/admin/not-found.tsx:27` | no | Page lede. |
+| ADM-NOTFOUND-004 | PHOTOGRAPHER | Unknown `/admin/...` path | button | Back to dashboard | `app/routes/admin/not-found.tsx:32` | no | Links to `/admin`. |
+
+## Manager navigation — `MGR-NAV`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| MGR-NAV-001 | MANAGER | `/manager` brand tagline | body | Manager | `app/layouts/manager.tsx:36` (`areaName`) | no | Occupies the slot `Admin` fills in the photographer area (`ADM-NAV-001`). |
+| MGR-NAV-002 | MANAGER | `/manager` area navigation | navigation | Dashboard | `app/layouts/manager.tsx:17` | no | Exact-path match. |
+| MGR-NAV-003 | MANAGER | `/manager` area navigation | navigation | Diagnostics | `app/layouts/manager.tsx:18` | no | |
+| MGR-NAV-004 | MANAGER | `/manager` area navigation | navigation | Settings | `app/layouts/manager.tsx:19` | no | |
+| MGR-NAV-005 | MANAGER | `/manager` area navigation | navigation | Maintenance | `app/layouts/manager.tsx:20` | no | |
+
+## Manager dashboard — `MGR-DASH`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| MGR-DASH-001 | MANAGER | `/manager` header | heading | Manager | `app/routes/manager/dashboard.tsx:36` | no | Eyebrow. |
+| MGR-DASH-002 | MANAGER | `/manager` header | heading | Site status | `app/routes/manager/dashboard.tsx:37` | no | Page `h1`. |
+| MGR-DASH-003 | MANAGER | `/manager` header | body | Functional foundations for maintenance: live binding, storage and identity state from this deployment, plus the authorised users who can sign in. | `app/routes/manager/dashboard.tsx:38`-`41` | no | Page lede. |
+| MGR-DASH-004 | MANAGER | `/manager` status tables | metadata | Authentication | `app/routes/manager/dashboard.tsx:44` | no | Table caption; the rows come from `SYS-DIAG`. |
+| MGR-DASH-005 | MANAGER | `/manager` status tables | metadata | Database | `app/routes/manager/dashboard.tsx:45` | no | Table caption. |
+| MGR-DASH-006 | MANAGER | `/manager` status tables | metadata | Storage | `app/routes/manager/dashboard.tsx:46` | no | Table caption. |
+| MGR-DASH-007 | MANAGER | `/manager` authorised users | heading | Authorised users | `app/routes/manager/dashboard.tsx:48` | no | Section `h2`. |
+| MGR-DASH-008 | MANAGER | `/manager` authorised users | helper text | Roles are read from the database on every request. A photographer signs into /admin only; managers may use both areas. | `app/routes/manager/dashboard.tsx:49`-`52` | no | Explains the role split; names the `/admin` path. |
+| MGR-DASH-009 | MANAGER | `/manager` authorised users | metadata | Authorised-user directory | `app/routes/manager/dashboard.tsx:54` | no | Table caption. |
+| MGR-DASH-010 | MANAGER | `/manager` authorised users | metadata | Email | `app/routes/manager/dashboard.tsx:57` | no | Column heading. |
+| MGR-DASH-011 | MANAGER | `/manager` authorised users | metadata | Role | `app/routes/manager/dashboard.tsx:58` | no | Column heading. |
+| MGR-DASH-012 | MANAGER | `/manager` authorised users | metadata | Active | `app/routes/manager/dashboard.tsx:59` | no | Column heading. |
+| MGR-DASH-013 | MANAGER | `/manager` authorised users | metadata | Updated | `app/routes/manager/dashboard.tsx:60` | no | Column heading. |
+| MGR-DASH-014 | MANAGER | `/manager` authorised users | metadata | yes, or no | `app/routes/manager/dashboard.tsx:68` | no | Active-state value. |
+| MGR-DASH-015 | MANAGER | `/manager` technical areas | heading | Technical areas | `app/routes/manager/dashboard.tsx:75` | no | Section `h2`. |
+| MGR-DASH-016 | MANAGER | `/manager` technical areas | navigation | Diagnostics | `app/routes/manager/dashboard.tsx:79` | no | Duplicate wording of `MGR-NAV-003`. |
+| MGR-DASH-017 | MANAGER | `/manager` technical areas | helper text | — bindings, object counts and configuration state | `app/routes/manager/dashboard.tsx:81` | no | Description beside the Diagnostics link. |
+| MGR-DASH-018 | MANAGER | `/manager` technical areas | navigation | Settings | `app/routes/manager/dashboard.tsx:85` | no | Duplicate wording of `MGR-NAV-004`. |
+| MGR-DASH-019 | MANAGER | `/manager` technical areas | helper text | — reserved for deployment preferences | `app/routes/manager/dashboard.tsx:87` | no | "Reserved for" is forward-looking wording; the settings screen is now built, so this description is out of date. |
+| MGR-DASH-020 | MANAGER | `/manager` technical areas | navigation | Maintenance | `app/routes/manager/dashboard.tsx:91` | no | Duplicate wording of `MGR-NAV-005`. |
+| MGR-DASH-021 | MANAGER | `/manager` technical areas | helper text | — reserved for safeguarded operations | `app/routes/manager/dashboard.tsx:93` | no | "Reserved for" is forward-looking wording; the maintenance screen is now built, so this description is out of date. |
+
+## Manager diagnostics — `MGR-DIAG`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| MGR-DIAG-001 | MANAGER | `/manager/diagnostics` header | heading | Diagnostics | `app/routes/manager/diagnostics.tsx:29` | no | Eyebrow. |
+| MGR-DIAG-002 | MANAGER | `/manager/diagnostics` header | heading | Deployment state | `app/routes/manager/diagnostics.tsx:30` | no | Page `h1`. |
+| MGR-DIAG-003 | MANAGER | `/manager/diagnostics` header | body | Counts come from the live bindings on this request. Configuration is reported as present or absent; no secret, token, key or environment value is read or shown. | `app/routes/manager/diagnostics.tsx:31`-`34` | no | Page lede; states the no-secrets rule. |
+| MGR-DIAG-004 | MANAGER | `/manager/diagnostics` tables | metadata | Identity | `app/routes/manager/diagnostics.tsx:37` | no | Table caption. |
+| MGR-DIAG-005 | MANAGER | `/manager/diagnostics` tables | metadata | Database | `app/routes/manager/diagnostics.tsx:38` | no | Table caption. |
+| MGR-DIAG-006 | MANAGER | `/manager/diagnostics` tables | metadata | Storage | `app/routes/manager/diagnostics.tsx:39` | no | Table caption. |
+| MGR-DIAG-007 | MANAGER | `/manager/diagnostics` tables | metadata | Configuration | `app/routes/manager/diagnostics.tsx:40` | no | Table caption. |
+| MGR-DIAG-008 | MANAGER | Status tables (dashboard and diagnostics) | metadata | Item | `app/components/StatusTable.tsx:24` | no | Column heading, shared by every status table. |
+| MGR-DIAG-009 | MANAGER | Status tables (dashboard and diagnostics) | metadata | State | `app/components/StatusTable.tsx:25` | no | Column heading. |
+| MGR-DIAG-010 | MANAGER | Status tables (dashboard and diagnostics) | metadata | Notes | `app/components/StatusTable.tsx:26` | no | Column heading. |
+| MGR-DIAG-011 | MANAGER | `/manager/diagnostics` | metadata | Identity verification | `app/data/diagnostics.server.ts:120` | no | Row label. |
+| MGR-DIAG-012 | MANAGER | `/manager/diagnostics` | metadata | Cloudflare Access | `app/data/diagnostics.server.ts:123` | no | State value. |
+| MGR-DIAG-013 | MANAGER | `/manager/diagnostics` | metadata | development header | `app/data/diagnostics.server.ts:125` | no | State value. |
+| MGR-DIAG-014 | MANAGER | `/manager/diagnostics` | metadata | closed | `app/data/diagnostics.server.ts:126` | no | State value. |
+| MGR-DIAG-015 | MANAGER | `/manager/diagnostics` | metadata | assertions are verified against the Access key set | `app/data/diagnostics.server.ts:129` | no | Detail line. |
+| MGR-DIAG-016 | MANAGER | `/manager/diagnostics` | metadata | loopback requests only; not valid in a deployment | `app/data/diagnostics.server.ts:131` | no | Detail line. |
+| MGR-DIAG-017 | MANAGER | `/manager/diagnostics` | metadata | no identity mechanism is configured, so protected routes deny | `app/data/diagnostics.server.ts:132` | no | Detail line. |
+| MGR-DIAG-018 | MANAGER | `/manager/diagnostics` | metadata | Access team domain | `app/data/diagnostics.server.ts:136` | no | Row label. |
+| MGR-DIAG-019 | MANAGER | `/manager/diagnostics` | metadata | configured | `app/data/diagnostics.server.ts:137`, `:141` | no | State value. |
+| MGR-DIAG-020 | MANAGER | `/manager/diagnostics` | metadata | not set | `app/data/diagnostics.server.ts:137`, `:141` | no | State value. |
+| MGR-DIAG-021 | MANAGER | `/manager/diagnostics` | metadata | Access application audience | `app/data/diagnostics.server.ts:140` | no | Row label. |
+| MGR-DIAG-022 | MANAGER | `/manager/diagnostics` | metadata | Authorised-user source | `app/data/diagnostics.server.ts:143` | no | Row label. |
+| MGR-DIAG-023 | MANAGER | `/manager/diagnostics` | metadata | D1 users table | `app/data/diagnostics.server.ts:144` | no | State value. |
+| MGR-DIAG-024 | MANAGER | `/manager/diagnostics` | metadata | seed users | `app/data/diagnostics.server.ts:144` | no | State value. |
+| MGR-DIAG-025 | MANAGER | `/manager/diagnostics` | metadata | none | `app/data/diagnostics.server.ts:144` | no | State value. |
+| MGR-DIAG-026 | MANAGER | `/manager/diagnostics` | metadata | Authorised accounts | `app/data/diagnostics.server.ts:64` (`COUNTED_TABLES`) | no | Counted-table row label; also a record label on `/manager/maintenance` (`MGR-MAINT-009`). |
+| MGR-DIAG-027 | MANAGER | `/manager/diagnostics` | metadata | Photographs | `app/data/diagnostics.server.ts:65` | no | Counted-table row label. |
+| MGR-DIAG-028 | MANAGER | `/manager/diagnostics` | metadata | Galleries | `app/data/diagnostics.server.ts:66` | no | Counted-table row label. |
+| MGR-DIAG-029 | MANAGER | `/manager/diagnostics` | metadata | Tag links | `app/data/diagnostics.server.ts:67` | no | Counted-table row label. |
+| MGR-DIAG-030 | MANAGER | `/manager/diagnostics` | metadata | Likes | `app/data/diagnostics.server.ts:68` | no | Counted-table row label. |
+| MGR-DIAG-031 | MANAGER | `/manager/diagnostics` | metadata | Share events | `app/data/diagnostics.server.ts:69` | no | Counted-table row label. |
+| MGR-DIAG-032 | MANAGER | `/manager/diagnostics` | metadata | Enquiries | `app/data/diagnostics.server.ts:70` | no | Counted-table row label. |
+| MGR-DIAG-033 | MANAGER | `/manager/diagnostics` | metadata | {n} | `app/data/diagnostics.server.ts:84` | no | Row count value. |
+| MGR-DIAG-034 | MANAGER | `/manager/diagnostics` | metadata | unreadable | `app/data/diagnostics.server.ts:84`, `:106` | no | State value when a count or listing fails. |
+| MGR-DIAG-035 | MANAGER | `/manager/diagnostics` | metadata | unavailable | `app/data/diagnostics.server.ts:87` | no | State value for a missing table. |
+| MGR-DIAG-036 | MANAGER | `/manager/diagnostics` | metadata | table missing | `app/data/diagnostics.server.ts:87` | no | Detail line. |
+| MGR-DIAG-037 | MANAGER | `/manager/diagnostics` | metadata | not bound | `app/data/diagnostics.server.ts:95`, `:154` | no | State value for an absent binding. |
+| MGR-DIAG-038 | MANAGER | `/manager/diagnostics` | metadata | binding missing | `app/data/diagnostics.server.ts:95` | no | Detail line. |
+| MGR-DIAG-039 | MANAGER | `/manager/diagnostics` | metadata | {n}+ | `app/data/diagnostics.server.ts:102` | no | Object count reported as a lower bound when the listing is truncated. |
+| MGR-DIAG-040 | MANAGER | `/manager/diagnostics` | metadata | objects | `app/data/diagnostics.server.ts:103` | no | Detail line. |
+| MGR-DIAG-041 | MANAGER | `/manager/diagnostics` | metadata | at least 1000 objects | `app/data/diagnostics.server.ts:103` | no | Detail line when the listing was truncated. |
+| MGR-DIAG-042 | MANAGER | `/manager/diagnostics` | metadata | D1 binding | `app/data/diagnostics.server.ts:154` | no | Row label when no database is bound. |
+| MGR-DIAG-043 | MANAGER | `/manager/diagnostics` | metadata | bindings unavailable | `app/data/diagnostics.server.ts:154` | no | Detail line. |
+| MGR-DIAG-044 | MANAGER | `/manager/diagnostics` | metadata | Masters (private originals) | `app/data/diagnostics.server.ts:158` | no | Bucket row label. |
+| MGR-DIAG-045 | MANAGER | `/manager/diagnostics` | metadata | Images (public derivatives) | `app/data/diagnostics.server.ts:159` | no | Bucket row label. |
+| MGR-DIAG-046 | MANAGER | `/manager/diagnostics` | metadata | ALLOW_DEVELOPMENT_IDENTITY | `app/data/diagnostics.server.ts:164` | no | Configuration row label; an environment variable name shown deliberately. |
+| MGR-DIAG-047 | MANAGER | `/manager/diagnostics` | metadata | ALLOW_DEVELOPMENT_SEED | `app/data/diagnostics.server.ts:169` | no | Configuration row label. |
+| MGR-DIAG-048 | MANAGER | `/manager/diagnostics` | metadata | enabled | `app/data/diagnostics.server.ts:165`, `:170` | no | Configuration state value. |
+| MGR-DIAG-049 | MANAGER | `/manager/diagnostics` | metadata | disabled | `app/data/diagnostics.server.ts:165`, `:170` | no | Configuration state value. |
+| MGR-DIAG-050 | MANAGER | `/manager/diagnostics` | metadata | development identity header; must be disabled in production | `app/data/diagnostics.server.ts:166` | no | Detail line. |
+| MGR-DIAG-051 | MANAGER | `/manager/diagnostics` | metadata | seed data fallback; must be disabled in production | `app/data/diagnostics.server.ts:171` | no | Detail line. |
+
+## Manager settings — `MGR-SETTINGS`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| MGR-SETTINGS-001 | MANAGER | `/manager/settings` header | heading | Manager | `app/routes/manager/settings.tsx:140` | no | Eyebrow. |
+| MGR-SETTINGS-002 | MANAGER | `/manager/settings` header | heading | Settings | `app/routes/manager/settings.tsx:141` | no | Page `h1`. |
+| MGR-SETTINGS-003 | MANAGER | `/manager/settings` header | body | Who may use the operator areas, and what this deployment has configured. Cloudflare Access decides who can reach the site; this list decides what they may do inside it. | `app/routes/manager/settings.tsx:142`-`145` | no | Page lede; explains the authorisation model. |
+| MGR-SETTINGS-004 | MANAGER | `/manager/settings` | heading | Authorised accounts | `app/routes/manager/settings.tsx:158` | no | Section `h2`. |
+| MGR-SETTINGS-005 | MANAGER | `/manager/settings` | accessibility label | Authorised application accounts and their roles | `app/routes/manager/settings.tsx:165`-`167` | no | Table caption, visually hidden. |
+| MGR-SETTINGS-006 | MANAGER | `/manager/settings` | metadata | Email | `app/routes/manager/settings.tsx:170` | no | Column heading. |
+| MGR-SETTINGS-007 | MANAGER | `/manager/settings` | metadata | Role | `app/routes/manager/settings.tsx:171` | no | Column heading. |
+| MGR-SETTINGS-008 | MANAGER | `/manager/settings` | metadata | Active | `app/routes/manager/settings.tsx:172` | no | Column heading. |
+| MGR-SETTINGS-009 | MANAGER | `/manager/settings` | metadata | Change role | `app/routes/manager/settings.tsx:173` | no | Column heading. |
+| MGR-SETTINGS-010 | MANAGER | `/manager/settings` | metadata | Access | `app/routes/manager/settings.tsx:174` | no | Column heading. |
+| MGR-SETTINGS-011 | MANAGER | `/manager/settings` | accessibility label | Role for {email} | `app/routes/manager/settings.tsx:187`-`189` | no | Visually hidden label for each role selector. |
+| MGR-SETTINGS-012 | MANAGER | `/manager/settings` | button | Save role | `app/routes/manager/settings.tsx:198` | no | Submits one role change. |
+| MGR-SETTINGS-013 | MANAGER | `/manager/settings` | button | Deactivate | `app/routes/manager/settings.tsx:211` | no | Shown for an active account. |
+| MGR-SETTINGS-014 | MANAGER | `/manager/settings` | button | Reactivate | `app/routes/manager/settings.tsx:211` | no | Shown for a deactivated account. |
+| MGR-SETTINGS-015 | MANAGER | `/manager/settings` | helper text | There must always be at least one active manager: the last one cannot be deactivated or demoted. | `app/routes/manager/settings.tsx:220`-`223` | no | States the last-manager rule. |
+| MGR-SETTINGS-016 | MANAGER | `/manager/settings` | field label | Add an authorised address | `app/routes/manager/settings.tsx:227` | no | New-account email field. |
+| MGR-SETTINGS-017 | MANAGER | `/manager/settings` | field label | Role | `app/routes/manager/settings.tsx:229` | no | New-account role selector. |
+| MGR-SETTINGS-018 | MANAGER | `/manager/settings` | button | Add account | `app/routes/manager/settings.tsx:238` | no | Creates the authorised account. |
+| MGR-SETTINGS-019 | MANAGER | `/manager/settings` | metadata | yes, or no | `app/routes/manager/settings.tsx:129` | no | Active-state value in the table and the deployment table. |
+| MGR-SETTINGS-020 | MANAGER | `/manager/settings` | heading | Deployment state | `app/routes/manager/settings.tsx:246` | no | Section `h2`. |
+| MGR-SETTINGS-021 | MANAGER | `/manager/settings` | helper text | Read from this deployment's configuration. Values are not displayed: no audiences, account details or credentials appear here, and none of it is editable. | `app/routes/manager/settings.tsx:247`-`250` | no | States the no-secrets rule. |
+| MGR-SETTINGS-022 | MANAGER | `/manager/settings` | accessibility label | Deployment configuration presence | `app/routes/manager/settings.tsx:253` | no | Table caption, visually hidden. |
+| MGR-SETTINGS-023 | MANAGER | `/manager/settings` | metadata | Operator identity mode | `app/routes/manager/settings.tsx:256` | no | Deployment row label. |
+| MGR-SETTINGS-024 | MANAGER | `/manager/settings` | metadata | Cloudflare Access configured | `app/routes/manager/settings.tsx:260` | no | Deployment row label. |
+| MGR-SETTINGS-025 | MANAGER | `/manager/settings` | metadata | Canonical public origin configured | `app/routes/manager/settings.tsx:264` | no | Deployment row label. |
+| MGR-SETTINGS-026 | MANAGER | `/manager/settings` | metadata | Database binding present | `app/routes/manager/settings.tsx:268` | no | Deployment row label. |
+| MGR-SETTINGS-027 | MANAGER | `/manager/settings` | metadata | Private masters bucket bound | `app/routes/manager/settings.tsx:272` | no | Deployment row label. |
+| MGR-SETTINGS-028 | MANAGER | `/manager/settings` | metadata | Public derivatives bucket bound | `app/routes/manager/settings.tsx:276` | no | Deployment row label. |
+| MGR-SETTINGS-029 | MANAGER | `/manager/settings` | metadata | Image processing binding present | `app/routes/manager/settings.tsx:280` | no | Deployment row label. |
+| MGR-SETTINGS-030 | MANAGER | `/manager/settings` | metadata | Development identity enabled | `app/routes/manager/settings.tsx:284` | no | Deployment row label. |
+| MGR-SETTINGS-031 | MANAGER | `/manager/settings` | metadata | Development seed fallback enabled | `app/routes/manager/settings.tsx:288` | no | Deployment row label. |
+| MGR-SETTINGS-032 | MANAGER | `/manager/settings` | metadata | Development notices enabled | `app/routes/manager/settings.tsx:292` | no | Deployment row label; reports the `SHOW_DEVELOPMENT_NOTICES` switch. |
+| MGR-SETTINGS-033 | MANAGER | `/manager/settings` | metadata | Photographer — uploads, edits and publishes photographs | `app/auth/user-management.ts:33` (`ROLE_LABELS`) | no | Role option in the add-account selector. |
+| MGR-SETTINGS-034 | MANAGER | `/manager/settings` | metadata | Manager — everything a photographer can do, plus users, maintenance and diagnostics | `app/auth/user-management.ts:34` (`ROLE_LABELS`) | no | Role option in the add-account selector. |
+| MGR-SETTINGS-035 | MANAGER | `/manager/settings` | warning | No database is configured in this environment, so nothing was changed. | `app/routes/manager/settings.tsx:67` | no | Same wording as `ADM-PHOTOS-004`. |
+| MGR-SETTINGS-036 | MANAGER | `/manager/settings` | warning | That action was not recognised, so nothing was changed. | `app/routes/manager/settings.tsx:76` | no | Unrecognised intent. |
+| MGR-SETTINGS-037 | MANAGER | `/manager/settings` | confirmation | {email} now has the {role} role, once Cloudflare Access admits that address. | `app/routes/manager/settings.tsx:87` | no | Explains that a row alone grants nothing. |
+| MGR-SETTINGS-038 | MANAGER | `/manager/settings` | warning | {email} is already an authorised account. | `app/routes/manager/settings.tsx:91` | no | Duplicate refusal. |
+| MGR-SETTINGS-039 | MANAGER | `/manager/settings` | warning | The account could not be saved. | `app/routes/manager/settings.tsx:95` | no | Storage failure. |
+| MGR-SETTINGS-040 | MANAGER | `/manager/settings` | confirmation | {email} now has the {role} role. | `app/routes/manager/settings.tsx:109` | no | Role change success. |
+| MGR-SETTINGS-041 | MANAGER | `/manager/settings` | confirmation | {email} is now active, or {email} is now deactivated. | `app/routes/manager/settings.tsx:110` | no | Activation change success. |
+| MGR-SETTINGS-042 | MANAGER | `/manager/settings` | warning | That would leave the site with no active manager, so nothing was changed. Add or reactivate another manager first. | `app/routes/manager/settings.tsx:115`-`116` | no | Last-manager refusal. |
+| MGR-SETTINGS-043 | MANAGER | `/manager/settings` | warning | That account no longer exists. | `app/routes/manager/settings.tsx:120` | no | Not-found. |
+| MGR-SETTINGS-044 | MANAGER | `/manager/settings` | warning | The change could not be saved. | `app/routes/manager/settings.tsx:124` | no | Storage failure. |
+| MGR-SETTINGS-045 | MANAGER | `/manager/settings` | warning | No database is configured in this environment, so the authorised-account list is unavailable. | `app/auth/user-management.server.ts:189`-`191` | no | Shown instead of the account list. |
+
+## Manager maintenance — `MGR-MAINT`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| MGR-MAINT-001 | MANAGER | `/manager/maintenance` header | heading | Maintenance | `app/routes/manager/maintenance.tsx:39`, `:52` | no | Eyebrow. |
+| MGR-MAINT-002 | MANAGER | `/manager/maintenance` header | heading | Maintenance | `app/routes/manager/maintenance.tsx:40`, `:53` | no | Page `h1`. |
+| MGR-MAINT-003 | MANAGER | `/manager/maintenance` header | body | Read-only integrity checks over the stored data and the storage bindings. Nothing on this page changes anything. | `app/routes/manager/maintenance.tsx:54`-`57` | no | Page lede. |
+| MGR-MAINT-004 | MANAGER | `/manager/maintenance` summary | confirmation | Every check passed: the stored data is internally consistent. | `app/routes/manager/maintenance.tsx:62` | no | Shown when no finding needs attention. |
+| MGR-MAINT-005 | MANAGER | `/manager/maintenance` summary | warning | {n} check, or {n} checks, need attention — see below. Nothing has been changed automatically. | `app/routes/manager/maintenance.tsx:63` | no | Singular/plural count of findings. |
+| MGR-MAINT-006 | MANAGER | `/manager/maintenance` | heading | Stored records | `app/routes/manager/maintenance.tsx:67` | no | Section `h2`. |
+| MGR-MAINT-007 | MANAGER | `/manager/maintenance` | accessibility label | Record counts | `app/routes/manager/maintenance.tsx:70` | no | Table caption, visually hidden. |
+| MGR-MAINT-008 | MANAGER | `/manager/maintenance` | metadata | Count | `app/routes/manager/maintenance.tsx:83` | no | Cell label used by the responsive table layout. |
+| MGR-MAINT-009 | MANAGER | `/manager/maintenance` | metadata | Authorised accounts | `app/routes/manager/maintenance.tsx:73` | no | Record label; value is `{n} ({m} active manager(s))`. |
+| MGR-MAINT-010 | MANAGER | `/manager/maintenance` | metadata | Galleries | `app/routes/manager/maintenance.tsx:74` | no | Record label; value is `{n} ({m} published)`. |
+| MGR-MAINT-011 | MANAGER | `/manager/maintenance` | metadata | Photographs | `app/routes/manager/maintenance.tsx:75` | no | Record label; value is `{n} ({m} published)`. |
+| MGR-MAINT-012 | MANAGER | `/manager/maintenance` | metadata | Tags | `app/routes/manager/maintenance.tsx:76` | no | Record label; value is `{n} across {m} photograph links`. |
+| MGR-MAINT-013 | MANAGER | `/manager/maintenance` | metadata | Enquiries | `app/routes/manager/maintenance.tsx:77` | no | Record label; value is `{n} ({m} new)`. |
+| MGR-MAINT-014 | MANAGER | `/manager/maintenance` | metadata | Likes | `app/routes/manager/maintenance.tsx:78` | no | Record label; value is a count. |
+| MGR-MAINT-015 | MANAGER | `/manager/maintenance` | metadata | Share events | `app/routes/manager/maintenance.tsx:79` | no | Record label; value is a count. |
+| MGR-MAINT-016 | MANAGER | `/manager/maintenance` | heading | Integrity checks | `app/routes/manager/maintenance.tsx:92` | no | Section `h2`. |
+| MGR-MAINT-017 | MANAGER | `/manager/maintenance` | accessibility label | Integrity check results | `app/routes/manager/maintenance.tsx:95` | no | Table caption, visually hidden. |
+| MGR-MAINT-018 | MANAGER | `/manager/maintenance` | metadata | Check | `app/routes/manager/maintenance.tsx:98` | no | Column heading. |
+| MGR-MAINT-019 | MANAGER | `/manager/maintenance` | metadata | Result | `app/routes/manager/maintenance.tsx:99` | no | Column heading. |
+| MGR-MAINT-020 | MANAGER | `/manager/maintenance` | metadata | OK | `app/routes/manager/maintenance.tsx:108` | no | Badge for a passing check. |
+| MGR-MAINT-021 | MANAGER | `/manager/maintenance` | metadata | Attention | `app/routes/manager/maintenance.tsx:108` | no | Badge for a failing check. |
+| MGR-MAINT-022 | MANAGER | `/manager/maintenance` | metadata | Nothing to report. | `app/data/maintenance.server.ts:112` | no | Default detail for a passing check. |
+| MGR-MAINT-023 | MANAGER | `/manager/maintenance` | metadata | Galleries whose cover photograph is missing or belongs to another gallery | `app/data/maintenance.server.ts:122` | no | Check label. |
+| MGR-MAINT-024 | MANAGER | `/manager/maintenance` | metadata | {n} gallery(ies) have a cover that is not one of their own photographs. | `app/data/maintenance.server.ts:123` | no | Detail line, with a literal `(ies)` rather than a plural rule. |
+| MGR-MAINT-025 | MANAGER | `/manager/maintenance` | metadata | Published photographs sitting in unpublished galleries | `app/data/maintenance.server.ts:130` | no | Check label. |
+| MGR-MAINT-026 | MANAGER | `/manager/maintenance` | metadata | {n} photograph(s) are published but their gallery is not, so they are not visible on the public site until the gallery is published. | `app/data/maintenance.server.ts:132` | no | Detail line. |
+| MGR-MAINT-027 | MANAGER | `/manager/maintenance` | metadata | Photographs with an incomplete storage key | `app/data/maintenance.server.ts:138` | no | Check label; names an internal column concept. |
+| MGR-MAINT-028 | MANAGER | `/manager/maintenance` | metadata | {n} photograph(s) are missing one of their three storage keys. | `app/data/maintenance.server.ts:139` | no | Detail line. |
+| MGR-MAINT-029 | MANAGER | `/manager/maintenance` | metadata | Tag links pointing at a photograph or tag that no longer exists | `app/data/maintenance.server.ts:147` | no | Check label. |
+| MGR-MAINT-030 | MANAGER | `/manager/maintenance` | metadata | {n} tag link(s) reference a record that is missing. | `app/data/maintenance.server.ts:148` | no | Detail line. |
+| MGR-MAINT-031 | MANAGER | `/manager/maintenance` | metadata | Likes pointing at a photograph that no longer exists | `app/data/maintenance.server.ts:154` | no | Check label. |
+| MGR-MAINT-032 | MANAGER | `/manager/maintenance` | metadata | {n} like row(s) reference a missing photograph. | `app/data/maintenance.server.ts:155` | no | Detail line. |
+| MGR-MAINT-033 | MANAGER | `/manager/maintenance` | metadata | Share events pointing at a photograph that no longer exists | `app/data/maintenance.server.ts:161` | no | Check label. |
+| MGR-MAINT-034 | MANAGER | `/manager/maintenance` | metadata | {n} share event(s) reference a missing photograph. | `app/data/maintenance.server.ts:162` | no | Detail line. |
+| MGR-MAINT-035 | MANAGER | `/manager/maintenance` | metadata | Enquiries in a state this application does not recognise | `app/data/maintenance.server.ts:168` | no | Check label. |
+| MGR-MAINT-036 | MANAGER | `/manager/maintenance` | metadata | {n} enquiry row(s) carry an unknown status. | `app/data/maintenance.server.ts:169` | no | Detail line. |
+| MGR-MAINT-037 | MANAGER | `/manager/maintenance` | metadata | Duplicate authorised addresses | `app/data/maintenance.server.ts:176` | no | Check label. |
+| MGR-MAINT-038 | MANAGER | `/manager/maintenance` | metadata | {n} address(es) appear more than once, which makes the role lookup ambiguous. | `app/data/maintenance.server.ts:177` | no | Detail line. |
+| MGR-MAINT-039 | MANAGER | `/manager/maintenance` | metadata | Active managers | `app/data/maintenance.server.ts:183`, `:188` | no | Check label. |
+| MGR-MAINT-040 | MANAGER | `/manager/maintenance` | warning | There is no active manager, so the manager area cannot be reached at all. Database intervention is required to recover. | `app/data/maintenance.server.ts:186` | no | Lockout warning; states that recovery needs a developer. |
+| MGR-MAINT-041 | MANAGER | `/manager/maintenance` | metadata | {n} active manager(s). | `app/data/maintenance.server.ts:188` | no | Detail line. |
+| MGR-MAINT-042 | MANAGER | `/manager/maintenance` | heading | Stored objects | `app/routes/manager/maintenance.tsx:120` | no | Section `h2`. |
+| MGR-MAINT-043 | MANAGER | `/manager/maintenance` | accessibility label | Object existence probe | `app/routes/manager/maintenance.tsx:126` | no | Table caption, visually hidden. |
+| MGR-MAINT-044 | MANAGER | `/manager/maintenance` | metadata | Photographs inspected | `app/routes/manager/maintenance.tsx:129` | no | Probe row label. |
+| MGR-MAINT-045 | MANAGER | `/manager/maintenance` | metadata | Private masters missing | `app/routes/manager/maintenance.tsx:133` | no | Probe row label. |
+| MGR-MAINT-046 | MANAGER | `/manager/maintenance` | metadata | Web derivatives missing | `app/routes/manager/maintenance.tsx:137` | no | Probe row label. |
+| MGR-MAINT-047 | MANAGER | `/manager/maintenance` | metadata | Thumbnails missing | `app/routes/manager/maintenance.tsx:141` | no | Probe row label. |
+| MGR-MAINT-048 | MANAGER | `/manager/maintenance` | metadata | Checked the most recent {n} photograph(s). Missing objects are counted, never listed. | `app/data/maintenance.server.ts:265` | no | Probe note. |
+| MGR-MAINT-049 | MANAGER | `/manager/maintenance` | warning | Storage bindings are not both present in this environment, so objects were not inspected. | `app/data/maintenance.server.ts:215` | no | Shown when the probe cannot run. |
+| MGR-MAINT-050 | MANAGER | `/manager/maintenance` | heading | Destructive tools | `app/routes/manager/maintenance.tsx:152` | no | Section `h2`. |
+| MGR-MAINT-051 | MANAGER | `/manager/maintenance` | warning | There are none, by design. Nothing here resets data, purges derivatives or deletes accounts: those operations would risk an archive that has no backup, and no part of V1 needs them. Unpublishing a photograph or a gallery is the reversible withdrawal mechanism, and it lives on those screens. | `app/routes/manager/maintenance.tsx:153`-`158` | no | Names the product version ("V1"); explains a deliberate absence. |
+| MGR-MAINT-052 | MANAGER | `/manager/maintenance` unavailable state | warning | No database is configured in this environment, so no integrity report can be produced. | `app/data/maintenance.server.ts:83` | no | Shown instead of the whole report. |
+
+## Manager 404 — `MGR-NOTFOUND`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| MGR-NOTFOUND-001 | MANAGER | Unknown `/manager/...` path | heading | 404 | `app/routes/manager/not-found.tsx:24` | no | Eyebrow. |
+| MGR-NOTFOUND-002 | MANAGER | Unknown `/manager/...` path | heading | That manager page does not exist | `app/routes/manager/not-found.tsx:25` | no | Page `h1`. |
+| MGR-NOTFOUND-003 | MANAGER | Unknown `/manager/...` path | body | Check the address, or return to the manager dashboard. | `app/routes/manager/not-found.tsx:26` | no | Page lede. |
+| MGR-NOTFOUND-004 | MANAGER | Unknown `/manager/...` path | button | Back to dashboard | `app/routes/manager/not-found.tsx:30` | no | Links to `/manager`. |
+
+## Access refusals and operator error boundary — `SYS-ACCESS`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SYS-ACCESS-001 | SYSTEM/ERROR | `/admin` and `/manager` error boundary | heading | Restricted area | `app/components/AccessErrorPage.tsx:30` | no | Eyebrow. |
+| SYS-ACCESS-002 | SYSTEM/ERROR | `/admin` and `/manager` error boundary | heading | Sign in required | `app/components/AccessErrorPage.tsx:24` | no | Title for a 401 denial. |
+| SYS-ACCESS-003 | SYSTEM/ERROR | `/admin` and `/manager` error boundary | heading | Access denied | `app/components/AccessErrorPage.tsx:25` | no | Title for a 403 denial. |
+| SYS-ACCESS-004 | SYSTEM/ERROR | `/admin` and `/manager` error boundary | heading | Something went wrong | `app/components/AccessErrorPage.tsx:22` | no | Title for any other error. |
+| SYS-ACCESS-005 | SYSTEM/ERROR | `/admin` and `/manager` error boundary | body | This area is restricted to site operators. | `app/components/AccessErrorPage.tsx:19` | no | Fallback body when a denial carries no message. |
+| SYS-ACCESS-006 | SYSTEM/ERROR | `/admin` and `/manager` error boundary | body | This area could not be served. | `app/components/AccessErrorPage.tsx:32` | no | Body for a non-denial error. |
+| SYS-ACCESS-007 | SYSTEM/ERROR | `/admin` and `/manager` error boundary | navigation | Back to public site | `app/components/AccessErrorPage.tsx:38` | no | Links to `/`. |
+| SYS-ACCESS-008 | SYSTEM/ERROR | `/admin` and `/manager` guards | validation/error | Sign in to continue. This area is restricted to site operators. | `app/auth/authorization.server.ts:44`-`45` | no | 401 message rendered by the boundary. |
+| SYS-ACCESS-009 | SYSTEM/ERROR | `/admin` and `/manager` guards | validation/error | This identity is not an authorised site operator, or the account is deactivated. | `app/auth/authorization.server.ts:46`-`47` | no | 403 message; deliberately does not say whether the account exists. |
+| SYS-ACCESS-010 | SYSTEM/ERROR | `/manager` guard | validation/error | This area requires manager authority. | `app/auth/authorization.server.ts:48` | no | 403 message for a photographer reaching `/manager`. |
+
+## Root error boundary — `SYS-ERR`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SYS-ERR-001 | SYSTEM/ERROR | Any unhandled route error | heading | 404 | `app/root.tsx:59` | no | Eyebrow for a not-found error response. |
+| SYS-ERR-002 | SYSTEM/ERROR | Any unhandled route error | heading | Error | `app/root.tsx:59` | no | Eyebrow for any other error. |
+| SYS-ERR-003 | SYSTEM/ERROR | Any unhandled route error | heading | Page not found | `app/root.tsx:60` | no | Title for a 404. |
+| SYS-ERR-004 | SYSTEM/ERROR | Any unhandled route error | heading | Something went wrong | `app/root.tsx:60` | no | Title for any other error. |
+| SYS-ERR-005 | SYSTEM/ERROR | Any unhandled route error | body | That address does not exist. | `app/root.tsx:69` | no | Stage-neutral 404 sentence. |
+| SYS-ERR-006 | SYSTEM/ERROR | Any unhandled route error | body | The page you asked for could not be rendered. | `app/root.tsx:70` | no | Stage-neutral error sentence. |
+| SYS-ERR-007 | SYSTEM/ERROR | Any unhandled route error | navigation | Back to home | `app/root.tsx:77` | no | Links to `/`. |
+| SYS-ERR-008 | SYSTEM/ERROR | `GET /gallery/:slug` for an unknown or unpublished gallery | metadata | Gallery not found | `app/routes/gallery.tsx:16` | no | Thrown `Response` body and status text; a visitor reaching this normally sees the shared 404 page instead. |
+| SYS-ERR-009 | SYSTEM/ERROR | `GET /photo/:slug`, `/prints/enquire?photo=…` and `/admin/photos/:photoId` for unknown records | metadata | Photograph not found | `app/routes/photo.tsx:29`, `app/routes/prints.enquire.tsx:65`, `app/routes/admin/photos.$photoId.tsx:67` | no | Thrown `Response` body and status text. |
+| SYS-ERR-010 | SYSTEM/ERROR | Any mutating operator action from another origin | validation/error | Cross-origin request refused. | `app/lib/same-origin.ts:73` | no | Plain-text refusal body; never a rendered page. |
+| SYS-ERR-011 | SYSTEM/ERROR | `POST /engagement/:slug` | metadata | cross-origin · malformed · engagement-unavailable · unsupported-channel · unknown-action | `app/routes/engagement.$slug.tsx:90`, `:97`, `:143`, `:153`, `:166` | no | Fixed JSON error vocabulary; machine-facing, never rendered as text. |
+| SYS-ERR-012 | SYSTEM/ERROR | Root document | metadata | en | `app/root.tsx:33` | no | Document language attribute, read by assistive technology. |
+
+## Document metadata and SEO copy — `SYS-META`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SYS-META-001 | SYSTEM/ERROR | Every document (default title) | metadata | Anyaparallax Photography | `app/root.tsx:27` | no | Fallback title for a route that sets none. |
+| SYS-META-002 | SYSTEM/ERROR | Every document (default description) | metadata | Night cities, live music and the moments after dark. Anyaparallax photography. | `app/root.tsx:28` (`site.description`, `app/data/site.ts:64`) | no | Also the fallback description for a photograph with none of its own. |
+| SYS-META-003 | PUBLIC | `/` | metadata | Anyaparallax Photography — Night cities, live music, the moments after dark | `app/data/home.ts:26` (`homepageMeta.title`) | no | Document title. |
+| SYS-META-004 | PUBLIC | `/` | metadata | Street photography, live music and the energy of the night. The Anyaparallax photography portfolio. | `app/data/home.ts:32`-`33` (`homepageMeta.description`) | no | Meta description, and the OpenGraph and Twitter description. |
+| SYS-META-005 | PUBLIC | `/` | metadata | (space) Development preview. | `app/data/home.ts:35` (`homepageMeta.previewSuffix`) | no | Appended to `SYS-META-004` only while `SHOW_DEVELOPMENT_NOTICES` is on. |
+| SYS-META-006 | PUBLIC | `/galleries` | metadata | Galleries — Anyaparallax Photography | `app/routes/galleries.tsx:20` | no | Document title. |
+| SYS-META-007 | PUBLIC | `/galleries` | metadata | Browse the Anyaparallax photography collections — nightlife, live music, cityscapes, cars, people and monochrome work. | `app/routes/galleries.tsx:16` | no | Meta description. |
+| SYS-META-008 | PUBLIC | `/galleries` | metadata | (space) Development preview with placeholder imagery. | `app/routes/galleries.tsx:17` | no | Appended only while `SHOW_DEVELOPMENT_NOTICES` is on. |
+| SYS-META-009 | PUBLIC | `/gallery/:slug` | metadata | {gallery.name} — Anyaparallax Photography | `app/routes/gallery.tsx:27` | via settings | Title built from the operator's gallery name. |
+| SYS-META-010 | PUBLIC | `/gallery/:slug` not found | metadata | Gallery not found — Anyaparallax Photography | `app/routes/gallery.tsx:24` | no | Title when the loader data is absent. |
+| SYS-META-011 | PUBLIC | `/gallery/:slug` | metadata | {gallery.description} | `app/routes/gallery.tsx:28` | via settings | Meta description taken from the gallery record. |
+| SYS-META-012 | PUBLIC | `/photo/:slug` | metadata | {photo.title} — Anyaparallax Photography | `app/engagement/metadata.ts:106` | yes | Title built from the photograph title. |
+| SYS-META-013 | PUBLIC | `/photo/:slug` not found | metadata | Photograph not found — Anyaparallax Photography | `app/routes/photo.tsx:78` | no | Title when the loader data is absent. |
+| SYS-META-014 | PUBLIC | `/photo/:slug` | metadata | {photo.description}, falling back to SYS-META-002 | `app/engagement/metadata.ts:109` | yes | Description from the photograph record. |
+| SYS-META-015 | PUBLIC | `/prints` | metadata | Prints — Anyaparallax Photography | `app/routes/prints.tsx:63` | no | Title when the loader data is absent; otherwise built by `pageMetadataFor`. |
+| SYS-META-016 | PUBLIC | `/prints` | metadata | Selected Anyaparallax photographs may be available as prints. Register interest or enquire about a photograph, a format and a size; availability and price are confirmed personally. There is no checkout or payment on this site. | `app/routes/prints.tsx:52`-`55` | no | Meta description. |
+| SYS-META-017 | PUBLIC | `/about` | metadata | About — Anyaparallax Photography | `app/routes/about.tsx:65` | no | Title when the loader data is absent. |
+| SYS-META-018 | PUBLIC | `/about` | metadata | About Anyaparallax: night cities, live music, cars and the moments after dark. | `app/routes/about.tsx:20` | no | Meta description. |
+| SYS-META-019 | PUBLIC | `/about` | metadata | (space) Provisional introduction and development preview — final biography and photography are supplied by the photographer before publication. | `app/routes/about.tsx:21`-`22` | no | Appended only while `SHOW_DEVELOPMENT_NOTICES` is on; development and process wording. |
+| SYS-META-020 | PUBLIC | `/contact` | metadata | Contact — Anyaparallax Photography | `app/routes/contact.tsx:74` | no | Title when the loader data is absent. |
+| SYS-META-021 | PUBLIC | `/contact` | metadata | Contact Anyaparallax about band, gig, event, car or print photography. Messages are read by Anya and answered personally; no public email address is published here. | `app/routes/contact.tsx:59`-`61` | no | Meta description. |
+| SYS-META-022 | PUBLIC | `/privacy` | metadata | Privacy — Anyaparallax Photography | `app/routes/privacy.tsx:6` | no | Document title. |
+| SYS-META-023 | PUBLIC | `/privacy` | metadata | What this website stores when you send an enquiry or interact with a photograph, and what it deliberately does not collect. | `app/routes/privacy.tsx:9`-`10` | no | Meta description. |
+| SYS-META-024 | PUBLIC | `/prints/enquire` | metadata | Print enquiry — Anyaparallax Photography, or Print enquiry — {photo.title} | `app/routes/prints.enquire.tsx:76` | no | Title, with the photograph appended when one is named. |
+| SYS-META-025 | PUBLIC | `/prints/enquire` | metadata | Register interest in a print, or ask about availability, format, size and price. Enquiries are answered personally; there is no checkout and no payment on this site. | `app/routes/prints.enquire.tsx:78`-`79` | no | Meta description. |
+| SYS-META-026 | PUBLIC | `/prints/enquire/received` | metadata | Enquiry received — Anyaparallax Photography | `app/routes/prints.enquire.received.tsx:16` | no | Static title; no submission detail reaches it. |
+| SYS-META-027 | PUBLIC | `/prints/enquire/received` | metadata | Acknowledgement that a print enquiry has been received. | `app/routes/prints.enquire.received.tsx:17` | no | Meta description. |
+| SYS-META-028 | PUBLIC | `/contact/received` | metadata | Message received — Anyaparallax Photography | `app/routes/contact.received.tsx:15` | no | Static title. |
+| SYS-META-029 | PUBLIC | `/contact/received` | metadata | Acknowledgement that a contact message has been received. | `app/routes/contact.received.tsx:16` | no | Meta description. |
+| SYS-META-030 | PUBLIC | Unknown public path | metadata | Page not found — Anyaparallax Photography | `app/routes/not-found.tsx:9` | no | 404 document title. |
+| SYS-META-031 | PHOTOGRAPHER | `/admin` and children | metadata | Admin — Anyaparallax | `app/layouts/admin.tsx:12` | no | Layout title; child routes override it. |
+| SYS-META-032 | MANAGER | `/manager` and children | metadata | Manager — Anyaparallax | `app/layouts/manager.tsx:12` | no | Layout title; child routes override it. |
+| SYS-META-033 | PHOTOGRAPHER | `/admin` | metadata | Admin dashboard — Anyaparallax Photography | `app/routes/admin/dashboard.tsx:11` | no | Document title. |
+| SYS-META-034 | PHOTOGRAPHER | `/admin/photos` | metadata | Photos — Anyaparallax admin | `app/routes/admin/photos.tsx:11` | no | Document title. |
+| SYS-META-035 | PHOTOGRAPHER | `/admin/photos/:photoId` | metadata | Edit photograph — Anyaparallax admin | `app/routes/admin/photos.$photoId.tsx:29` | no | Document title. |
+| SYS-META-036 | PHOTOGRAPHER | `/admin/upload` | metadata | Upload photos — Anyaparallax admin | `app/routes/admin/upload.tsx:20` | no | Document title. |
+| SYS-META-037 | PHOTOGRAPHER | `/admin/galleries` | metadata | Galleries — Anyaparallax admin | `app/routes/admin/galleries.tsx:23` | no | Document title. |
+| SYS-META-038 | PHOTOGRAPHER | `/admin/enquiries` | metadata | Enquiries — Anyaparallax admin | `app/routes/admin/enquiries.tsx:17` | no | Document title. |
+| SYS-META-039 | PHOTOGRAPHER | `/admin/prints` | metadata | Print eligibility — Anyaparallax admin | `app/routes/admin/prints.tsx:14` | no | Document title. |
+| SYS-META-040 | PHOTOGRAPHER | `/admin/settings` | metadata | Settings — Anyaparallax admin | `app/routes/admin/settings.tsx:26` | no | Document title. |
+| SYS-META-041 | PHOTOGRAPHER | Unknown `/admin/...` path | metadata | Not found — Anyaparallax admin | `app/routes/admin/not-found.tsx:7` | no | Document title. |
+| SYS-META-042 | MANAGER | `/manager` | metadata | Manager dashboard — Anyaparallax Photography | `app/routes/manager/dashboard.tsx:11` | no | Document title. |
+| SYS-META-043 | MANAGER | `/manager/diagnostics` | metadata | Diagnostics — Anyaparallax manager | `app/routes/manager/diagnostics.tsx:10` | no | Document title. |
+| SYS-META-044 | MANAGER | `/manager/settings` | metadata | Settings — Anyaparallax manager | `app/routes/manager/settings.tsx:14` | no | Document title. |
+| SYS-META-045 | MANAGER | `/manager/maintenance` | metadata | Maintenance — Anyaparallax manager | `app/routes/manager/maintenance.tsx:9` | no | Document title. |
+| SYS-META-046 | MANAGER | Unknown `/manager/...` path | metadata | Not found — Anyaparallax manager | `app/routes/manager/not-found.tsx:7` | no | Document title. |
+| SYS-META-047 | SYSTEM/ERROR | Photograph and content pages | metadata | summary, or summary_large_image | `app/engagement/metadata.ts:159` | no | `twitter:card` value; the large-image card is claimed only when a public preview image exists. |
+| SYS-META-048 | SYSTEM/ERROR | Operator pages and submission results | metadata | noindex, nofollow | `app/layouts/admin.tsx:13`, `app/layouts/manager.tsx:13`, `app/routes/not-found.tsx:10`, `app/routes/admin/not-found.tsx:8`, `app/routes/manager/not-found.tsx:8`, `app/routes/prints.enquire.received.tsx:20`, `app/routes/contact.received.tsx:17` | no | Robots directive. |
+| SYS-META-049 | SYSTEM/ERROR | `/prints/enquire` when loader data is absent | metadata | noindex | `app/routes/prints.enquire.tsx:100` | no | Robots directive for the enquiry form fallback. |
+
+## Machine-facing crawl policy — `SYS-ROBOTS`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SYS-ROBOTS-001 | SYSTEM/ERROR | `/robots.txt` | metadata | User-agent: * | `app/routes/robots.txt.ts:60` | no | Crawler policy; not rendered to a person. |
+| SYS-ROBOTS-002 | SYSTEM/ERROR | `/robots.txt` | metadata | Allow: / | `app/routes/robots.txt.ts:61` | no | The public site is crawlable. |
+| SYS-ROBOTS-003 | SYSTEM/ERROR | `/robots.txt` | metadata | Disallow: /admin | `app/routes/robots.txt.ts:49` | no | Courtesy only; the guard is the real control. |
+| SYS-ROBOTS-004 | SYSTEM/ERROR | `/robots.txt` | metadata | Disallow: /manager | `app/routes/robots.txt.ts:50` | no | As above. |
+| SYS-ROBOTS-005 | SYSTEM/ERROR | `/robots.txt` | metadata | Disallow: /dev-verification | `app/routes/robots.txt.ts:51` | no | Development-only surface. |
+| SYS-ROBOTS-006 | SYSTEM/ERROR | `/robots.txt` | metadata | Disallow: /engagement/ | `app/routes/robots.txt.ts:52` | no | POST-only JSON endpoint. |
+| SYS-ROBOTS-007 | SYSTEM/ERROR | `/robots.txt` | metadata | Disallow: /contact/received | `app/routes/robots.txt.ts:53` | no | Submission result. |
+| SYS-ROBOTS-008 | SYSTEM/ERROR | `/robots.txt` | metadata | Disallow: /prints/enquire/received | `app/routes/robots.txt.ts:54` | no | Submission result. |
+| SYS-ROBOTS-009 | SYSTEM/ERROR | `/robots.txt` | metadata | Sitemap: {origin}/sitemap.xml | `app/routes/robots.txt.ts:64` | no | `{origin}` is the configured canonical origin, never the request host. |
+| SYS-ROBOTS-010 | SYSTEM/ERROR | `/sitemap.xml` | metadata | / · /galleries · /prints · /about · /contact · /privacy, plus each published gallery and photograph path | `app/routes/sitemap.xml.ts:38`-`46` | via settings | No prose: URL entries only, driven by the public query boundary. |
+
+## Enquiry validation messages — `SYS-ENQVAL`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SYS-ENQVAL-001 | PUBLIC | Both enquiry forms | validation/error | Please give a name so Anya knows who is asking. | `app/enquiries/validation.ts:177` | no | Shown under the name field. |
+| SYS-ENQVAL-002 | PUBLIC | Both enquiry forms | validation/error | Please keep the name to 120 characters or fewer. | `app/enquiries/validation.ts:179` | no | Bound from `ENQUIRY_LIMITS.name`. |
+| SYS-ENQVAL-003 | PUBLIC | Both enquiry forms | validation/error | Please give an email address so Anya can reply. | `app/enquiries/validation.ts:184` | no | Shown under the email field. |
+| SYS-ENQVAL-004 | PUBLIC | Both enquiry forms | validation/error | That does not look like an email address. Please check it and try again. | `app/enquiries/validation.ts:186` | no | Shape check only; deliberately not an RFC parser. |
+| SYS-ENQVAL-005 | PUBLIC | Both enquiry forms | validation/error | Please add a short message. | `app/enquiries/validation.ts:191` | no | Empty message. |
+| SYS-ENQVAL-006 | PUBLIC | Both enquiry forms | validation/error | Please keep the message to 4000 characters or fewer. | `app/enquiries/validation.ts:193` | no | Bound from `ENQUIRY_LIMITS.message`. |
+| SYS-ENQVAL-007 | PUBLIC | Contact form | validation/error | Please choose what the enquiry is about. | `app/enquiries/validation.ts:199`, `:260` | no | Category is an allow-list, never defaulted to "other". |
+| SYS-ENQVAL-008 | PUBLIC | Both enquiry forms | validation/error | This form has expired. Please reload the page and send it again. | `app/enquiries/validation.ts:206` | no | Missing or malformed submission token. |
+| SYS-ENQVAL-009 | PUBLIC | Print enquiry form | validation/error | That photograph reference is not valid. | `app/enquiries/validation.ts:220` | no | Malformed slug shape; the server still resolves the slug separately. |
+| SYS-ENQVAL-010 | PUBLIC | Print enquiry form | validation/error | Please choose one of the listed formats. | `app/enquiries/validation.ts:227` | no | Format allow-list refusal. |
+| SYS-ENQVAL-011 | PUBLIC | Print enquiry form | validation/error | Please keep the size preference to 40 characters or fewer. | `app/enquiries/validation.ts:234` | no | Bound from `ENQUIRY_LIMITS.printSize`. |
+| SYS-ENQVAL-012 | PUBLIC | Contact form | validation/error | A photograph cannot be attached to this kind of enquiry. | `app/enquiries/validation.ts:244` | no | Print-only field supplied on a general message. |
+| SYS-ENQVAL-013 | PUBLIC | Contact form | validation/error | A print format cannot be attached to this kind of enquiry. | `app/enquiries/validation.ts:247` | no | As above. |
+| SYS-ENQVAL-014 | PUBLIC | Contact form | validation/error | A print size cannot be attached to this kind of enquiry. | `app/enquiries/validation.ts:250` | no | As above. |
+| SYS-ENQVAL-015 | PUBLIC | Print enquiry form | validation/error | That photograph is not currently available for print enquiries. | `app/enquiries/enquiries.server.ts:116` | no | Raised when the named photograph is not print-eligible at submit time. |
+
+## Photograph and upload validation messages — `SYS-UPLOADVAL`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SYS-UPLOADVAL-001 | PHOTOGRAPHER | Upload form and photograph editor | validation/error | A photograph must have a title. | `app/data/photo-management.ts:272` | no | Title required. |
+| SYS-UPLOADVAL-002 | PHOTOGRAPHER | Upload form and photograph editor | validation/error | Please keep the title to 120 characters or fewer. | `app/data/photo-management.ts:274` | no | `PHOTO_FIELD_LIMITS.title`. |
+| SYS-UPLOADVAL-003 | PHOTOGRAPHER | Upload form and photograph editor | validation/error | Please keep the description to 600 characters or fewer. | `app/data/photo-management.ts:279` | no | `PHOTO_FIELD_LIMITS.description`. |
+| SYS-UPLOADVAL-004 | PHOTOGRAPHER | Upload form and photograph editor | validation/error | Please keep the location to 120 characters or fewer. | `app/data/photo-management.ts:284` | no | `PHOTO_FIELD_LIMITS.location`. |
+| SYS-UPLOADVAL-005 | PHOTOGRAPHER | Upload form and photograph editor | validation/error | A capture date must be a real date in YYYY-MM-DD form. | `app/data/photo-management.ts:289` | no | Calendar-valid date required. |
+| SYS-UPLOADVAL-006 | PHOTOGRAPHER | Upload form and photograph editor | validation/error | Please choose the gallery this photograph belongs to. | `app/data/photo-management.ts:294` | no | Gallery required. |
+| SYS-UPLOADVAL-007 | PHOTOGRAPHER | Upload form and photograph editor | validation/error | That gallery does not exist. | `app/data/photo-management.ts:296` | no | Gallery id not in the resolved set. |
+| SYS-UPLOADVAL-008 | PHOTOGRAPHER | Upload form and photograph editor | validation/error | One or more of the selected tags no longer exists. | `app/data/photo-management.ts:301` | no | Tag id not in the resolved set. |
+| SYS-UPLOADVAL-009 | PHOTOGRAPHER | Photograph editor | validation/error | No photograph was identified. | `app/data/photo-management.server.ts:352`, `:443`, `:480` | no | Missing or malformed identifier. |
+| SYS-UPLOADVAL-010 | PHOTOGRAPHER | Photograph editor | validation/error | The publication and featured states must be chosen from the listed options. | `app/data/photo-management.server.ts:358` | no | Strict state contract. |
+| SYS-UPLOADVAL-011 | PHOTOGRAPHER | Photograph editor | validation/error | A publication state must be 'draft' or 'published'. | `app/data/photo-management.server.ts:448` | no | Allow-list refusal. |
+| SYS-UPLOADVAL-012 | PHOTOGRAPHER | Photograph editor | validation/error | A featured state must be 'featured' or 'not-featured'. | `app/data/photo-management.server.ts:485` | no | Allow-list refusal. |
+| SYS-UPLOADVAL-013 | PHOTOGRAPHER | Upload form | validation/error | The uploaded file is empty. | `app/images/upload-validation.ts:247` | no | Refusal reason `empty-file`. |
+| SYS-UPLOADVAL-014 | PHOTOGRAPHER | Upload form | validation/error | The uploaded file is {megabytes} MB; the limit is 20 MB. | `app/images/upload-validation.ts:251`-`253` | no | `MAX_UPLOAD_BYTES`. |
+| SYS-UPLOADVAL-015 | PHOTOGRAPHER | Upload form | validation/error | Files of type {declared} are not accepted; use JPEG or PNG. | `app/images/upload-validation.ts:259`-`262` | no | `{declared}` is the submitted MIME type, echoed. |
+| SYS-UPLOADVAL-016 | PHOTOGRAPHER | Upload form | validation/error | The file is not a JPEG or PNG image. Renaming a file does not change its contents. | `app/images/upload-validation.ts:267`-`270` | no | Magic-byte refusal. |
+| SYS-UPLOADVAL-017 | PHOTOGRAPHER | Upload form | validation/error | The file is declared as {declared} but its contents are {sniffed}. | `app/images/upload-validation.ts:275`-`278` | no | Declared type contradicts the bytes; internal MIME vocabulary is echoed. |
+| SYS-UPLOADVAL-018 | PHOTOGRAPHER | Upload form | validation/error | The uploaded file has no usable filename. | `app/images/upload-validation.ts:283` | no | Filename sanitisation left nothing. |
+| SYS-UPLOADVAL-019 | PHOTOGRAPHER | Upload form | validation/error | {n} files were submitted; at most 10 are accepted per upload. | `app/images/upload-validation.ts:97` | no | `MAX_BATCH_FILES`. |
+| SYS-UPLOADVAL-020 | PHOTOGRAPHER | Upload form | validation/error | The submission is {megabytes} MB in total; the limit is 64 MB. | `app/images/upload-validation.ts:108`-`110` | no | `MAX_BATCH_BYTES`. |
+| SYS-UPLOADVAL-021 | PHOTOGRAPHER | Upload form | validation/error | The image reports no usable dimensions. | `app/images/upload-validation.ts:209` | no | Non-integer or non-positive geometry. |
+| SYS-UPLOADVAL-022 | PHOTOGRAPHER | Upload form | validation/error | The image is {width}x{height}, which exceeds the 50000000-pixel limit. | `app/images/upload-validation.ts:213`-`214` | no | Pixel ceiling; the number is unformatted. |
+| SYS-UPLOADVAL-023 | PHOTOGRAPHER | Upload form | validation/error | The image's shorter edge is {n}px; at least 64px is required. | `app/images/upload-validation.ts:221`-`222` | no | Minimum edge. |
+| SYS-UPLOADVAL-024 | PHOTOGRAPHER | Upload form | validation/error | The image's longer edge is {n}px; at most 20000px is accepted. | `app/images/upload-validation.ts:226`-`228` | no | Maximum edge. |
+| SYS-UPLOADVAL-025 | PHOTOGRAPHER | Upload form | validation/error | An upload must declare its size. Send the form with a Content-Length header. | `app/images/upload-request.server.ts:81` | no | Names an HTTP header: developer-facing, shown to the operator. |
+| SYS-UPLOADVAL-026 | PHOTOGRAPHER | Upload form | validation/error | The request is {megabytes} MB; at most 64.25 MB is accepted. | `app/images/upload-request.server.ts:88`-`90` | no | Application-generated cap. |
+| SYS-UPLOADVAL-027 | PHOTOGRAPHER | Upload report | validation/error | The upload could not be decoded as an image: {error message} | `app/images/image-processor.cloudflare.server.ts:109`-`111` | no | Echoes the platform error text. |
+| SYS-UPLOADVAL-028 | PHOTOGRAPHER | Upload report | validation/error | The upload decoded as {format}; use JPEG or PNG. | `app/images/image-processor.cloudflare.server.ts:118` | no | Unsupported decoded format. |
+| SYS-UPLOADVAL-029 | PHOTOGRAPHER | Upload report | validation/error | The image service reported no usable dimensions ({width}x{height}). | `app/images/image-processor.cloudflare.server.ts:125` | no | Geometry refusal. |
+| SYS-UPLOADVAL-030 | PHOTOGRAPHER | Upload report | validation/error | A {maxEdge}px derivative could not be produced: {error message} | `app/images/image-processor.cloudflare.server.ts:208`-`210` | no | Derivative refusal. |
+| SYS-UPLOADVAL-031 | PHOTOGRAPHER | Upload report | validation/error | The image could not be processed and nothing was stored for it. | `app/images/upload.server.ts:346` | no | Deliberately generic: no internal detail is echoed. |
+| SYS-UPLOADVAL-032 | PHOTOGRAPHER | Upload report | validation/error | The storage buckets are not configured, so nothing can be uploaded. | `app/images/upload.server.ts:216` | no | Names storage configuration. |
+| SYS-UPLOADVAL-033 | PHOTOGRAPHER | Upload report | validation/error | The image processor is not configured in this environment, so uploads are unavailable. | `app/images/upload.server.ts:228` | no | Names an infrastructure binding in operator terms. |
+
+## Gallery, tag, account and settings validation — `SYS-VALID`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SYS-VALID-001 | PHOTOGRAPHER | `/admin/galleries` | validation/error | Give the gallery a name. | `app/data/gallery-management.ts:185` | no | Name required. |
+| SYS-VALID-002 | PHOTOGRAPHER | `/admin/galleries` | validation/error | Keep the name to 80 characters or fewer. | `app/data/gallery-management.ts:187` | no | `GALLERY_FIELD_LIMITS.name`. |
+| SYS-VALID-003 | PHOTOGRAPHER | `/admin/galleries` | validation/error | Keep the description to 600 characters or fewer. | `app/data/gallery-management.ts:190` | no | `GALLERY_FIELD_LIMITS.description`. |
+| SYS-VALID-004 | PHOTOGRAPHER | `/admin/galleries` | validation/error | Use a whole number between 0 and 9999. | `app/data/gallery-management.ts:195` | no | `MAX_GALLERY_ORDER`; also raised by the route (`ADM-GALLERY-040`). |
+| SYS-VALID-005 | PHOTOGRAPHER | `/admin/settings` | validation/error | Give the tag a name. | `app/data/taxonomy.ts:45` | no | Tag name required. |
+| SYS-VALID-006 | PHOTOGRAPHER | `/admin/settings` | validation/error | Keep the tag to 40 characters or fewer. | `app/data/taxonomy.ts:48` | no | `TAG_FIELD_LIMITS.name`. |
+| SYS-VALID-007 | MANAGER | `/manager/settings` | validation/error | Enter a full email address, for example name@example.com. | `app/auth/user-management.ts:66` | no | Uses the same normalisation the authentication boundary uses. |
+| SYS-VALID-008 | MANAGER | `/manager/settings` | validation/error | Choose either the photographer or the manager role. | `app/auth/user-management.ts:70`, `app/auth/user-management.server.ts:143` | no | Role allow-list refusal. |
+| SYS-VALID-009 | PHOTOGRAPHER | `/admin/settings` | validation/error | Choose whether new uploads are watermarked by default. | `app/data/site-settings.ts:182` | no | Watermark default refusal. |
+| SYS-VALID-010 | PHOTOGRAPHER | `/admin/settings` | validation/error | Choose a watermark position this application understands. | `app/data/site-settings.ts:186` | no | Position allow-list refusal; the upload route has its own phrasing (`ADM-UPLOAD-034`). |
+| SYS-VALID-011 | PHOTOGRAPHER | `/admin/settings` | validation/error | Keep this to {limit} characters or fewer. | `app/data/site-settings.ts:193` | no | Applies to the four text settings, with 120 or 300 in place of `{limit}`. |
+| SYS-VALID-012 | PHOTOGRAPHER | `/admin/settings` | validation/error | Keep the address under 300 characters. | `app/data/site-settings.ts:133` | no | Social URL bound. |
+| SYS-VALID-013 | PHOTOGRAPHER | `/admin/settings` | validation/error | Enter a full address beginning with https:// | `app/data/site-settings.ts:139` | no | Unparseable URL. |
+| SYS-VALID-014 | PHOTOGRAPHER | `/admin/settings` | validation/error | Use an https:// address. | `app/data/site-settings.ts:142` | no | Non-https scheme. |
+| SYS-VALID-015 | PHOTOGRAPHER | `/admin/settings` | validation/error | That address is not a {network} profile. | `app/data/site-settings.ts:147` | no | Host allow-list refusal naming the network. |
+| SYS-VALID-016 | PHOTOGRAPHER | `/admin/settings` | warning | That request was not understood, so nothing was changed. | `app/routes/admin/settings.tsx:75` | no | Same wording as `ADM-PHOTOS-007`. |
+| SYS-VALID-017 | PHOTOGRAPHER | `/admin/upload` | validation/error | Please keep the title to 120 characters or fewer. | `app/routes/admin/upload.tsx:164` | no | Route-level duplicate of `SYS-UPLOADVAL-002`. |
+
+## Store availability reasons — `SYS-AREA`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SYS-AREA-001 | PHOTOGRAPHER | `/admin/photos` | warning | No database is configured in this environment, so photographs cannot be managed. | `app/data/photo-management.server.ts:555` | no | Names the database; shown when no binding exists. |
+| SYS-AREA-002 | PHOTOGRAPHER | `/admin/photos` | warning | The photograph list could not be read. | `app/data/photo-management.server.ts:561` | no | Read failure. |
+| SYS-AREA-003 | PHOTOGRAPHER | `/admin/photos/:photoId` | warning | No database is configured in this environment, so this photograph cannot be edited. | `app/data/photo-management.server.ts:574` | no | Unavailable editor. |
+| SYS-AREA-004 | PHOTOGRAPHER | `/admin/photos/:photoId` | warning | The photograph could not be read. | `app/data/photo-management.server.ts:580` | no | Read failure. |
+| SYS-AREA-005 | PHOTOGRAPHER | `/admin/photos` and editor | warning | The mutation altered storage identity, which is never permitted; it was not accepted. | `app/data/photo-management.server.ts:285` | no | Read-back guard; names an internal concept. |
+| SYS-AREA-006 | PHOTOGRAPHER | `/admin/photos` and editor | warning | The change to {fields} was not stored, so it has not been reported as saved. | `app/data/photo-management.server.ts:328` | no | Read-back mismatch; `{fields}` is a comma-separated list of internal field names. |
+| SYS-AREA-007 | PHOTOGRAPHER | `/admin/photos/:photoId` | warning | This database binding cannot commit the photograph and its tag links atomically, so nothing was changed. | `app/data/photo-management.server.ts:366` | no | Names a database capability. |
+| SYS-AREA-008 | PHOTOGRAPHER | Photograph editor and list actions | warning | The change could not be committed, so the photograph is unchanged. | `app/data/photo-management.server.ts:419` | no | Write failure. |
+| SYS-AREA-009 | PHOTOGRAPHER | Photograph list actions | warning | The publication change could not be committed, so the photograph is unchanged. | `app/data/photo-management.server.ts:470` | no | Write failure. |
+| SYS-AREA-010 | PHOTOGRAPHER | Photograph list actions | warning | The featured change could not be committed, so the photograph is unchanged. | `app/data/photo-management.server.ts:502` | no | Write failure. |
+| SYS-AREA-011 | PHOTOGRAPHER | `/admin/enquiries` | warning | No database is configured in this environment, so enquiries cannot be read. | `app/enquiries/enquiries.server.ts:159` | no | Unavailable list. |
+| SYS-AREA-012 | PHOTOGRAPHER | `/admin/enquiries` | warning | The enquiry list could not be read. | `app/enquiries/enquiries.server.ts:165` | no | Read failure. |
+| SYS-AREA-013 | PHOTOGRAPHER | `/admin/prints` | warning | No database is configured in this environment, so print eligibility cannot be read. | `app/enquiries/print-eligibility.server.ts:67` | no | Unavailable list. |
+| SYS-AREA-014 | PHOTOGRAPHER | `/admin/prints` | warning | The photograph list could not be read. | `app/enquiries/print-eligibility.server.ts:82` | no | Read failure; same wording as `SYS-AREA-002`. |
+| SYS-AREA-015 | PHOTOGRAPHER | `/admin/settings` | warning | No database is configured in this environment, so tags are unavailable. | `app/data/taxonomy.server.ts:146` | no | Unavailable tag list. |
+| SYS-AREA-016 | PHOTOGRAPHER | `/admin/settings` | warning | The settings could not be saved. | `app/data/site-settings.server.ts:134` | no | Write failure, prefixed by `ADM-SETTINGS-037`. |
+| SYS-AREA-017 | PHOTOGRAPHER | `/admin/settings` | warning | No database is configured in this environment. | `app/data/site-settings.server.ts:113` | no | Write refusal, prefixed by `ADM-SETTINGS-037`. |
+| SYS-AREA-018 | PHOTOGRAPHER | `/admin/settings` tag actions | warning | The tag could not be read back after saving. | `app/data/taxonomy.server.ts:88`, `:108` | no | Read-back failure. |
+| SYS-AREA-019 | MANAGER | `/manager/settings` | warning | The account could not be read back after saving. | `app/auth/user-management.server.ts:133`, `:170` | no | Read-back failure. |
+| SYS-AREA-020 | PHOTOGRAPHER | `/admin` engagement block | warning | No database is configured in this environment, so engagement cannot be summarised. | `app/engagement/insights.server.ts:39` | no | Unavailable summary. |
+| SYS-AREA-021 | PHOTOGRAPHER | `/admin` engagement block | warning | The engagement rows could not be read. | `app/engagement/insights.server.ts:99` | no | Read failure. |
+| SYS-AREA-022 | SYSTEM/ERROR | Server-side repository selection | validation/error | No D1 binding is available and ALLOW_DEVELOPMENT_SEED is not enabled. Configure the DB binding in wrangler.jsonc, or run with ALLOW_DEVELOPMENT_SEED=true for local development. | `app/data/queries.ts:89`-`92` | no | Thrown error message, shown in full only during local development. Names configuration files and variables. |
+| SYS-AREA-023 | SYSTEM/ERROR | Server-side tag registry read | validation/error | No D1 binding is available and ALLOW_DEVELOPMENT_SEED is not enabled. | `app/data/queries.ts:231`-`232` | no | Thrown error message; development-facing. |
+| SYS-AREA-024 | SYSTEM/ERROR | Enquiry store | validation/error | The enquiry was not stored and no row carries its submission token. | `app/enquiries/store.server.ts:176` | no | Thrown error message; development-facing. |
+
+## Dynamic and user-authored content
+
+The following copy is not held in source and is therefore not enumerated record by record above. It is stored data, entered by the operator or a visitor, and it renders wherever the tables say it does. Rewriting it means editing the record, not the code.
+
+- **Photograph metadata.** `photos.title`, `photos.description`, `photos.location` and `photos.capture_date`, plus the tag names joined through `photo_tags` to `tags.name`. Rendered as the photograph page's `h1` and lede, its Gallery, Location, Captured and Tags rows, the alternative text of every image that uses the record (`description`, falling back to `title`), link text in every grid and card, the `og:title` and `og:description` of the photograph page, and the `{photo.title}` placeholder in `PUB-PRINTSENQ-003`, `PUB-HOME-009`, `PUB-GALLERY-008`, `PUB-PHOTO-016`, `ADM-PHOTOS-008`-`ADM-PHOTOS-012` and `ADM-EDIT-002`. Editable on `/admin/upload`, `/admin/photos/:photoId`, `/admin/prints` (the print flag only) and `/admin/settings` (tags).
+- **Gallery metadata.** `galleries.name`, `galleries.slug`, `galleries.description`, `galleries.display_order`, `galleries.cover_photo_id` and `galleries.published`. Rendered as the gallery page `h1` and lede, the collection cards on `/` and `/galleries`, the About page's collection list, the `<title>` and meta description of the gallery page, and the gallery options in the photograph editor and the cover selector. Editable on `/admin/galleries`.
+- **Site settings.** The `site_settings` key/value rows `site.strapline`, `site.galleries_intro`, `site.about_intro`, `site.contact_intro`, `watermark.default_enabled`, `watermark.default_position`, and the seven social URLs (`social.instagram`, `social.facebook`, `social.tiktok`, `social.threads`, `social.bluesky`, `social.x`, `social.youtube`). Rendered (or not) as described in `ADM-SETTINGS-007` to `ADM-SETTINGS-025` and `PUB-FOOTER-008` to `PUB-FOOTER-014`. Editable on `/admin/settings`. Note that the four introduction settings are stored and editable but no public page currently reads them, so a value entered there appears nowhere yet.
+- **Enquiries.** `enquiries.name`, `enquiries.email`, `enquiries.message`, `enquiries.category`, `enquiries.print_format`, `enquiries.print_size` and `enquiries.status`. Visitor-authored, read only on `/admin/enquiries` (`ADM-ENQ-004`, `ADM-ENQ-016`, `ADM-ENQ-019` to `ADM-ENQ-022`) and never echoed into a public page after submission. The stored photograph reference is re-resolved by the server, so no client-supplied title is ever displayed as fact.
+- **Authorised accounts.** `users.email` and `users.role`, from the identity provider's proven address. Rendered in the operator chrome (`ADM-NAV-005`) and in the manager tables (`MGR-DASH-010` to `MGR-DASH-014`, `MGR-SETTINGS-006` to `MGR-SETTINGS-011`). Editable on `/manager/settings`.
+- **Development seed records.** When `ALLOW_DEVELOPMENT_SEED` is on and no database is bound, the repository serves the fixture set in `app/data/seed.ts` (gallery names such as `Nightlife`, photograph titles such as `Neon in the rain`, tag names such as `Neon`, and their descriptions). That content is sample data, not site copy: it is described here rather than enumerated, and it disappears the moment a database is bound. Several of its own strings describe themselves as provisional (for example `Studio trial — not published`), which is deliberate.
+- **Share and like counts.** Numeric aggregates rendered by `PUB-ENGAGE-005`, `ADM-DASH-014`, `ADM-DASH-015` and `MGR-MAINT-014`, `MGR-MAINT-015`; not copy.
+
+## Metadata and SEO copy
+
+- **Document titles.** Every page sets an explicit `<title>`; `SYS-META-001` is the root fallback. Public titles are `SYS-META-003` (home), `-006` (galleries), `-009` and `-010` (gallery and gallery-not-found), `-012` and `-013` (photograph and photograph-not-found), `-015` (prints), `-017` (about), `-020` (contact), `-022` (privacy), `-024` (print enquiry), `-026` and `-028` (the two acknowledgements) and `-030` (404). Operator titles are `SYS-META-031` to `-046`.
+- **Meta descriptions.** `SYS-META-002` (root fallback and the fallback for a photograph with no description), `-004` (home), `-007` (galleries), `-011` (gallery, from the record), `-014` (photograph, from the record), `-016` (prints), `-018` (about), `-021` (contact), `-023` (privacy), `-025` (print enquiry), `-027` and `-029` (acknowledgements). Three development suffixes are appended only while `SHOW_DEVELOPMENT_NOTICES` is on: `SYS-META-005`, `-008` and `-019`.
+- **OpenGraph and Twitter text.** There is no separately written social copy: `og:title`, `og:description`, `twitter:title` and `twitter:description` are built from the same title and description constants above, `og:url` is the canonical URL from the configured origin, and `og:image` and `twitter:image` are emitted only when a public preview derivative exists. The only literal is the card type, `SYS-META-047`.
+- **404 wording.** `SYS-META-030` is the document title; the body is `PUB-UI-003` to `PUB-UI-007`, with the development-preview sentence `PUB-UI-006` gated by the notices switch. The operator areas have their own 404 pages (`ADM-NOTFOUND-*`, `MGR-NOTFOUND-*`) and the root boundary has `SYS-ERR-001` to `SYS-ERR-007`.
+- **`robots.txt`.** One `User-agent` line, `Allow: /`, six `Disallow` lines and a `Sitemap` line built from the configured canonical origin (`SYS-ROBOTS-001` to `SYS-ROBOTS-009`). `/media/` is deliberately absent so published photographs stay indexable.
+- **`sitemap.xml`.** No prose: the six stable public paths plus every published gallery and photograph URL (`SYS-ROBOTS-010`), revalidated on every request. Private and submission-result paths are absent by construction.
+
+## Accessibility copy
+
+Text that only assistive technology receives, plus the labels and status messages that carry visible wording:
+
+- **Skip link and landmarks.** `PUB-NAV-012` (skip to content), `PUB-NAV-003` (brand link name), `PUB-NAV-006` (primary navigation), `PUB-FOOTER-003` (footer navigation), `PUB-FOOTER-005` (social links), `PUB-PHOTO-010` (photograph navigation), `PUB-ENGAGE-001` (engagement group), `ADM-NAV-002` (operator brand link), `ADM-NAV-008` (area navigation).
+- **Visually hidden text.** `PUB-HOME-001` (the hero `h1`), `PUB-FOOTER-007` ("opens in a new tab"), `ADM-DASH-017`, `MGR-SETTINGS-005`, `MGR-SETTINGS-011`, `MGR-SETTINGS-022`, `MGR-MAINT-007`, `MGR-MAINT-017`, `MGR-MAINT-043`, `ADM-ENQ-016`.
+- **Link and button names.** `PUB-HOME-009`, `PUB-HOME-010`, `PUB-HOME-015`, `PUB-GALLERIES-005`, `PUB-GALLERY-008`, `PUB-PHOTO-016`, `PUB-PRINTS-016`, `PUB-UI-002` (placeholder frames), `ADM-PHOTOS-033` to `ADM-PHOTOS-036`.
+- **Alternative-text fallbacks.** Every public image uses the record's own words: `description`, falling back to `title` (see the dynamic-content section). Two images deliberately carry an empty alternative — `PUB-HOME-005` and `PUB-HOME-024` — because the current files are abstract development graphics; `PUB-UI-001` is the visible stand-in when no public image path exists, and `PUB-PHOTO-003` is its photograph-page equivalent.
+- **Screen-reader status messages.** `PUB-ENGAGE-004`, `PUB-ENGAGE-005`, `PUB-ENGAGE-018` to `PUB-ENGAGE-022`, `PUB-ENGAGE-023`, `PUB-FORM-003`, `PUB-FORM-004`, `PUB-FORM-033`, `PUB-FORM-034`, `PUB-CONTACT-005`, `PUB-PRINTSENQ-013`, `ADM-PHOTOS-*` action results, `ADM-EDIT-*` action results, `ADM-GALLERY-*` action results, `ADM-ENQ-004` to `ADM-ENQ-007`, `ADM-PRINTS-004` to `ADM-PRINTS-008`, `ADM-SETTINGS-036` to `ADM-SETTINGS-045`, `ADM-UPLOAD-026` to `ADM-UPLOAD-036`, `MGR-SETTINGS-035` to `MGR-SETTINGS-044` and `MGR-MAINT-004`/`-005`. All of these render inside an `aria-live` region or a `role="status"`/`role="alert"` element.
+- **Language.** `SYS-ERR-012` sets the document language to `en`.
+
+## Rewrite flags
+
+**These are recommendations only.** No copy in this repository has been rewritten, and nothing in this section changes a string. Classifications: `KEEP` (accurate and ready as it stands), `REVIEW` (worth an operator's eye before launch), `REWRITE_RECOMMENDED` (names implementation detail, development/process language or internal history, or is otherwise likely to be replaced), `OPERATOR_CONTENT_REQUIRED` (a placeholder for content only the operator can supply) and `LEGAL/PRIVACY_REVIEW` (a statement with legal or privacy weight). Every ID above appears exactly once below; `via settings` entries inherit the classification of the copy they hold, not of the setting.
+
+### KEEP — 798 IDs
+
+PUB-NAV-001, PUB-NAV-002, PUB-NAV-003, PUB-NAV-004, PUB-NAV-005, PUB-NAV-006, PUB-NAV-007,
+PUB-NAV-008, PUB-NAV-009, PUB-NAV-010, PUB-NAV-011, PUB-NAV-012, PUB-FOOTER-001, PUB-FOOTER-003,
+PUB-FOOTER-004, PUB-FOOTER-005, PUB-FOOTER-006, PUB-FOOTER-007, PUB-FOOTER-008, PUB-FOOTER-009,
+PUB-FOOTER-010, PUB-FOOTER-011, PUB-FOOTER-012, PUB-FOOTER-013, PUB-FOOTER-014, PUB-FOOTER-015,
+PUB-FOOTER-016, PUB-HOME-001, PUB-HOME-003, PUB-HOME-004, PUB-HOME-006, PUB-HOME-007,
+PUB-HOME-009, PUB-HOME-010, PUB-HOME-011, PUB-HOME-012, PUB-HOME-013, PUB-HOME-015, PUB-HOME-016,
+PUB-HOME-017, PUB-HOME-018, PUB-HOME-019, PUB-HOME-020, PUB-HOME-021, PUB-HOME-023, PUB-UI-001,
+PUB-UI-002, PUB-UI-003, PUB-UI-004, PUB-UI-005, PUB-UI-007, PUB-GALLERIES-001, PUB-GALLERIES-002,
+PUB-GALLERIES-003, PUB-GALLERIES-005, PUB-GALLERIES-006, PUB-GALLERIES-007, PUB-GALLERY-001,
+PUB-GALLERY-004, PUB-GALLERY-006, PUB-GALLERY-007, PUB-GALLERY-008, PUB-PHOTO-001, PUB-PHOTO-002,
+PUB-PHOTO-003, PUB-PHOTO-004, PUB-PHOTO-005, PUB-PHOTO-006, PUB-PHOTO-007, PUB-PHOTO-008,
+PUB-PHOTO-009, PUB-PHOTO-010, PUB-PHOTO-011, PUB-PHOTO-012, PUB-PHOTO-013, PUB-PHOTO-015,
+PUB-PHOTO-016, PUB-ENGAGE-001, PUB-ENGAGE-002, PUB-ENGAGE-003, PUB-ENGAGE-004, PUB-ENGAGE-005,
+PUB-ENGAGE-006, PUB-ENGAGE-007, PUB-ENGAGE-008, PUB-ENGAGE-009, PUB-ENGAGE-010, PUB-ENGAGE-012,
+PUB-ENGAGE-013, PUB-ENGAGE-014, PUB-ENGAGE-015, PUB-ENGAGE-016, PUB-ENGAGE-017, PUB-ENGAGE-018,
+PUB-ENGAGE-019, PUB-ENGAGE-020, PUB-ENGAGE-021, PUB-ENGAGE-022, PUB-ENGAGE-023, PUB-PRINTS-001,
+PUB-PRINTS-002, PUB-PRINTS-003, PUB-PRINTS-004, PUB-PRINTS-005, PUB-PRINTS-006, PUB-PRINTS-007,
+PUB-PRINTS-008, PUB-PRINTS-009, PUB-PRINTS-010, PUB-PRINTS-011, PUB-PRINTS-012, PUB-PRINTS-013,
+PUB-PRINTS-014, PUB-PRINTS-015, PUB-PRINTS-016, PUB-PRINTSENQ-001, PUB-PRINTSENQ-002,
+PUB-PRINTSENQ-003, PUB-PRINTSENQ-004, PUB-PRINTSENQ-005, PUB-PRINTSENQ-006, PUB-PRINTSENQ-007,
+PUB-PRINTSENQ-008, PUB-PRINTSENQ-009, PUB-PRINTSENQ-010, PUB-PRINTSENQ-012, PUB-PRINTSENQ-013,
+PUB-CONTACT-001, PUB-CONTACT-002, PUB-CONTACT-003, PUB-CONTACT-005, PUB-CONTACT-006,
+PUB-CONTACT-007, PUB-CONTACT-008, PUB-FORM-002, PUB-FORM-003, PUB-FORM-004, PUB-FORM-005,
+PUB-FORM-006, PUB-FORM-007, PUB-FORM-008, PUB-FORM-009, PUB-FORM-010, PUB-FORM-011, PUB-FORM-012,
+PUB-FORM-013, PUB-FORM-014, PUB-FORM-015, PUB-FORM-016, PUB-FORM-017, PUB-FORM-018, PUB-FORM-019,
+PUB-FORM-020, PUB-FORM-021, PUB-FORM-023, PUB-FORM-024, PUB-FORM-025, PUB-FORM-026, PUB-FORM-027,
+PUB-FORM-028, PUB-FORM-029, PUB-FORM-030, PUB-FORM-031, PUB-FORM-032, PUB-FORM-033, PUB-FORM-034,
+PUB-ACK-001, PUB-ACK-002, PUB-ACK-003, PUB-ACK-004, PUB-ACK-005, PUB-ACK-006, PUB-ACK-007,
+PUB-ACK-008, PUB-ACK-009, PUB-ACK-010, PUB-ABOUT-001, PUB-ABOUT-002, PUB-ABOUT-006,
+PUB-ABOUT-008, PUB-ABOUT-009, PUB-ABOUT-012, PUB-ABOUT-013, PUB-ABOUT-014, PUB-ABOUT-015,
+PUB-ABOUT-016, PUB-WATERMARK-001, PUB-WATERMARK-002, ADM-NAV-001, ADM-NAV-002, ADM-NAV-003,
+ADM-NAV-004, ADM-NAV-005, ADM-NAV-006, ADM-NAV-007, ADM-NAV-008, ADM-NAV-009, ADM-NAV-010,
+ADM-NAV-011, ADM-NAV-012, ADM-NAV-013, ADM-NAV-014, ADM-NAV-015, ADM-NAV-016, ADM-NAV-017,
+ADM-NAV-018, ADM-DASH-001, ADM-DASH-002, ADM-DASH-003, ADM-DASH-004, ADM-DASH-005, ADM-DASH-006,
+ADM-DASH-007, ADM-DASH-008, ADM-DASH-009, ADM-DASH-010, ADM-DASH-011, ADM-DASH-012, ADM-DASH-013,
+ADM-DASH-014, ADM-DASH-015, ADM-DASH-016, ADM-DASH-017, ADM-DASH-018, ADM-DASH-020, ADM-DASH-022,
+ADM-DASH-023, ADM-DASH-024, ADM-DASH-025, ADM-DASH-026, ADM-DASH-027, ADM-DASH-028, ADM-DASH-029,
+ADM-DASH-030, ADM-DASH-031, ADM-DASH-032, ADM-DASH-033, ADM-DASH-034, ADM-DASH-035,
+ADM-PHOTOS-001, ADM-PHOTOS-002, ADM-PHOTOS-003, ADM-PHOTOS-004, ADM-PHOTOS-005, ADM-PHOTOS-006,
+ADM-PHOTOS-007, ADM-PHOTOS-008, ADM-PHOTOS-009, ADM-PHOTOS-011, ADM-PHOTOS-012, ADM-PHOTOS-013,
+ADM-PHOTOS-014, ADM-PHOTOS-015, ADM-PHOTOS-016, ADM-PHOTOS-017, ADM-PHOTOS-018, ADM-PHOTOS-019,
+ADM-PHOTOS-020, ADM-PHOTOS-021, ADM-PHOTOS-022, ADM-PHOTOS-023, ADM-PHOTOS-024, ADM-PHOTOS-025,
+ADM-PHOTOS-026, ADM-PHOTOS-027, ADM-PHOTOS-028, ADM-PHOTOS-029, ADM-PHOTOS-030, ADM-PHOTOS-031,
+ADM-PHOTOS-032, ADM-PHOTOS-033, ADM-PHOTOS-034, ADM-PHOTOS-035, ADM-PHOTOS-036, ADM-EDIT-001,
+ADM-EDIT-003, ADM-EDIT-004, ADM-EDIT-005, ADM-EDIT-006, ADM-EDIT-007, ADM-EDIT-008, ADM-EDIT-010,
+ADM-EDIT-011, ADM-EDIT-012, ADM-EDIT-013, ADM-EDIT-014, ADM-EDIT-015, ADM-EDIT-016, ADM-EDIT-017,
+ADM-EDIT-018, ADM-EDIT-019, ADM-EDIT-020, ADM-EDIT-021, ADM-EDIT-022, ADM-EDIT-023, ADM-EDIT-024,
+ADM-EDIT-025, ADM-EDIT-026, ADM-EDIT-027, ADM-EDIT-028, ADM-EDIT-029, ADM-EDIT-030, ADM-EDIT-031,
+ADM-EDIT-032, ADM-EDIT-034, ADM-EDIT-035, ADM-EDIT-036, ADM-EDIT-037, ADM-EDIT-038, ADM-EDIT-040,
+ADM-EDIT-041, ADM-EDIT-042, ADM-EDIT-043, ADM-EDIT-044, ADM-EDIT-045, ADM-EDIT-046, ADM-EDIT-047,
+ADM-UPLOAD-001, ADM-UPLOAD-002, ADM-UPLOAD-003, ADM-UPLOAD-004, ADM-UPLOAD-005, ADM-UPLOAD-006,
+ADM-UPLOAD-007, ADM-UPLOAD-008, ADM-UPLOAD-009, ADM-UPLOAD-010, ADM-UPLOAD-011, ADM-UPLOAD-012,
+ADM-UPLOAD-013, ADM-UPLOAD-014, ADM-UPLOAD-015, ADM-UPLOAD-016, ADM-UPLOAD-017, ADM-UPLOAD-018,
+ADM-UPLOAD-019, ADM-UPLOAD-020, ADM-UPLOAD-021, ADM-UPLOAD-022, ADM-UPLOAD-023, ADM-UPLOAD-024,
+ADM-UPLOAD-025, ADM-UPLOAD-026, ADM-UPLOAD-027, ADM-UPLOAD-029, ADM-UPLOAD-030, ADM-UPLOAD-031,
+ADM-UPLOAD-032, ADM-UPLOAD-033, ADM-UPLOAD-034, ADM-UPLOAD-035, ADM-GALLERY-001, ADM-GALLERY-002,
+ADM-GALLERY-003, ADM-GALLERY-004, ADM-GALLERY-005, ADM-GALLERY-006, ADM-GALLERY-007,
+ADM-GALLERY-008, ADM-GALLERY-009, ADM-GALLERY-010, ADM-GALLERY-011, ADM-GALLERY-012,
+ADM-GALLERY-013, ADM-GALLERY-014, ADM-GALLERY-015, ADM-GALLERY-016, ADM-GALLERY-017,
+ADM-GALLERY-019, ADM-GALLERY-020, ADM-GALLERY-021, ADM-GALLERY-022, ADM-GALLERY-023,
+ADM-GALLERY-024, ADM-GALLERY-025, ADM-GALLERY-026, ADM-GALLERY-027, ADM-GALLERY-028,
+ADM-GALLERY-029, ADM-GALLERY-030, ADM-GALLERY-031, ADM-GALLERY-032, ADM-GALLERY-033,
+ADM-GALLERY-034, ADM-GALLERY-035, ADM-GALLERY-036, ADM-GALLERY-037, ADM-GALLERY-038,
+ADM-GALLERY-039, ADM-GALLERY-040, ADM-GALLERY-042, ADM-GALLERY-043, ADM-GALLERY-044,
+ADM-GALLERY-045, ADM-GALLERY-046, ADM-GALLERY-047, ADM-GALLERY-048, ADM-GALLERY-049,
+ADM-GALLERY-050, ADM-GALLERY-051, ADM-GALLERY-053, ADM-GALLERY-054, ADM-ENQ-001, ADM-ENQ-002,
+ADM-ENQ-003, ADM-ENQ-004, ADM-ENQ-005, ADM-ENQ-006, ADM-ENQ-007, ADM-ENQ-008, ADM-ENQ-009,
+ADM-ENQ-010, ADM-ENQ-011, ADM-ENQ-012, ADM-ENQ-013, ADM-ENQ-014, ADM-ENQ-015, ADM-ENQ-016,
+ADM-ENQ-017, ADM-ENQ-018, ADM-ENQ-019, ADM-ENQ-020, ADM-ENQ-021, ADM-ENQ-022, ADM-PRINTS-001,
+ADM-PRINTS-002, ADM-PRINTS-003, ADM-PRINTS-004, ADM-PRINTS-005, ADM-PRINTS-006, ADM-PRINTS-007,
+ADM-PRINTS-008, ADM-PRINTS-009, ADM-PRINTS-010, ADM-PRINTS-011, ADM-PRINTS-012, ADM-PRINTS-013,
+ADM-PRINTS-014, ADM-PRINTS-015, ADM-PRINTS-016, ADM-PRINTS-017, ADM-PRINTS-018, ADM-PRINTS-019,
+ADM-PRINTS-020, ADM-PRINTS-021, ADM-SETTINGS-001, ADM-SETTINGS-002, ADM-SETTINGS-003,
+ADM-SETTINGS-004, ADM-SETTINGS-005, ADM-SETTINGS-006, ADM-SETTINGS-007, ADM-SETTINGS-008,
+ADM-SETTINGS-009, ADM-SETTINGS-010, ADM-SETTINGS-011, ADM-SETTINGS-012, ADM-SETTINGS-013,
+ADM-SETTINGS-014, ADM-SETTINGS-015, ADM-SETTINGS-016, ADM-SETTINGS-017, ADM-SETTINGS-018,
+ADM-SETTINGS-019, ADM-SETTINGS-020, ADM-SETTINGS-021, ADM-SETTINGS-026, ADM-SETTINGS-027,
+ADM-SETTINGS-029, ADM-SETTINGS-030, ADM-SETTINGS-031, ADM-SETTINGS-032, ADM-SETTINGS-033,
+ADM-SETTINGS-034, ADM-SETTINGS-035, ADM-SETTINGS-036, ADM-SETTINGS-037, ADM-SETTINGS-038,
+ADM-SETTINGS-039, ADM-SETTINGS-040, ADM-SETTINGS-041, ADM-SETTINGS-042, ADM-SETTINGS-043,
+ADM-SETTINGS-044, ADM-SETTINGS-045, ADM-SETTINGS-046, ADM-NOTFOUND-001, ADM-NOTFOUND-002, ADM-NOTFOUND-003,
+ADM-NOTFOUND-004, MGR-NAV-001, MGR-NAV-002, MGR-NAV-003, MGR-NAV-004, MGR-NAV-005, MGR-DASH-001,
+MGR-DASH-002, MGR-DASH-003, MGR-DASH-004, MGR-DASH-005, MGR-DASH-006, MGR-DASH-007, MGR-DASH-009,
+MGR-DASH-010, MGR-DASH-011, MGR-DASH-012, MGR-DASH-013, MGR-DASH-014, MGR-DASH-015, MGR-DASH-016,
+MGR-DASH-017, MGR-DASH-018, MGR-DASH-020, MGR-DIAG-001, MGR-DIAG-002, MGR-DIAG-003, MGR-DIAG-004,
+MGR-DIAG-005, MGR-DIAG-006, MGR-DIAG-007, MGR-DIAG-008, MGR-DIAG-009, MGR-DIAG-010, MGR-DIAG-011,
+MGR-DIAG-012, MGR-DIAG-013, MGR-DIAG-014, MGR-DIAG-015, MGR-DIAG-016, MGR-DIAG-017, MGR-DIAG-018,
+MGR-DIAG-019, MGR-DIAG-020, MGR-DIAG-021, MGR-DIAG-022, MGR-DIAG-023, MGR-DIAG-024, MGR-DIAG-025,
+MGR-DIAG-026, MGR-DIAG-027, MGR-DIAG-028, MGR-DIAG-029, MGR-DIAG-030, MGR-DIAG-031, MGR-DIAG-032,
+MGR-DIAG-033, MGR-DIAG-034, MGR-DIAG-035, MGR-DIAG-036, MGR-DIAG-037, MGR-DIAG-038, MGR-DIAG-039,
+MGR-DIAG-040, MGR-DIAG-041, MGR-DIAG-042, MGR-DIAG-043, MGR-DIAG-044, MGR-DIAG-045, MGR-DIAG-046,
+MGR-DIAG-047, MGR-DIAG-048, MGR-DIAG-049, MGR-DIAG-050, MGR-DIAG-051, MGR-SETTINGS-001,
+MGR-SETTINGS-002, MGR-SETTINGS-003, MGR-SETTINGS-004, MGR-SETTINGS-005, MGR-SETTINGS-006,
+MGR-SETTINGS-007, MGR-SETTINGS-008, MGR-SETTINGS-009, MGR-SETTINGS-010, MGR-SETTINGS-011,
+MGR-SETTINGS-012, MGR-SETTINGS-013, MGR-SETTINGS-014, MGR-SETTINGS-015, MGR-SETTINGS-016,
+MGR-SETTINGS-017, MGR-SETTINGS-018, MGR-SETTINGS-019, MGR-SETTINGS-020, MGR-SETTINGS-021,
+MGR-SETTINGS-022, MGR-SETTINGS-023, MGR-SETTINGS-024, MGR-SETTINGS-025, MGR-SETTINGS-026,
+MGR-SETTINGS-027, MGR-SETTINGS-028, MGR-SETTINGS-029, MGR-SETTINGS-030, MGR-SETTINGS-031,
+MGR-SETTINGS-032, MGR-SETTINGS-033, MGR-SETTINGS-034, MGR-SETTINGS-035, MGR-SETTINGS-036,
+MGR-SETTINGS-037, MGR-SETTINGS-038, MGR-SETTINGS-039, MGR-SETTINGS-040, MGR-SETTINGS-041,
+MGR-SETTINGS-042, MGR-SETTINGS-043, MGR-SETTINGS-044, MGR-MAINT-001, MGR-MAINT-002,
+MGR-MAINT-003, MGR-MAINT-004, MGR-MAINT-005, MGR-MAINT-006, MGR-MAINT-007, MGR-MAINT-008,
+MGR-MAINT-009, MGR-MAINT-010, MGR-MAINT-011, MGR-MAINT-012, MGR-MAINT-013, MGR-MAINT-014,
+MGR-MAINT-015, MGR-MAINT-016, MGR-MAINT-017, MGR-MAINT-018, MGR-MAINT-019, MGR-MAINT-020,
+MGR-MAINT-021, MGR-MAINT-022, MGR-MAINT-023, MGR-MAINT-025, MGR-MAINT-027, MGR-MAINT-029,
+MGR-MAINT-031, MGR-MAINT-033, MGR-MAINT-035, MGR-MAINT-037, MGR-MAINT-039, MGR-MAINT-040,
+MGR-MAINT-042, MGR-MAINT-043, MGR-MAINT-044, MGR-MAINT-045, MGR-MAINT-046, MGR-MAINT-047,
+MGR-MAINT-049, MGR-MAINT-050, MGR-MAINT-052, MGR-NOTFOUND-001, MGR-NOTFOUND-002, MGR-NOTFOUND-003, MGR-NOTFOUND-004,
+SYS-ACCESS-001, SYS-ACCESS-002, SYS-ACCESS-003, SYS-ACCESS-004, SYS-ACCESS-005, SYS-ACCESS-006,
+SYS-ACCESS-007, SYS-ACCESS-008, SYS-ACCESS-009, SYS-ACCESS-010, SYS-ERR-001, SYS-ERR-002,
+SYS-ERR-003, SYS-ERR-004, SYS-ERR-005, SYS-ERR-006, SYS-ERR-007, SYS-ERR-008, SYS-ERR-009,
+SYS-ERR-010, SYS-ERR-011, SYS-ERR-012, SYS-META-001, SYS-META-002, SYS-META-003, SYS-META-004,
+SYS-META-006, SYS-META-007, SYS-META-010, SYS-META-013, SYS-META-015, SYS-META-016, SYS-META-017,
+SYS-META-018, SYS-META-020, SYS-META-021, SYS-META-022, SYS-META-023, SYS-META-024, SYS-META-025,
+SYS-META-026, SYS-META-027, SYS-META-028, SYS-META-029, SYS-META-030, SYS-META-031, SYS-META-032,
+SYS-META-033, SYS-META-034, SYS-META-035, SYS-META-036, SYS-META-037, SYS-META-038, SYS-META-039,
+SYS-META-040, SYS-META-041, SYS-META-042, SYS-META-043, SYS-META-044, SYS-META-045, SYS-META-046,
+SYS-META-047, SYS-META-048, SYS-META-049, SYS-ROBOTS-001, SYS-ROBOTS-002, SYS-ROBOTS-003,
+SYS-ROBOTS-004, SYS-ROBOTS-005, SYS-ROBOTS-006, SYS-ROBOTS-007, SYS-ROBOTS-008, SYS-ROBOTS-009,
+SYS-ROBOTS-010, SYS-ENQVAL-001, SYS-ENQVAL-002, SYS-ENQVAL-003, SYS-ENQVAL-004, SYS-ENQVAL-005,
+SYS-ENQVAL-006, SYS-ENQVAL-007, SYS-ENQVAL-008, SYS-ENQVAL-009, SYS-ENQVAL-010, SYS-ENQVAL-011,
+SYS-ENQVAL-012, SYS-ENQVAL-013, SYS-ENQVAL-014, SYS-ENQVAL-015, SYS-UPLOADVAL-001,
+SYS-UPLOADVAL-002, SYS-UPLOADVAL-003, SYS-UPLOADVAL-004, SYS-UPLOADVAL-005, SYS-UPLOADVAL-006,
+SYS-UPLOADVAL-007, SYS-UPLOADVAL-008, SYS-UPLOADVAL-009, SYS-UPLOADVAL-010, SYS-UPLOADVAL-011,
+SYS-UPLOADVAL-012, SYS-UPLOADVAL-013, SYS-UPLOADVAL-014, SYS-UPLOADVAL-015, SYS-UPLOADVAL-016,
+SYS-UPLOADVAL-018, SYS-UPLOADVAL-019, SYS-UPLOADVAL-020, SYS-UPLOADVAL-021, SYS-UPLOADVAL-023,
+SYS-UPLOADVAL-024, SYS-UPLOADVAL-026, SYS-UPLOADVAL-027, SYS-UPLOADVAL-028, SYS-UPLOADVAL-029,
+SYS-UPLOADVAL-030, SYS-UPLOADVAL-031, SYS-VALID-001, SYS-VALID-002, SYS-VALID-003, SYS-VALID-004,
+SYS-VALID-005, SYS-VALID-006, SYS-VALID-007, SYS-VALID-008, SYS-VALID-009, SYS-VALID-010,
+SYS-VALID-011, SYS-VALID-012, SYS-VALID-013, SYS-VALID-014, SYS-VALID-015, SYS-VALID-016,
+SYS-VALID-017, SYS-AREA-002, SYS-AREA-004, SYS-AREA-008, SYS-AREA-009, SYS-AREA-010,
+SYS-AREA-012, SYS-AREA-014, SYS-AREA-016, SYS-AREA-018, SYS-AREA-019, SYS-AREA-021
+
+### REVIEW — 52 IDs
+
+PUB-FOOTER-002, PUB-FOOTER-017, PUB-FOOTER-018, PUB-HOME-002, PUB-HOME-008, PUB-UI-006,
+PUB-ENGAGE-011, PUB-FORM-001, ADM-NAV-019, ADM-PHOTOS-010, ADM-PHOTOS-037, ADM-EDIT-009,
+ADM-EDIT-039, ADM-UPLOAD-036, ADM-GALLERY-018, ADM-GALLERY-041, ADM-GALLERY-052, ADM-PRINTS-022,
+ADM-SETTINGS-028, MGR-DASH-008, MGR-SETTINGS-045, MGR-MAINT-024, MGR-MAINT-026, MGR-MAINT-028,
+MGR-MAINT-030, MGR-MAINT-032, MGR-MAINT-034, MGR-MAINT-036, MGR-MAINT-038, MGR-MAINT-041,
+MGR-MAINT-048, MGR-MAINT-051, SYS-META-005, SYS-META-008, SYS-META-019, SYS-UPLOADVAL-017,
+SYS-UPLOADVAL-022, SYS-UPLOADVAL-025, SYS-UPLOADVAL-032, SYS-UPLOADVAL-033, SYS-AREA-001,
+SYS-AREA-003, SYS-AREA-005, SYS-AREA-006, SYS-AREA-007, SYS-AREA-011, SYS-AREA-013, SYS-AREA-015,
+SYS-AREA-017, SYS-AREA-020, SYS-AREA-023, SYS-AREA-024
+
+### REWRITE_RECOMMENDED — 10 IDs
+
+PUB-HOME-014, PUB-GALLERIES-004, PUB-GALLERY-005, PUB-ABOUT-003, ADM-DASH-019, ADM-DASH-021,
+ADM-UPLOAD-028, MGR-DASH-019, MGR-DASH-021, SYS-AREA-022
+
+### OPERATOR_CONTENT_REQUIRED — 20 IDs
+
+PUB-HOME-005, PUB-HOME-022, PUB-HOME-024, PUB-GALLERY-002, PUB-GALLERY-003, PUB-PHOTO-014,
+PUB-ABOUT-004, PUB-ABOUT-005, PUB-ABOUT-007, PUB-ABOUT-010, ADM-EDIT-002, ADM-EDIT-033,
+ADM-SETTINGS-022, ADM-SETTINGS-023, ADM-SETTINGS-024, ADM-SETTINGS-025, SYS-META-009,
+SYS-META-011, SYS-META-012, SYS-META-014
+
+### LEGAL/PRIVACY_REVIEW — 28 IDs
+
+PUB-PRINTSENQ-011, PUB-CONTACT-004, PUB-CONTACT-009, PUB-FORM-022, PUB-PRIVACY-001,
+PUB-PRIVACY-002, PUB-PRIVACY-003, PUB-PRIVACY-004, PUB-PRIVACY-005, PUB-PRIVACY-006,
+PUB-PRIVACY-007, PUB-PRIVACY-008, PUB-PRIVACY-009, PUB-PRIVACY-010, PUB-PRIVACY-011,
+PUB-PRIVACY-012, PUB-PRIVACY-013, PUB-PRIVACY-014, PUB-PRIVACY-015, PUB-PRIVACY-016,
+PUB-PRIVACY-017, PUB-PRIVACY-018, PUB-PRIVACY-019, PUB-PRIVACY-020, PUB-PRIVACY-021,
+PUB-PRIVACY-022, PUB-PRIVACY-023, PUB-ABOUT-011
+
+
+## Coverage and counts
+
+- **Total IDs: 908** (every one appears exactly once in the tables above, exactly once in the Rewrite flags section, and once in the companion CSV).
+- **Per audience:** `PUBLIC` 281 · `PHOTOGRAPHER` 400 · `MANAGER` 187 · `SYSTEM/ERROR` 40.
+- **Per surface:** 40 surfaces, itemised below.
+- **Flags:** KEEP: 798 · REVIEW: 52 · REWRITE_RECOMMENDED: 10 · OPERATOR_CONTENT_REQUIRED: 20 · LEGAL/PRIVACY_REVIEW: 28.
+- **Files that could not be classified: none.** Every file in the scan list was read and either contributed entries or is listed below as carrying no user-visible copy. The seed fixture set (`app/data/seed.ts`) is deliberately described in the dynamic-content section rather than enumerated record by record.
+
+### IDs per surface
+
+- `PUB-NAV` — 12 IDs
+- `PUB-FOOTER` — 18 IDs
+- `PUB-HOME` — 24 IDs
+- `PUB-UI` — 7 IDs
+- `PUB-GALLERIES` — 7 IDs
+- `PUB-GALLERY` — 8 IDs
+- `PUB-PHOTO` — 16 IDs
+- `PUB-ENGAGE` — 23 IDs
+- `PUB-PRINTS` — 16 IDs
+- `PUB-PRINTSENQ` — 13 IDs
+- `PUB-CONTACT` — 9 IDs
+- `PUB-FORM` — 34 IDs
+- `PUB-ACK` — 10 IDs
+- `PUB-PRIVACY` — 23 IDs
+- `PUB-ABOUT` — 16 IDs
+- `PUB-WATERMARK` — 2 IDs
+- `ADM-NAV` — 19 IDs
+- `ADM-DASH` — 35 IDs
+- `ADM-PHOTOS` — 37 IDs
+- `ADM-EDIT` — 47 IDs
+- `ADM-UPLOAD` — 36 IDs
+- `ADM-GALLERY` — 54 IDs
+- `ADM-ENQ` — 22 IDs
+- `ADM-PRINTS` — 22 IDs
+- `ADM-SETTINGS` — 46 IDs
+- `ADM-NOTFOUND` — 4 IDs
+- `MGR-NAV` — 5 IDs
+- `MGR-DASH` — 21 IDs
+- `MGR-DIAG` — 51 IDs
+- `MGR-SETTINGS` — 45 IDs
+- `MGR-MAINT` — 52 IDs
+- `MGR-NOTFOUND` — 4 IDs
+- `SYS-ACCESS` — 10 IDs
+- `SYS-ERR` — 12 IDs
+- `SYS-META` — 49 IDs
+- `SYS-ROBOTS` — 10 IDs
+- `SYS-ENQVAL` — 15 IDs
+- `SYS-UPLOADVAL` — 33 IDs
+- `SYS-VALID` — 17 IDs
+- `SYS-AREA` — 24 IDs
+
+### Files read that carry no user-visible copy of their own
+
+Scanned, and they contribute no entry of any kind: data plumbing, request and storage helpers, layout registration and configuration. Nothing a person can see or hear lives in them.
+
+- `app/data/model.ts`
+- `app/data/project.ts`
+- `app/data/context.ts`
+- `app/data/context.server.ts`
+- `app/data/canonical-origin.ts`
+- `app/data/storage.ts`
+- `app/data/storage.server.ts`
+- `app/data/repository.ts`
+- `app/data/repository.d1.server.ts`
+- `app/data/repository.seed.server.ts`
+- `app/data/seed.ts`
+- `app/auth/identity.ts`
+- `app/auth/identity.server.ts`
+- `app/auth/accounts.ts`
+- `app/auth/accounts.server.ts`
+- `app/engagement/store.server.ts`
+- `app/engagement/identifier.ts`
+- `app/engagement/anonymous-browser.server.ts`
+- `app/engagement/share.ts`
+- `app/images/media.server.ts`
+- `app/images/media-publication.server.ts`
+- `app/images/image-processor.ts`
+- `app/images/process.ts`
+- `app/enquiries/print-eligibility.ts`
+- `app/enquiries/abuse-guard.ts`
+- `app/lib/paths.ts`
+- `app/lib/request-bound.ts`
+- `app/routes/media.ts`
+- `app/routes/dev-verification.ts`
+- `app/routes.ts`
+- `app/entry.server.tsx`
+- `app/components/PlaceholderNotice.tsx`
+- `workers/app.ts`
+- `migrations/0001_initial.sql`
+- `wrangler.jsonc`
+- `package.json`
+- `react-router.config.ts`
+- `vite.config.ts`
+- `README.md`
+
+### Files whose rendered strings are all attributed above
+
+Every string these files produce already has an ID in the tables above, so none is repeated here. The list is given so an operator can see that the source of a given string was checked, not skipped: `app/data/site.ts` and `app/data/home.ts` own the shared brand, navigation and homepage copy; `app/enquiries/enquiry.ts` owns the enquiry sentence bank; the `*-management`, `taxonomy`, `site-settings`, `maintenance` and `diagnostics` modules own the operator vocabulary and refusals; and the component, route and layout files render the strings the `PUB-`, `ADM-` and `MGR-` tables attribute to them.
+
+- `app/data/site.ts`
+- `app/data/home.ts`
+- `app/data/site-settings.ts`
+- `app/data/site-settings.server.ts`
+- `app/data/photo-management.ts`
+- `app/data/photo-management.server.ts`
+- `app/data/gallery-management.ts`
+- `app/data/gallery-management.server.ts`
+- `app/data/taxonomy.ts`
+- `app/data/taxonomy.server.ts`
+- `app/data/maintenance.server.ts`
+- `app/data/diagnostics.server.ts`
+- `app/data/queries.ts`
+- `app/auth/authorization.server.ts`
+- `app/auth/user-management.ts`
+- `app/auth/user-management.server.ts`
+- `app/engagement/engagement.ts`
+- `app/engagement/engagement.server.ts`
+- `app/engagement/insights.server.ts`
+- `app/engagement/metadata.ts`
+- `app/enquiries/enquiry.ts`
+- `app/enquiries/validation.ts`
+- `app/enquiries/enquiries.server.ts`
+- `app/enquiries/print-eligibility.server.ts`
+- `app/enquiries/store.server.ts`
+- `app/images/upload-validation.ts`
+- `app/images/upload.server.ts`
+- `app/images/upload-request.server.ts`
+- `app/images/image-processor.cloudflare.server.ts`
+- `app/images/watermark-asset.ts`
+- `app/lib/same-origin.ts`
+- `app/routes/robots.txt.ts`
+- `app/routes/sitemap.xml.ts`
+- `app/routes/engagement.$slug.tsx`
+- `app/components/PhotoFigure.tsx`
+- `app/components/PlaceholderFrame.tsx`
+- `app/components/NotFoundContent.tsx`
+- `app/components/SiteHeader.tsx`
+- `app/components/SiteFooter.tsx`
+- `app/components/AreaShell.tsx`
+- `app/components/AccessErrorPage.tsx`
+- `app/components/home-sections.tsx`
+- `app/components/EngagementControls.tsx`
+- `app/components/EnquiryForm.tsx`
+- `app/components/EnquiryAcknowledgement.tsx`
+- `app/components/StatusTable.tsx`
+- `app/layouts/public.tsx`
+- `app/layouts/admin.tsx`
+- `app/layouts/manager.tsx`
+- `app/root.tsx`
+
+### Not in scope for this pass
+
+- `scripts/**` and `scripts/checks/**`: developer assertion output, not application copy.
+- `scripts/fixtures/**` and `public/images/dev/**`: binary image fixtures and generated development graphics; the only text inside them is the watermark wordmark (`PUB-WATERMARK-001`, `PUB-WATERMARK-002`).
+- `DOCS/ANYAPARALLAX — V1 GOAL, IMPLEMENTATION.md` and `DOCS/ANYAPARALLAX_V2_PLAN.md`: project documentation, not application copy.
+- `node_modules`, `build`, `.wrangler`, `.react-router`: generated or third-party content.
