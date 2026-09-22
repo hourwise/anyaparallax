@@ -12,7 +12,7 @@
  * Local only: Wrangler's local D1, loopback HTTP, no external service.
  */
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { register } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -164,6 +164,34 @@ function getAs(path, identity) {
 
 async function photoCount() {
   return (await queryLocalD1("SELECT COUNT(*) AS total FROM photos"))[0]?.total ?? 0;
+}
+
+/**
+ * The local object stores, measured exactly as the operator CSRF check measures them: by
+ * counting what Wrangler's local R2 state holds.
+ */
+const IMAGES_BLOBS = resolve(root, ".wrangler", "state", "v3", "r2", "anyaparallax-images-dev", "blobs");
+const MASTERS_BLOBS = resolve(root, ".wrangler", "state", "v3", "r2", "anyaparallax-masters-dev", "blobs");
+
+function storedObjects(directory) {
+  return existsSync(directory) ? readdirSync(directory, { recursive: true }).length : null;
+}
+
+/**
+ * Everything a refused upload must leave untouched: the D1 photograph rows (including their
+ * storage keys) and BOTH local object stores. Asserting only "no new row" would pass even if
+ * the request had written an object before failing, which is exactly the state a refusal must
+ * not leave behind.
+ */
+async function uploadStateDigest() {
+  const rows = await queryLocalD1(
+    "SELECT id, title, gallery_id, published, original_storage_key, web_storage_key, thumbnail_storage_key FROM photos ORDER BY id",
+  );
+  return JSON.stringify({
+    rows,
+    images: storedObjects(IMAGES_BLOBS),
+    masters: storedObjects(MASTERS_BLOBS),
+  });
 }
 
 try {
@@ -720,6 +748,12 @@ try {
     watermarkPosition: "bottom-right",
     published: "on",
   };
+  const stateBeforeHostile = await uploadStateDigest();
+  check(
+    JSON.parse(stateBeforeHostile).images !== null && JSON.parse(stateBeforeHostile).masters !== null,
+    "the local object stores hold no state to compare, so the zero-mutation proof would be vacuous",
+  );
+
   for (const [label, overrides, expectation] of [
     ["an overlong title", { title: "x".repeat(200) }, /title/i],
     ["an overlong description", { description: "x".repeat(900) }, /description/i],
@@ -734,6 +768,7 @@ try {
     ["an arbitrary featured value", { featured: "1" }, /featured control/i],
     ["an arbitrary print value", { printAvailable: "yes" }, /print-availability control/i],
   ]) {
+    const before = await uploadStateDigest();
     const response = await postUpload("/admin/upload", { ...validUpload, ...overrides }, { origin });
     const body = await response.text();
     check(
@@ -744,7 +779,27 @@ try {
       (await photoCount()) === beforeUploads,
       `an upload with ${label} created a photograph anyway`,
     );
+    // Zero mutation across the database AND both object stores (APV1C-05).
+    const after = await uploadStateDigest();
+    check(
+      after === before,
+      `an upload with ${label} changed the stored state (D1 rows or an object store)`,
+    );
+    check(
+      JSON.parse(after).images === JSON.parse(before).images &&
+        JSON.parse(after).masters === JSON.parse(before).masters,
+      `an upload with ${label} changed MASTERS or IMAGES`,
+    );
+    check(
+      JSON.parse(after).rows.length === JSON.parse(before).rows.length &&
+        JSON.stringify(JSON.parse(after).rows) === JSON.stringify(JSON.parse(before).rows),
+      `an upload with ${label} changed a D1 photograph row`,
+    );
   }
+  check(
+    (await uploadStateDigest()) === stateBeforeHostile,
+    "the malformed upload cases changed the stored state overall",
+  );
   // A malformed direct POST with no file part at all is refused without a row.
   const emptyUpload = await postUpload("/admin/upload", validUpload, { origin, withFile: false });
   const emptyBody = await emptyUpload.text();

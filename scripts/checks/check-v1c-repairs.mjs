@@ -388,6 +388,60 @@ function activeManagers(database) {
   );
 }
 
+// --- Current-state documentation invariants --------------------------------
+//
+// Cheap guards against one class of regression: a current/operator-facing document drifting
+// back to pre-provisioning wording. They depend on no remote service.
+
+{
+  const readme = readFileSync(resolve(root, "README.md"), "utf8");
+  for (const [label, pattern] of [
+    ["claims no Cloudflare resource has been created", /no Cloudflare resource has been created/i],
+    ["says remote migrations await their first provisioning", /after resources exist, with explicit authorisation/i],
+    ["claims environment values are not hard-coded", /not\s+hard-coded/i],
+    ["claims the candidate is deployed", /candidate is deployed/i],
+  ]) {
+    check(!pattern.test(readme), `the README ${label}`);
+  }
+  check(
+    readme.includes("d3dc042d1816ce3ec866a2405b07b632c2930305"),
+    "the README does not name the currently deployed source commit",
+  );
+  check(
+    /PUBLIC_SITE_ORIGIN.*is.*committed/i.test(readme),
+    "the README does not state that PUBLIC_SITE_ORIGIN is committed",
+  );
+  check(
+    /already exist and are already migrated/i.test(readme),
+    "the README does not state that the databases already exist and are migrated",
+  );
+
+  const wrangler = readFileSync(resolve(root, "wrangler.jsonc"), "utf8");
+  for (const [label, pattern] of [
+    ["still claims no Cloudflare resource has been created", /no Cloudflare resource has been created/i],
+    ["still claims no Access application exists", /no Access application exists yet/i],
+  ]) {
+    check(!pattern.test(wrangler), `wrangler.jsonc ${label}`);
+  }
+  // A comment edit must never touch a runtime value, so each one is asserted here.
+  for (const [label, needle] of [
+    ["the development identity valve", '"ALLOW_DEVELOPMENT_IDENTITY": "false"'],
+    ["the development seed valve", '"ALLOW_DEVELOPMENT_SEED": "false"'],
+    ["the development notice valve", '"SHOW_DEVELOPMENT_NOTICES": "false"'],
+    ["the canonical public origin", '"PUBLIC_SITE_ORIGIN": "https://anyaparallax.co.uk"'],
+    ["the Images binding", '"binding": "IMAGE_TRANSFORMS"'],
+  ]) {
+    check(wrangler.includes(needle), `wrangler.jsonc lost ${label}`);
+  }
+
+  const v2 = readFileSync(resolve(root, "DOCS", "ANYAPARALLAX_V2_PLAN.md"), "utf8");
+  check(
+    v2.includes("DEFERRED — NOT V1 IMPLEMENTATION"),
+    "the V2 plan lost its explicit commerce deferral",
+  );
+  check(!/no cookie is set/i.test(v2), "the V2 plan asserts that no visitor cookie is set");
+}
+
 report(
   "V1C repair check passed: the last-manager invariant is inside the mutation statement (sole manager, " +
     "inactive co-manager, two managers, photographers and concurrent stand-downs all bounded), account ids are " +

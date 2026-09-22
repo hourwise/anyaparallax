@@ -480,9 +480,9 @@ Prerequisites before any commerce work starts — all operator decisions, none o
 
 Why this is deferred. Commerce brings money, tax, consumer law and personal data into a codebase whose
 stated design stores as little as possible: the privacy notice in `app/routes/privacy.tsx` describes the one
-first-party engagement cookie it does set (and says no analytics or profiling cookie), and
-is set for visitors and no address is stored with any visitor action, and the enquiry schema was built so
-it cannot pretend to be an order. It also creates a legally binding obligation to fulfil, which is a
+first-party engagement cookie the site does set, records that no analytics or profiling cookie is used, and
+states that no IP address, user agent or referrer is stored with any visitor action; the enquiry schema was
+built so that it cannot pretend to be an order. It also creates a legally binding obligation to fulfil, which is a
 different commitment from answering an email. Doing it properly needs the operator's decisions on all
 seven prerequisites before a line is written; doing it partially would put a checkout on a site whose own
 checks refuse to display one, which is the outcome V1 was most careful to avoid.

@@ -214,8 +214,9 @@ indexed.
 2. Add one policy per person, matching that person's email address. Access authenticates
    each identity independently; no shared logins or passwords are used anywhere.
 3. Copy the team domain and the application's AUD tag into the deployment configuration
-   as `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`. Neither is a secret; both are deployment
-   configuration and are intentionally absent from this repository.
+   as `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`. Neither is a secret, and both belong to one
+   environment's Access application, so neither is committed here: Access applications already
+   exist for both environments and their values live in the deployment-derived configuration.
 4. Insert the real operator addresses into the `users` table — never into source code:
 
    ```sql
@@ -244,9 +245,12 @@ application: Access owns authentication completely.
 | `MASTERS` | R2 (private) | archival/print originals — never served to visitors |
 | `IMAGES` | R2 (public) | web derivatives and gallery thumbnails |
 
-`database_id` is intentionally absent: no Cloudflare resource has been created. Local
-development uses Wrangler's local simulation, which needs only the database name and
-migrations directory.
+This file is the repository-safe BASE configuration, and it deliberately omits
+`database_id`: a database identifier belongs to one account, so it is deployment state
+rather than repository content. The real deployment configuration is derived from the
+generated build payload at deploy time, and the D1 databases in both environments described
+under "Deployment state" **already exist and are already migrated**. Local development uses
+Wrangler's local simulation, which needs only the database name and migrations directory.
 
 ### Migrations
 
@@ -254,7 +258,7 @@ Schema changes are migration files in `migrations/`, applied with:
 
 ```bash
 pnpm db:migrate:local     # local database
-pnpm db:migrate:remote    # after resources exist, with explicit authorisation
+pnpm db:migrate:remote    # only for a NEW environment, once its resources exist
 ```
 
 Do not edit the production schema by hand; add a migration.
@@ -339,16 +343,21 @@ worker-configuration.d.ts  generated Cloudflare runtime typings from wrangler ty
 
 - `wrangler.jsonc` names the Worker, points `main` at `./workers/app.ts`, declares the
   `DB`, `MASTERS` and `IMAGES` bindings, and sets `compatibility_date` plus the
-  `nodejs_compat` flag. It contains no account ID, secrets or deployment configuration.
+  `nodejs_compat` flag. It contains no account ID, no secret and no environment-specific
+  resource identifier.
 - `pnpm cf-typegen` runs `wrangler types`, which regenerates `worker-configuration.d.ts`
   from the Wrangler configuration. Binding types come from there.
-- Environment values such as the final domain and the enquiry address are not
-  hard-coded; they are supplied through configuration when the operator provides them.
+- `PUBLIC_SITE_ORIGIN` **is** committed, deliberately: it is the canonical public origin and
+  carries the publication-safe default `https://anyaparallax.co.uk`, because canonical links,
+  OpenGraph URLs and share links must point at the real site even when a page is being
+  previewed elsewhere. A deployment-derived configuration may override it for another
+  environment. The enquiry address is not committed at all.
 
-## Provisioning a real deployment (requires authorization)
+## Provisioning a NEW environment (operator step)
 
-These are the provisioning steps, recorded for completeness; both environments described
-under "Deployment state" have already been provisioned this way. For a new environment:
+Both environments described under "Deployment state" were provisioned with these steps and
+are already migrated; nothing below is pending for them. This section is the recipe for an
+additional environment, and it is the only place those commands belong.
 
 1. `wrangler r2 bucket create anyaparallax-masters` and
    `wrangler r2 bucket create anyaparallax-images`.
@@ -380,11 +389,18 @@ sets of buckets exist, and the production domain is served **but not yet anonymo
 public** — Cloudflare Access currently covers the whole domain, and narrowing it to the
 operator paths is the outstanding operator step described below.
 
-**The source candidate is ahead of the deployment.** The V1 completion work (gallery
-management, workspace settings, tags, manager account management and the integrity report,
-the privacy notice) is committed source that has not been deployed to either environment
-yet; see the repository history for the candidate commits. Nothing in this repository
-deploys automatically.
+**The source candidate is ahead of the deployment.**
+
+| | Commit |
+| --- | --- |
+| Currently deployed source (both environments) | `d3dc042d1816ce3ec866a2405b07b632c2930305` |
+| V1 closure candidate (NOT deployed) | the tip of `deepseek/anyaparallax-v1c-final-closure` |
+
+The V1 completion and review-repair work — gallery management, workspace settings, tags,
+manager account management and the integrity report, the privacy notice, the review repairs —
+is committed source that has **not** been deployed to either environment. Nothing in this
+repository deploys automatically: a deployment is an explicit operator action, and the
+candidate becomes the deployed source only when that happens.
 
 Each has its own D1 database and its own private-masters and public-derivatives R2
 buckets; nothing is shared between them, and no resource identifier, account id, Access

@@ -5,11 +5,14 @@
   "compatibility_date": "2026-09-19",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Structured application data (Slice 04). `database_id` is intentionally
-  // absent: no Cloudflare resource has been created. Local development and the
+  // Structured application data (Slice 04). `database_id` is deliberately absent
+  // from this BASE configuration: it identifies one account's database, which is
+  // deployment state rather than repository content. The deployment configuration
+  // is derived from the generated build payload at deploy time, and the D1
+  // databases in use ALREADY EXIST and are migrated. Local development and the
   // checks use Wrangler's local D1 simulation, which needs only the name.
-  // Provisioning steps (including setting the real id) are documented in
-  // README.md under "Storage and data".
+  // Provisioning steps for a NEW environment are documented in README.md under
+  // "Provisioning a NEW environment".
   "d1_databases": [
     {
       "binding": "DB",
@@ -80,10 +83,12 @@
   //   ALLOW_DEVELOPMENT_IDENTITY="true"
   //
   // Cloudflare Access configuration (ACCESS_TEAM_DOMAIN, ACCESS_AUD) is
-  // deliberately ABSENT here: no Access application exists yet and no value
-  // belongs in the repository. The operator sets both for a deployment; see
-  // README.md under "Authentication and roles". With neither Access nor the
-  // development header available, every protected route denies (401/403).
+  // deliberately NOT COMMITTED: both values belong to one environment's Access
+  // application, which is deployment state rather than repository content. Access
+  // applications ALREADY EXIST for both environments; the operator supplies both
+  // values to the deployment-derived configuration. See README.md under
+  // "Authentication and roles". With neither Access nor the development header
+  // available, every protected route denies (401/403).
   //
   // PUBLIC_SITE_ORIGIN is the CANONICAL public origin (Slice 07). Canonical
   // links, OpenGraph URLs and social preview images are built from it, so the
