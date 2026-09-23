@@ -65,11 +65,11 @@ export async function action({ request, context }: { request: Request; context: 
     switch (result.status) {
       case "ok":
         return {
-          message: `${result.persisted.email} now has the ${result.persisted.role} role, once Cloudflare Access admits that address.`,
+          message: `Added. ${result.persisted.email} now has the ${result.persisted.role} role and can sign in once Cloudflare Access lets that address in.`,
           tone: "ok" as const,
         };
       case "duplicate":
-        return { message: `${result.email} is already an authorised account.`, tone: "warning" as const };
+        return { message: `${result.email} already has access.`, tone: "warning" as const };
       case "bad-request":
         return { message: result.error, tone: "warning" as const };
       default:
@@ -121,8 +121,9 @@ export default function ManagerSettingsRoute() {
         <p className="eyebrow">Manager</p>
         <h1>Settings</h1>
         <p className="lede">
-          Who may use the operator areas, and what this deployment has configured. Cloudflare
-          Access decides who can reach the site; this list decides what they may do inside it.
+          Who can use the management areas, and how the site is set up. Cloudflare Access
+          controls who can reach these areas at all; this list controls what each person can
+          do once they're in.
         </p>
       </header>
 
@@ -199,13 +200,13 @@ export default function ManagerSettingsRoute() {
               </table>
             </div>
             <p className="field-help">
-              There must always be at least one active manager: the last one cannot be
-              deactivated or demoted.
+              The site always needs at least one active manager, so the last one can't be
+              deactivated or given a different role.
             </p>
 
             <Form method="post" className="stack-form">
               <input type="hidden" name="intent" value="create" />
-              <label htmlFor="new-user-email">Add an authorised address</label>
+              <label htmlFor="new-user-email">Add someone by email address</label>
               <input id="new-user-email" name="email" type="email" required />
               <label htmlFor="new-user-role">Role</label>
               <select id="new-user-role" name="role" defaultValue="photographer">
@@ -224,53 +225,54 @@ export default function ManagerSettingsRoute() {
       </section>
 
       <section className="workspace-block" aria-labelledby="deployment-heading">
-        <h2 id="deployment-heading">Deployment state</h2>
+        <h2 id="deployment-heading">Site setup</h2>
         <p className="field-help">
-          Read from this deployment's configuration. Values are not displayed: no audiences,
-          account details or credentials appear here, and none of it is editable.
+          For reference only. Each item shows whether it's set up, never its actual value, and
+          nothing here can be changed from this page. The three development-only settings at
+          the bottom should all say "no" on the live site.
         </p>
         <div className="table-scroll">
           <table className="admin-table">
             <caption className="visually-hidden">Deployment configuration presence</caption>
             <tbody>
               <tr>
-                <th scope="row">Operator identity mode</th>
+                <th scope="row">Sign-in method</th>
                 <td data-label="State">{deployment.identityMode}</td>
               </tr>
               <tr>
-                <th scope="row">Cloudflare Access configured</th>
+                <th scope="row">Cloudflare Access set up</th>
                 <td data-label="State">{yesNo(deployment.accessConfigured)}</td>
               </tr>
               <tr>
-                <th scope="row">Canonical public origin configured</th>
+                <th scope="row">Public web address set</th>
                 <td data-label="State">{yesNo(deployment.canonicalOriginConfigured)}</td>
               </tr>
               <tr>
-                <th scope="row">Database binding present</th>
+                <th scope="row">Database connected</th>
                 <td data-label="State">{yesNo(deployment.databaseBound)}</td>
               </tr>
               <tr>
-                <th scope="row">Private masters bucket bound</th>
+                <th scope="row">Original photo storage connected</th>
                 <td data-label="State">{yesNo(deployment.mastersBound)}</td>
               </tr>
               <tr>
-                <th scope="row">Public derivatives bucket bound</th>
+                <th scope="row">Public image storage connected</th>
                 <td data-label="State">{yesNo(deployment.publicDerivativesBound)}</td>
               </tr>
               <tr>
-                <th scope="row">Image processing binding present</th>
+                <th scope="row">Image processing connected</th>
                 <td data-label="State">{yesNo(deployment.imageProcessorBound)}</td>
               </tr>
               <tr>
-                <th scope="row">Development identity enabled</th>
+                <th scope="row">Test sign-in (development only)</th>
                 <td data-label="State">{yesNo(deployment.developmentIdentity)}</td>
               </tr>
               <tr>
-                <th scope="row">Development seed fallback enabled</th>
+                <th scope="row">Sample content fallback (development only)</th>
                 <td data-label="State">{yesNo(deployment.developmentSeed)}</td>
               </tr>
               <tr>
-                <th scope="row">Development notices enabled</th>
+                <th scope="row">Preview notices (development only)</th>
                 <td data-label="State">{yesNo(deployment.developmentNotices)}</td>
               </tr>
             </tbody>

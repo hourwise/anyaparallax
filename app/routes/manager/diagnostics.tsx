@@ -27,10 +27,10 @@ export default function ManagerDiagnosticsRoute() {
     <section className="page">
       <header className="page__header">
         <p className="eyebrow">Diagnostics</p>
-        <h1>Deployment state</h1>
+        <h1>Technical health check</h1>
         <p className="lede">
-          Counts come from the live bindings on this request. Configuration is reported as
-          present or absent; no secret, token, key or environment value is read or shown.
+          A detailed view for troubleshooting. Counts are read live, and each setting is only
+          shown as present or missing. No passwords, keys or other secret values appear here.
         </p>
       </header>
 

@@ -4,6 +4,7 @@ import { Link, useLoaderData } from "react-router";
 import { requireAdminAccess } from "../../auth/authorization.server";
 import { appEnvironmentFrom } from "../../data/context.server";
 import { readEnquiryCounts } from "../../enquiries/enquiries.server";
+import { SHARE_CHANNEL_LABELS, isShareChannel } from "../../engagement/engagement";
 import { readEngagementInsights } from "../../engagement/insights.server";
 import { listPublishedGalleries, listPublishedPhotos } from "../../data/queries";
 
@@ -58,7 +59,7 @@ const areas = [
   {
     to: "/admin/upload",
     label: "Upload photos",
-    description: "Upload originals, generate derivatives and watermarks.",
+    description: "Add new photographs. Web sizes and watermarks are made for you.",
   },
   {
     to: "/admin/enquiries",
@@ -153,14 +154,14 @@ export default function AdminDashboardRoute() {
                 <p className="status-card__value">{engagement.totalLikes}</p>
               </article>
               <article className="status-card">
-                <p className="status-card__label">Share actions initiated</p>
+                <p className="status-card__label">Shares started</p>
                 <p className="status-card__value">{engagement.totalShares}</p>
               </article>
             </div>
             {engagement.totalLikes === 0 && engagement.totalShares === 0 ? (
               <p className="field-help">
-                No likes or shares recorded yet. Both appear here once visitors use the
-                controls on a photograph's page.
+                No likes or shares yet. They'll show up here once visitors start using the
+                heart and share buttons on your photographs.
               </p>
             ) : (
               <div className="table-scroll">
@@ -216,7 +217,10 @@ export default function AdminDashboardRoute() {
                           <ul className="plain-list">
                             {engagement.channels.map((row) => (
                               <li key={row.channel}>
-                                {row.channel} <span className="muted">— {row.total}</span>
+                                {isShareChannel(row.channel)
+                                  ? SHARE_CHANNEL_LABELS[row.channel]
+                                  : row.channel}{" "}
+                                <span className="muted">— {row.total}</span>
                               </li>
                             ))}
                           </ul>

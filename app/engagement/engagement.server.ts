@@ -52,7 +52,7 @@ export type MutationOutcome =
 const UNAVAILABLE: EngagementView = {
   availability: {
     available: false,
-    reason: "Likes are unavailable right now. Nothing is recorded and no count is shown.",
+    reason: "Likes aren't available at the moment. Please try again later.",
   },
   engagement: null,
 };

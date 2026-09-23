@@ -18,17 +18,23 @@ import { isOutboundShareChannel, shareUrlFor, type ShareTarget } from "../engage
  *
  * THE SERVER IS AUTHORITATIVE. The count and "this browser liked it" come from
  * the loader and from the endpoint's JSON response. There is no local counter: the
- * component never adds one to a number, and while a request is in flight it says
- * it is working rather than showing a total that storage has not confirmed. That
- * is why the only local state is the share disclosure and its message.
+ * component never adds one to a number, and while a request is in flight the heart
+ * keeps showing the last confirmed state rather than a total that storage has not
+ * confirmed. That is why the only local state is the share disclosure and its note.
  *
  * NOTHING CLAIMS AN OUTCOME. Opening the Web Share sheet or an outbound link is an
  * interaction; whether anything was posted is unknowable from here, and the copy
- * says so. The single confirmed success is a completed clipboard write, because
- * the application performs that itself and can see it succeed.
+ * never pretends otherwise. The single confirmed success is a completed clipboard
+ * write, because the application performs that itself and can see it succeed.
  *
- * The controls stay small: a button, a number and a disclosure. The photograph
+ * The controls stay small: a heart, a number and a share disclosure. The photograph
  * remains the subject of the page.
+ *
+ * The heart's accessible name carries its state ("Like this photo" / "Unlike this
+ * photo") and the shape changes as well as the colour (outline versus filled), so the
+ * state never depends on colour alone. It deliberately has no `aria-pressed`: a label
+ * that already names the next action plus a pressed state reads as a contradiction
+ * ("Unlike this photo, pressed").
  */
 
 export type EngagementControlsProps = {
@@ -54,6 +60,37 @@ function likeResult(data: ActionPayload | undefined): {
   return data && "likeCount" in data ? data : null;
 }
 
+/** Heart glyph: an outline when not liked, filled when liked. Decorative only. */
+function HeartIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg
+      className="engagement__heart"
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M12 20.5l-1.35-1.23C5.9 14.95 3 12.3 3 9.05 3 6.4 5.07 4.5 7.6 4.5c1.6 0 3.1.78 4.4 2.28 1.3-1.5 2.8-2.28 4.4-2.28 2.53 0 4.6 1.9 4.6 4.55 0 3.25-2.9 5.9-7.65 10.22L12 20.5z"
+        fill={filled ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** The share panel's order: copy first, the named services, the device sheet last. */
+const PANEL_ORDER: readonly ShareChannel[] = [
+  ...SHARE_CHANNELS.filter((channel) => channel !== "native"),
+  "native",
+];
+
+/** How long "Link copied." stays on screen before the note clears itself. */
+const COPIED_NOTE_MS = 3000;
+
 export function EngagementControls(props: EngagementControlsProps) {
   const { engagement, availabilityReason, shareTarget, canonicalUrl } = props;
   const likeFetcher = useFetcher<ActionPayload>();
@@ -65,8 +102,9 @@ export function EngagementControls(props: EngagementControlsProps) {
    *
    * Discovered on the client rather than passed in: `navigator` does not exist
    * during server rendering, so a prop computed on the server would be wrong for
-   * every visitor. It starts false — the safe assumption, because the fallbacks
-   * are always truthful — and is corrected once the component is live.
+   * every visitor. It starts false — the safe assumption, because the listed
+   * options always work — and is corrected once the component is live. When true,
+   * the panel gains one extra entry that opens the device's own share sheet.
    */
   const [nativeShareAvailable, setNativeShareAvailable] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -81,8 +119,9 @@ export function EngagementControls(props: EngagementControlsProps) {
   const submitting = likeFetcher.state !== "idle";
 
   // The endpoint's answer supersedes the page's snapshot, and until it arrives
-  // the loader's value is shown unchanged. `submitting` disables the button, so a
-  // double submit cannot race itself.
+  // the loader's value is shown unchanged. A click while a request is in flight is
+  // ignored, so a double submit cannot race itself. The button is NOT disabled for
+  // that interval, because disabling a focused button drops keyboard focus.
   const answered = likeResult(likeFetcher.data);
   const likeCount = answered?.likeCount ?? engagement?.likeCount ?? 0;
   const liked = answered?.likedByThisBrowser ?? engagement?.likedByThisBrowser ?? false;
@@ -95,8 +134,23 @@ export function EngagementControls(props: EngagementControlsProps) {
     };
   }, []);
 
+  /** Show a share note. "Link copied." clears itself; everything else stays. */
+  function showStatus(next: ShareStatus | null) {
+    if (copiedTimer.current !== null) {
+      clearTimeout(copiedTimer.current);
+      copiedTimer.current = null;
+    }
+    setStatus(next);
+    if (next === "linkCopied") {
+      copiedTimer.current = setTimeout(() => setStatus(null), COPIED_NOTE_MS);
+    }
+  }
+
   /** Submit a like or unlike. The body names only the action. */
   function submitLike(action: "like" | "unlike") {
+    if (submitting) {
+      return;
+    }
     const body = new FormData();
     body.set("action", action);
     likeFetcher.submit(body, { method: "post", action: `/engagement/${props.slug}` });
@@ -111,30 +165,28 @@ export function EngagementControls(props: EngagementControlsProps) {
   }
 
   /**
-   * The Web Share API path.
+   * The Web Share API path, offered only where the browser supports it.
    *
-   * The sheet resolving means the visitor finished with the sheet, not that
-   * anything was posted, so the message says the panel opened and stops there.
+   * The device's own sheet is its feedback, so a completed or dismissed sheet adds
+   * no note of ours: the application cannot know whether anything was sent.
    */
   async function shareNatively() {
-    recordInitiation("native");
-    if (!nativeShareAvailable || typeof navigator === "undefined" || !navigator.share) {
-      setStatus("nativeUnavailable");
-      setShareOpen(true);
+    if (typeof navigator === "undefined" || !navigator.share) {
+      showStatus("nativeUnavailable");
       return;
     }
+    recordInitiation("native");
     try {
       await navigator.share({
         title: shareTarget.title,
         text: shareTarget.description,
         url: canonicalUrl,
       });
-      setStatus("nativeOpened");
-    } catch {
-      // A dismissed sheet is not an error worth alarming anyone about, but the
-      // fallbacks are offered either way so nobody is left with no option.
-      setStatus("nativeUnavailable");
-      setShareOpen(true);
+      showStatus(null);
+    } catch (error) {
+      // Dismissing the sheet is not a failure worth mentioning.
+      const dismissed = error instanceof Error && error.name === "AbortError";
+      showStatus(dismissed ? null : "nativeUnavailable");
     }
   }
 
@@ -146,11 +198,10 @@ export function EngagementControls(props: EngagementControlsProps) {
       }
       await navigator.clipboard.writeText(canonicalUrl);
       recordInitiation("copy_link");
-      setStatus("linkCopied");
+      showStatus("linkCopied");
     } catch {
       // Honest failure: no claim of success, and the link is shown for manual use.
-      setStatus("copyFailed");
-      setShareOpen(true);
+      showStatus("copyFailed");
     }
   }
 
@@ -161,55 +212,47 @@ export function EngagementControls(props: EngagementControlsProps) {
       return;
     }
     recordInitiation(channel);
-    setStatus("outboundOpened");
+    showStatus("outboundOpened");
     if (typeof window !== "undefined") {
       window.open(url, "_blank", "noopener,noreferrer");
     }
   }
 
   return (
-    <div className="engagement" aria-label="Photograph engagement">
+    <div className="engagement" role="group" aria-label="Like and share">
       <div className="engagement__row">
-        <button
-          type="button"
-          className="button engagement__like"
-          aria-pressed={liked}
-          disabled={!available || submitting}
-          aria-disabled={!available || submitting}
-          onClick={() => submitLike(liked ? "unlike" : "like")}
-        >
-          {submitting ? "Working…" : liked ? "Unlike" : "Like"}
-        </button>
+        <div className="engagement__like-group">
+          <button
+            type="button"
+            className="engagement__like"
+            data-liked={liked ? "true" : "false"}
+            aria-label={liked ? "Unlike this photo" : "Like this photo"}
+            aria-busy={submitting}
+            disabled={!available}
+            onClick={() => submitLike(liked ? "unlike" : "like")}
+          >
+            <HeartIcon filled={liked} />
+          </button>
 
-        <p className="engagement__count" aria-live="polite">
           {available ? (
-            <>
-              <span className="engagement__count-value">{likeCount}</span>{" "}
-              <span className="engagement__count-label">
-                {likeCount === 1 ? "like" : "likes"}
+            <p className="engagement__count" aria-live="polite">
+              <span className="engagement__count-value">{likeCount}</span>
+              <span className="visually-hidden">
+                {likeCount === 1 ? " like" : " likes"}
+                {liked ? ", including yours" : ""}
               </span>
-            </>
-          ) : (
-            <span className="engagement__count-label">Likes unavailable</span>
-          )}
-        </p>
+            </p>
+          ) : null}
+        </div>
 
         <button
           type="button"
           className="button engagement__share"
-          onClick={shareNatively}
-          aria-expanded={shareOpen}
-        >
-          {SHARE_CHANNEL_LABELS.native}
-        </button>
-
-        <button
-          type="button"
-          className="button engagement__toggle"
           onClick={() => setShareOpen((open) => !open)}
           aria-expanded={shareOpen}
+          aria-controls="engagement-share-panel"
         >
-          {shareOpen ? "Hide sharing options" : "More sharing options"}
+          Share
         </button>
       </div>
 
@@ -219,43 +262,59 @@ export function EngagementControls(props: EngagementControlsProps) {
         </p>
       ) : null}
 
-      {status ? (
-        <p className="engagement__note" role="status">
-          {shareStatusMessage(status)}
-        </p>
-      ) : null}
-
       {shareOpen ? (
-        <div className="engagement__fallbacks">
-          {/*
-            The link is also shown as selectable text, so a visitor whose clipboard
-            is unavailable still has an honest way to share it by hand.
-          */}
-          <p className="engagement__link">
-            <label htmlFor="engagement-canonical">Link</label>
-            <input id="engagement-canonical" type="text" readOnly value={canonicalUrl} />
-          </p>
+        <div className="engagement__fallbacks" id="engagement-share-panel">
           <ul className="engagement__channels">
-            {SHARE_CHANNELS.filter((channel) => channel !== "native").map((channel) => (
-              <li key={channel}>
-                {channel === "copy_link" ? (
-                  <button type="button" className="text-link" onClick={copyLink}>
-                    {SHARE_CHANNEL_LABELS[channel]}
-                  </button>
-                ) : isOutboundShareChannel(channel) ? (
+            {PANEL_ORDER.map((channel) => {
+              if (channel === "native") {
+                // The device's own share sheet, only where the browser has one.
+                return nativeShareAvailable ? (
+                  <li key={channel}>
+                    <button type="button" className="text-link" onClick={shareNatively}>
+                      {SHARE_CHANNEL_LABELS.native}
+                    </button>
+                  </li>
+                ) : null;
+              }
+              if (channel === "copy_link") {
+                return (
+                  <li key={channel}>
+                    <button type="button" className="text-link" onClick={copyLink}>
+                      {SHARE_CHANNEL_LABELS[channel]}
+                    </button>
+                  </li>
+                );
+              }
+              return isOutboundShareChannel(channel) ? (
+                <li key={channel}>
                   <button type="button" className="text-link" onClick={() => openOutbound(channel)}>
                     {SHARE_CHANNEL_LABELS[channel]}
                   </button>
-                ) : null}
-              </li>
-            ))}
+                </li>
+              ) : null;
+            })}
           </ul>
-          <p className="engagement__caveat">
-            These open the service in a new tab. Nothing here confirms that a share was
-            completed, and no count of shares is shown.
+          {/*
+            The link is also shown as selectable text, so a visitor whose clipboard
+            is unavailable can still copy it by hand.
+          */}
+          <p className="engagement__link">
+            <label htmlFor="engagement-canonical">Link to this photo</label>
+            <input
+              id="engagement-canonical"
+              type="text"
+              readOnly
+              value={canonicalUrl}
+              onFocus={(event) => event.currentTarget.select()}
+            />
           </p>
         </div>
       ) : null}
+
+      {/* Always mounted, so screen readers announce a note when one appears. */}
+      <p className="engagement__note" role="status">
+        {status ? shareStatusMessage(status) : null}
+      </p>
     </div>
   );
 }

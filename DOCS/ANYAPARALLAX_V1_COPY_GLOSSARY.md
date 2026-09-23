@@ -2,6 +2,8 @@
 
 **Scope.** This is an inventory of every string a person can see or hear in the Anyaparallax application as it stands in this repository: public pages, the photographer area, the manager area, and the error, refusal and validation copy around them. It is a description of the code, not a rewrite: no copy has been changed.
 
+**V1 polish pass (2026-09-23).** The like/share controls, the privacy notice, the manager pages and the enquiries empty state were rewritten after preview acceptance. Rows touched by that pass say so in their Notes, strings that no longer render read `[removed in the V1 polish pass]` and keep their IDs, and the full old → new list is in `DOCS/ANYAPARALLAX_V1_POLISH_COPY_CHANGES.md`.
+
 **How to use it.** Every entry has a stable ID (`PUB-HOME-002`, `ADM-EDIT-014`, `MGR-MAINT-009`, `SYS-ENQVAL-003`, …). IDs do not change when the wording does, so an operator can work from this document alone. To change a string, reply with the ID and the new wording, for example:
 
 ```
@@ -147,29 +149,30 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 
 | ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| PUB-ENGAGE-001 | PUBLIC | `/photo/:slug` like and share block | accessibility label | Photograph engagement | `app/components/EngagementControls.tsx:171` | no | Accessible name of the control group. |
-| PUB-ENGAGE-002 | PUBLIC | `/photo/:slug` like button | button | Like | `app/components/EngagementControls.tsx:181` | no | Shown when this browser has not liked the photograph. |
-| PUB-ENGAGE-003 | PUBLIC | `/photo/:slug` like button | button | Unlike | `app/components/EngagementControls.tsx:181` | no | Shown when this browser has liked the photograph. |
-| PUB-ENGAGE-004 | PUBLIC | `/photo/:slug` like button | button | Working… | `app/components/EngagementControls.tsx:181` | no | Shown while the like request is in flight; no optimistic count is displayed. |
-| PUB-ENGAGE-005 | PUBLIC | `/photo/:slug` like count | metadata | like, or likes | `app/components/EngagementControls.tsx:189` | no | Singular/plural label beside the stored count; announced politely via `aria-live`. |
-| PUB-ENGAGE-006 | PUBLIC | `/photo/:slug` like count | metadata | Likes unavailable | `app/components/EngagementControls.tsx:193` | no | Shown when engagement storage could not be read; no fabricated count. |
-| PUB-ENGAGE-007 | PUBLIC | `/photo/:slug` share button | button | Share | `app/engagement/engagement.ts:38` (`SHARE_CHANNEL_LABELS.native`) | no | Opens the Web Share sheet where the browser provides one. |
-| PUB-ENGAGE-008 | PUBLIC | `/photo/:slug` share disclosure | button | More sharing options | `app/components/EngagementControls.tsx:212` | no | Shown while the fallback list is collapsed. |
-| PUB-ENGAGE-009 | PUBLIC | `/photo/:slug` share disclosure | button | Hide sharing options | `app/components/EngagementControls.tsx:212` | no | Shown while the fallback list is expanded. |
-| PUB-ENGAGE-010 | PUBLIC | `/photo/:slug` share fallbacks | field label | Link | `app/components/EngagementControls.tsx:235` | no | Label for the read-only canonical URL input. |
-| PUB-ENGAGE-011 | PUBLIC | `/photo/:slug` share fallbacks | helper text | These open the service in a new tab. Nothing here confirms that a share was completed, and no count of shares is shown. | `app/components/EngagementControls.tsx:254`-`255` | no | States the limit of what the application can know; the operator should keep this truthful if share channels change. |
+| PUB-ENGAGE-001 | PUBLIC | `/photo/:slug` like and share block | accessibility label | Like and share | `app/components/EngagementControls.tsx:222` | no | Accessible name of the control group. Revised in the V1 polish pass. |
+| PUB-ENGAGE-002 | PUBLIC | `/photo/:slug` like button | accessibility label | Like this photo | `app/components/EngagementControls.tsx:229` | no | Accessible name of the heart button (outline heart) when this browser has not liked the photograph. Revised in the V1 polish pass (was the visible button text "Like"). |
+| PUB-ENGAGE-003 | PUBLIC | `/photo/:slug` like button | accessibility label | Unlike this photo | `app/components/EngagementControls.tsx:229` | no | Accessible name of the heart button (filled red heart) when this browser has liked the photograph. Revised in the V1 polish pass (was the visible button text "Unlike"). |
+| PUB-ENGAGE-004 | PUBLIC | `/photo/:slug` like button | button | [removed in the V1 polish pass] | `app/components/EngagementControls.tsx:181` | no | Removed in the V1 polish pass; the ID is kept so references stay valid. Was "Working…"; the heart now dims while a like is saving. |
+| PUB-ENGAGE-005 | PUBLIC | `/photo/:slug` like count | metadata | {n}, followed by the visually hidden word "like" or "likes" | `app/components/EngagementControls.tsx:239` | no | The count is shown as a bare number beside the heart; the word is for screen readers. Revised in the V1 polish pass. |
+| PUB-ENGAGE-006 | PUBLIC | `/photo/:slug` like count | metadata | [removed in the V1 polish pass] | `app/components/EngagementControls.tsx:193` | no | Removed in the V1 polish pass; the ID is kept so references stay valid. Was "Likes unavailable"; the count is now simply omitted and PUB-ENGAGE-023 explains why. |
+| PUB-ENGAGE-007 | PUBLIC | `/photo/:slug` share button | button | Other apps | `app/engagement/engagement.ts:39` | no | Opens the device share sheet (Web Share API); rendered only where the browser supports it. Also labels the channel on the admin dashboard. Revised in the V1 polish pass (was "Share"). |
+| PUB-ENGAGE-008 | PUBLIC | `/photo/:slug` share disclosure | button | Share | `app/components/EngagementControls.tsx:255` | no | Opens and closes the share panel. Revised in the V1 polish pass (was "More sharing options"). |
+| PUB-ENGAGE-009 | PUBLIC | `/photo/:slug` share disclosure | button | [removed in the V1 polish pass] | `app/components/EngagementControls.tsx:212` | no | Removed in the V1 polish pass; the ID is kept so references stay valid. Was "Hide sharing options"; the single Share button now toggles the panel. |
+| PUB-ENGAGE-010 | PUBLIC | `/photo/:slug` share fallbacks | field label | Link to this photo | `app/components/EngagementControls.tsx:302` | no | Label for the read-only canonical URL input. Revised in the V1 polish pass. |
+| PUB-ENGAGE-011 | PUBLIC | `/photo/:slug` share fallbacks | helper text | [removed in the V1 polish pass] | `app/components/EngagementControls.tsx:254`-`255` | no | Removed in the V1 polish pass; the ID is kept so references stay valid. Was the "These open the service in a new tab…" caveat. |
 | PUB-ENGAGE-012 | PUBLIC | `/photo/:slug` share fallbacks | button | Copy link | `app/engagement/engagement.ts:39` (`SHARE_CHANNEL_LABELS.copy_link`) | no | The one share action with a confirmable outcome. |
 | PUB-ENGAGE-013 | PUBLIC | `/photo/:slug` share fallbacks | button | WhatsApp | `app/engagement/engagement.ts:40` (`SHARE_CHANNEL_LABELS.whatsapp`) | no | Opens an outbound link in a new tab. |
 | PUB-ENGAGE-014 | PUBLIC | `/photo/:slug` share fallbacks | button | Facebook | `app/engagement/engagement.ts:41` (`SHARE_CHANNEL_LABELS.facebook`) | no | Opens an outbound link in a new tab. |
 | PUB-ENGAGE-015 | PUBLIC | `/photo/:slug` share fallbacks | button | X | `app/engagement/engagement.ts:42` (`SHARE_CHANNEL_LABELS.x`) | no | Opens an outbound link in a new tab. |
 | PUB-ENGAGE-016 | PUBLIC | `/photo/:slug` share fallbacks | button | Pinterest | `app/engagement/engagement.ts:43` (`SHARE_CHANNEL_LABELS.pinterest`) | no | Opens an outbound link in a new tab; omits the image when none is public. |
 | PUB-ENGAGE-017 | PUBLIC | `/photo/:slug` share fallbacks | button | Email | `app/engagement/engagement.ts:44` (`SHARE_CHANNEL_LABELS.email`) | no | Opens the visitor's own mail client. |
-| PUB-ENGAGE-018 | PUBLIC | `/photo/:slug` share status | confirmation | Share panel opened. | `app/engagement/engagement.ts:84` (`SHARE_STATUS_COPY.nativeOpened`) | no | Deliberately claims only that the sheet opened. |
-| PUB-ENGAGE-019 | PUBLIC | `/photo/:slug` share status | warning | This browser cannot open a share panel. Use one of the options below. | `app/engagement/engagement.ts:86` (`SHARE_STATUS_COPY.nativeUnavailable`) | no | Fallback message. |
-| PUB-ENGAGE-020 | PUBLIC | `/photo/:slug` share status | confirmation | Opened in a new tab. Complete the share there. | `app/engagement/engagement.ts:88` (`SHARE_STATUS_COPY.outboundOpened`) | no | Claims initiation only. |
-| PUB-ENGAGE-021 | PUBLIC | `/photo/:slug` share status | confirmation | Link copied. | `app/engagement/engagement.ts:90` (`SHARE_STATUS_COPY.linkCopied`) | no | Shown only after a completed clipboard write. |
-| PUB-ENGAGE-022 | PUBLIC | `/photo/:slug` share status | warning | Could not copy automatically. Select the link and copy it manually. | `app/engagement/engagement.ts:92` (`SHARE_STATUS_COPY.copyFailed`) | no | Shown on clipboard failure. |
-| PUB-ENGAGE-023 | PUBLIC | `/photo/:slug` engagement note | warning | Likes are unavailable right now. Nothing is recorded and no count is shown. | `app/engagement/engagement.server.ts:55` | no | Availability reason rendered beside the controls when engagement storage is unreachable. |
+| PUB-ENGAGE-018 | PUBLIC | `/photo/:slug` share status | confirmation | Share menu opened. | `app/engagement/engagement.ts:85` | no | Kept in the vocabulary but no longer displayed: the device share sheet is its own feedback. Revised in the V1 polish pass. |
+| PUB-ENGAGE-019 | PUBLIC | `/photo/:slug` share status | warning | Your device's share menu isn't available here. Try one of the other options. | `app/engagement/engagement.ts:87` | no | Fallback message. Revised in the V1 polish pass. |
+| PUB-ENGAGE-020 | PUBLIC | `/photo/:slug` share status | confirmation | Opened in a new tab. | `app/engagement/engagement.ts:89` | no | Claims initiation only. Revised in the V1 polish pass. |
+| PUB-ENGAGE-021 | PUBLIC | `/photo/:slug` share status | confirmation | Link copied. | `app/engagement/engagement.ts:91` | no | The only share outcome the site can confirm. Clears itself after three seconds. |
+| PUB-ENGAGE-022 | PUBLIC | `/photo/:slug` share status | warning | Couldn't copy the link automatically. You can select it below and copy it yourself. | `app/engagement/engagement.ts:93` | no | Shown on clipboard failure. Revised in the V1 polish pass. |
+| PUB-ENGAGE-023 | PUBLIC | `/photo/:slug` engagement note | warning | Likes aren't available at the moment. Please try again later. | `app/engagement/engagement.server.ts:55` | no | Availability reason rendered beside the controls when engagement storage is unreachable. Revised in the V1 polish pass. |
+| PUB-ENGAGE-024 | PUBLIC | `/photo/:slug` like count | accessibility label | , including yours | `app/components/EngagementControls.tsx:242` | no | Visually hidden; appended to the count when this browser has liked the photograph. Added in the V1 polish pass. |
 
 ## Prints information — `PUB-PRINTS`
 
@@ -284,30 +287,33 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | PUB-PRIVACY-001 | PUBLIC | `/privacy` header | heading | Privacy | `app/routes/privacy.tsx:32` | no | Eyebrow. |
 | PUB-PRIVACY-002 | PUBLIC | `/privacy` header | heading | Privacy | `app/routes/privacy.tsx:33` | no | Page `h1`. |
-| PUB-PRIVACY-003 | PUBLIC | `/privacy` header | body | What this site stores, why, and what it deliberately does not collect. Written to describe how the site actually works. | `app/routes/privacy.tsx:34`-`37` | no | Page lede. |
-| PUB-PRIVACY-004 | PUBLIC | `/privacy` operator task block | heading | To be completed before public launch | `app/routes/privacy.tsx:41` | no | States that a legal task is outstanding; must be resolved by the operator before launch. |
-| PUB-PRIVACY-005 | PUBLIC | `/privacy` operator task block | warning | Three facts are the site owner's to decide, so they are shown here rather than guessed: the identity of the data controller, the retention period for enquiries, and the contact address for data requests. Replace this block with those details. | `app/routes/privacy.tsx:42`-`46` | no | The three facts cannot be known from the code; the block must be replaced with operator-supplied details. |
+| PUB-PRIVACY-003 | PUBLIC | `/privacy` header | body | This is a photography site, not a data business. Here is what it keeps, why, and what it never collects. | `app/routes/privacy.tsx:39` | no | Page lede. Revised in the V1 polish pass. |
+| PUB-PRIVACY-004 | PUBLIC | `/privacy` operator task block | heading | Details still to be confirmed | `app/routes/privacy.tsx:45` | no | Owner task: replace this block before public launch. Pinned by check-v1-completion-served.mjs. Revised in the V1 polish pass (was "To be completed before public launch"). |
+| PUB-PRIVACY-005 | PUBLIC | `/privacy` operator task block | warning | Before the site opens to the public, this page will also say who is responsible for your information, how long enquiries are kept, and where to write about your data. Until then, you can reach us through the contact form. | `app/routes/privacy.tsx:47` | no | Stands in for three owner facts: data controller, enquiry retention period, data-request address. "contact form" is a link (PUB-PRIVACY-029). Revised in the V1 polish pass. |
 | PUB-PRIVACY-006 | PUBLIC | `/privacy` | heading | When you send an enquiry | `app/routes/privacy.tsx:50` | no | Section `h2`. |
-| PUB-PRIVACY-007 | PUBLIC | `/privacy` | body | The contact form and the print enquiry form ask for your name, your email address and your message, plus the category of enquiry and, for a print enquiry, the photograph and the format you are interested in. Those details are stored so the enquiry can be answered. | `app/routes/privacy.tsx:51`-`56` | no | Describes the stored columns; keep aligned with the form if fields change. |
-| PUB-PRIVACY-008 | PUBLIC | `/privacy` | body | The stored enquiry does not include your IP address, your browser or device details, the page you came from, or any identifier for your browser. The forms also carry a one-time submission token so that pressing send twice does not create two enquiries. | `app/routes/privacy.tsx:57`-`61` | no | A factual claim about the code; must be re-verified if the write path changes. |
-| PUB-PRIVACY-009 | PUBLIC | `/privacy` | body | Enquiries are read only in the site's private operator area, behind Cloudflare Access. | `app/routes/privacy.tsx:62`-`64` | no | Names the identity provider. |
+| PUB-PRIVACY-007 | PUBLIC | `/privacy` | body | The contact form and the print enquiry form ask for your name, your email address and your message, and what the enquiry is about. For a print enquiry we also note the photo, and the format and size you're interested in. We keep these details so we can reply to you. | `app/routes/privacy.tsx:57` | no | Now also mentions print size, which the form collects and stores. Revised in the V1 polish pass. |
+| PUB-PRIVACY-008 | PUBLIC | `/privacy` | body | We don't keep your IP address, your browser or device details, the page you came from, or anything that identifies your browser alongside an enquiry. Each form also carries a one-off code so that pressing send twice doesn't send the same enquiry twice. | `app/routes/privacy.tsx:63` | no | A factual claim about the code; must be re-verified if the write path changes. Revised in the V1 polish pass. |
+| PUB-PRIVACY-009 | PUBLIC | `/privacy` | body | Enquiries can only be read in the site's private management area, which is protected by Cloudflare Access. | `app/routes/privacy.tsx:69` | no | Names the identity provider. Revised in the V1 polish pass. |
 | PUB-PRIVACY-010 | PUBLIC | `/privacy` | heading | Likes and shares | `app/routes/privacy.tsx:68` | no | Section `h2`. |
-| PUB-PRIVACY-011 | PUBLIC | `/privacy` | body | Liking a photograph stores a random identifier that lives in your browser, so the same browser is not counted twice. It is generated by this site, contains nothing about your device or your network, and is not shared with anybody. Clearing your browser storage removes it. | `app/routes/privacy.tsx:69`-`74` | no | Describes the anonymous browser identifier accurately; needs review if the cookie changes. |
-| PUB-PRIVACY-012 | PUBLIC | `/privacy` | body | When you use a share control, this site records that a share action was started and which channel you chose. It cannot see whether the share completed, and it does not send anything to those services on your behalf. | `app/routes/privacy.tsx:75`-`79` | no | Describes share-initiation recording. |
-| PUB-PRIVACY-013 | PUBLIC | `/privacy` | heading | What this site does not do | `app/routes/privacy.tsx:83` | no | Section `h2`. |
+| PUB-PRIVACY-011 | PUBLIC | `/privacy` | body | [removed in the V1 polish pass] | `app/routes/privacy.tsx:69`-`74` | no | Removed in the V1 polish pass; the ID is kept so references stay valid. This row already described superseded text before the pass; PUB-PRIVACY-025 to -027 hold the current cookie copy. |
+| PUB-PRIVACY-012 | PUBLIC | `/privacy` | body | When you use one of the share buttons, the site notes which photo and which option you picked, and nothing about you. It can't see whether you went on to post or send anything, and it never posts anything on your behalf. | `app/routes/privacy.tsx:97` | no | Share rows hold photo, channel and time only; no browser identifier. Revised in the V1 polish pass. |
+| PUB-PRIVACY-013 | PUBLIC | `/privacy` | heading | What we don't do | `app/routes/privacy.tsx:104` | no | Section `h2`. Revised in the V1 polish pass. |
 | PUB-PRIVACY-014 | PUBLIC | `/privacy` | body | No third-party analytics, advertising or tracking scripts. | `app/routes/privacy.tsx:85` | no | List item; a factual claim about the code. |
-| PUB-PRIVACY-015 | PUBLIC | `/privacy` | body | No IP address, user agent or referrer is stored with any visitor action. | `app/routes/privacy.tsx:86` | no | List item; a factual claim about the code. |
-| PUB-PRIVACY-016 | PUBLIC | `/privacy` | body | No fingerprinting, and no attempt to recognise a device across sites. | `app/routes/privacy.tsx:87` | no | List item; a factual claim about the code. |
-| PUB-PRIVACY-017 | PUBLIC | `/privacy` | body | No account is needed to browse, like or share. | `app/routes/privacy.tsx:88` | no | List item. |
-| PUB-PRIVACY-018 | PUBLIC | `/privacy` | body | No analytics, advertising or profiling cookie is set, and no cookie is required to browse the site. | `app/routes/privacy.tsx` | no | Corrected in the V1C review: the site DOES set one first-party engagement cookie, described under PUB-PRIVACY-023/-024. |
-| PUB-PRIVACY-019 | PUBLIC | `/privacy` | heading | Operator sign-in | `app/routes/privacy.tsx:94` | no | Section `h2`. |
-| PUB-PRIVACY-020 | PUBLIC | `/privacy` | body | The site's own management areas are protected by Cloudflare Access. Only the people the site owner has authorised can reach them, and this site never sees or stores their passwords. Visitors are unaffected by that arrangement. | `app/routes/privacy.tsx:95`-`99` | no | Describes the operator access arrangement. |
+| PUB-PRIVACY-015 | PUBLIC | `/privacy` | body | No record of your IP address, browser or the page you came from. | `app/routes/privacy.tsx:107` | no | List item; a factual claim about the code. Revised in the V1 polish pass. |
+| PUB-PRIVACY-016 | PUBLIC | `/privacy` | body | No fingerprinting, and no following you from site to site. | `app/routes/privacy.tsx:108` | no | List item; a factual claim about the code. Revised in the V1 polish pass. |
+| PUB-PRIVACY-017 | PUBLIC | `/privacy` | body | No account needed to browse, like or share. | `app/routes/privacy.tsx:109` | no | List item. Revised in the V1 polish pass. |
+| PUB-PRIVACY-018 | PUBLIC | `/privacy` | body | No analytics, advertising or profiling cookies. You don't need to accept any cookie to browse the site. | `app/routes/privacy.tsx:111` | no | Corrected in the V1C review: the site DOES set one first-party engagement cookie, described under PUB-PRIVACY-023/-024. Revised in the V1 polish pass. |
+| PUB-PRIVACY-019 | PUBLIC | `/privacy` | heading | The management area | `app/routes/privacy.tsx:118` | no | Section `h2`. Revised in the V1 polish pass. |
+| PUB-PRIVACY-020 | PUBLIC | `/privacy` | body | The parts of the site used to manage photos and enquiries are protected by Cloudflare Access, so only people the site owner has approved can get in. This site never sees or stores their passwords. None of this affects visitors. | `app/routes/privacy.tsx:120` | no | Describes the operator access arrangement. Revised in the V1 polish pass. |
 | PUB-PRIVACY-021 | PUBLIC | `/privacy` | heading | Questions or requests | `app/routes/privacy.tsx:103` | no | Section `h2`. |
-| PUB-PRIVACY-022 | PUBLIC | `/privacy` | body | To ask about an enquiry you have sent, or to ask for it to be corrected or removed, write to the address published on the contact page. | `app/routes/privacy.tsx:105`-`106` | no | Points at an address that `/contact` currently says is not published; the operator must resolve this contradiction. |
-| PUB-PRIVACY-023 | PUBLIC | `/privacy` | navigation | contact page | `app/routes/privacy.tsx:106` | no | Inline link text inside `PUB-PRIVACY-022`, pointing at `/contact`. |
-| PUB-PRIVACY-024 | PUBLIC | `/privacy` engagement cookie | heading | The engagement cookie | `app/routes/privacy.tsx` | no | Section `h3`, added in the V1C review when the previous zero-cookie claim was corrected. |
-| PUB-PRIVACY-025 | PUBLIC | `/privacy` engagement cookie | body | To stop the same browser counting the same like twice, this site sets one first-party cookie called {cookie name}. It holds a random value generated by this site. It is marked HttpOnly, so scripts on the page cannot read it; SameSite=Lax; and Secure when you are on an encrypted connection. It is sent only to this site, it lasts up to 400 days, and it is not used for anything else. | `app/routes/privacy.tsx` | no | Replaces the false 'no cookie is set for visitors' claim (APV1C-02). The cookie name is a code span in the source. |
-| PUB-PRIVACY-026 | PUBLIC | `/privacy` engagement cookie | body | The value is not derived from your IP address, your browser or device details, the page you came from, or anything you type, and it is not shared with anybody. The site's database never stores the cookie value itself: it stores a one-way SHA-256 digest of it, which is enough to recognise a repeat like and not enough to reconstruct the cookie. Clearing your cookies removes the identifier, and a new one is generated the next time you like a photograph. | `app/routes/privacy.tsx` | no | States the digest-only storage accurately; do not reword into 'no data is stored'. |
+| PUB-PRIVACY-022 | PUBLIC | `/privacy` | body | If you'd like to ask about an enquiry you've sent, or have it corrected or deleted, just send a message through the contact form and let us know. There's no public email address on the site. | `app/routes/privacy.tsx:129` | no | "contact form" is a link (PUB-PRIVACY-023). Revised in the V1 polish pass; the row previously described superseded text. |
+| PUB-PRIVACY-023 | PUBLIC | `/privacy` | navigation | contact form | `app/routes/privacy.tsx:131` | no | Inline link text inside `PUB-PRIVACY-022`, pointing at `/contact`. Revised in the V1 polish pass. |
+| PUB-PRIVACY-024 | PUBLIC | `/privacy` engagement cookie | heading | The one cookie we use | `app/routes/privacy.tsx:76` | no | Section `h3`, added in the V1C review when the previous zero-cookie claim was corrected. Revised in the V1 polish pass. |
+| PUB-PRIVACY-025 | PUBLIC | `/privacy` engagement cookie | body | The first time you like a photo, the site sets a single cookie called {cookie name}. It holds a random value, and its only job is to make sure the same browser can't like the same photo twice. It belongs to this site alone and isn't shared with anyone. | `app/routes/privacy.tsx:78` | no | The cookie name is a code span in the source. Revised in the V1 polish pass. |
+| PUB-PRIVACY-026 | PUBLIC | `/privacy` engagement cookie | body | The value is not derived from your IP address, your device, the page you came from or anything you type. We don't even store the value itself: the database keeps a scrambled, one-way version of it (a SHA-256 digest), which is enough to spot a repeat like and can't be turned back into the cookie. | `app/routes/privacy.tsx:84` | no | "not derived from your IP address" and "digest" are pinned by check-v1c-repairs.mjs. Revised in the V1 polish pass. |
+| PUB-PRIVACY-027 | PUBLIC | `/privacy` engagement cookie | body | For the technically curious: the cookie is HttpOnly (scripts on the page can't read it), SameSite=Lax, Secure on encrypted connections, and it lasts up to 400 days. If you clear your cookies it's gone, and a new one is only created if you like a photo again. | `app/routes/privacy.tsx:90` | no | HttpOnly, SameSite, Secure and "400 days" are pinned by check-v1c-repairs.mjs. Added in the V1 polish pass. |
+| PUB-PRIVACY-028 | PUBLIC | `/privacy` likes and shares | heading | Sharing | `app/routes/privacy.tsx:95` | no | Subheading above PUB-PRIVACY-012. Added in the V1 polish pass. |
+| PUB-PRIVACY-029 | PUBLIC | `/privacy` details still to be confirmed | link | contact form | `app/routes/privacy.tsx:50` | no | Link inside PUB-PRIVACY-005. Added in the V1 polish pass. |
 
 ## About — `PUB-ABOUT`
 
@@ -379,12 +385,12 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | ADM-DASH-012 | PHOTOGRAPHER | `/admin` status grid | metadata | Published photographs | `app/routes/admin/dashboard.tsx:133` | no | Card label; the value is a live count. |
 | ADM-DASH-013 | PHOTOGRAPHER | `/admin` engagement block | heading | Engagement | `app/routes/admin/dashboard.tsx:145` | no | Section `h2`. |
 | ADM-DASH-014 | PHOTOGRAPHER | `/admin` engagement block | metadata | Likes | `app/routes/admin/dashboard.tsx:152` | no | Card label; aggregate only. |
-| ADM-DASH-015 | PHOTOGRAPHER | `/admin` engagement block | metadata | Share actions initiated | `app/routes/admin/dashboard.tsx:156` | no | Deliberately says "initiated": the application cannot know whether a share completed. |
-| ADM-DASH-016 | PHOTOGRAPHER | `/admin` engagement block | empty state | No likes or shares recorded yet. Both appear here once visitors use the controls on a photograph's page. | `app/routes/admin/dashboard.tsx:161`-`164` | no | Shown when both totals are zero. |
+| ADM-DASH-015 | PHOTOGRAPHER | `/admin` engagement block | metadata | Shares started | `app/routes/admin/dashboard.tsx:157` | no | Deliberately says "initiated": the application cannot know whether a share completed. Revised in the V1 polish pass. |
+| ADM-DASH-016 | PHOTOGRAPHER | `/admin` engagement block | empty state | No likes or shares yet. They'll show up here once visitors start using the heart and share buttons on your photographs. | `app/routes/admin/dashboard.tsx:163` | no | Shown when both totals are zero. Revised in the V1 polish pass. |
 | ADM-DASH-017 | PHOTOGRAPHER | `/admin` engagement table | accessibility label | Most liked and most shared photographs, and the channels used | `app/routes/admin/dashboard.tsx:168`-`170` | no | Table caption, visually hidden. |
 | ADM-DASH-018 | PHOTOGRAPHER | `/admin` engagement table | metadata | Most liked | `app/routes/admin/dashboard.tsx:173` | no | Column heading. |
 | ADM-DASH-019 | PHOTOGRAPHER | `/admin` engagement table | metadata | Most shared | `app/routes/admin/dashboard.tsx:174` | no | Column heading. |
-| ADM-DASH-020 | PHOTOGRAPHER | `/admin` engagement table | metadata | Channels used | `app/routes/admin/dashboard.tsx:175` | no | Column heading. |
+| ADM-DASH-020 | PHOTOGRAPHER | `/admin` engagement table | metadata | Channels used | `app/routes/admin/dashboard.tsx:176` | no | Each channel is now shown by its public label (PUB-ENGAGE-007, -012 to -017) rather than its stored key, e.g. "Copy link" instead of "copy_link". |
 | ADM-DASH-021 | PHOTOGRAPHER | `/admin` engagement table | empty state | None yet | `app/routes/admin/dashboard.tsx:182`, `:198`, `:214` | no | Rendered in each of the three columns that has no rows. |
 | ADM-DASH-022 | PHOTOGRAPHER | `/admin` operator areas | heading | Operator areas | `app/routes/admin/dashboard.tsx:234` | no | Section `h2`. |
 | ADM-DASH-023 | PHOTOGRAPHER | `/admin` operator areas | navigation | Photos | `app/routes/admin/dashboard.tsx:54` | no | Duplicate wording of `ADM-NAV-010` from a separate constant. |
@@ -394,7 +400,7 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | ADM-DASH-027 | PHOTOGRAPHER | `/admin` operator areas | navigation | Galleries | `app/routes/admin/dashboard.tsx:75` | no | Duplicate wording of `ADM-NAV-012`. |
 | ADM-DASH-028 | PHOTOGRAPHER | `/admin` operator areas | navigation | Settings | `app/routes/admin/dashboard.tsx:80` | no | Duplicate wording of `ADM-NAV-015`. |
 | ADM-DASH-029 | PHOTOGRAPHER | `/admin` operator areas | helper text | Correct metadata, gallery and tags, and publish, withdraw or feature a photograph. | `app/routes/admin/dashboard.tsx:55`-`56` | no | Description beside the Photos link. |
-| ADM-DASH-030 | PHOTOGRAPHER | `/admin` operator areas | helper text | Upload originals, generate derivatives and watermarks. | `app/routes/admin/dashboard.tsx:61` | no | Description beside the Upload photos link. |
+| ADM-DASH-030 | PHOTOGRAPHER | `/admin` operator areas | helper text | Add new photographs. Web sizes and watermarks are made for you. | `app/routes/admin/dashboard.tsx:62` | no | Description beside the Upload photos link. Revised in the V1 polish pass. |
 | ADM-DASH-031 | PHOTOGRAPHER | `/admin` operator areas | helper text | Print enquiries and contact messages, and their handled state. | `app/routes/admin/dashboard.tsx:66` | no | Description beside the Enquiries link. |
 | ADM-DASH-032 | PHOTOGRAPHER | `/admin` operator areas | helper text | Choose which photographs may be enquired about as prints. | `app/routes/admin/dashboard.tsx:71` | no | Description beside the Print eligibility link. |
 | ADM-DASH-033 | PHOTOGRAPHER | `/admin` operator areas | helper text | Create collections, describe and order them, and choose each cover. | `app/routes/admin/dashboard.tsx:76` | no | Description beside the Galleries link. |
@@ -601,12 +607,12 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | ADM-ENQ-001 | PHOTOGRAPHER | `/admin/enquiries` header | heading | Enquiries | `app/routes/admin/enquiries.tsx:101` | no | Eyebrow. |
 | ADM-ENQ-002 | PHOTOGRAPHER | `/admin/enquiries` header | heading | Enquiries | `app/routes/admin/enquiries.tsx:102` | no | Page `h1`. |
-| ADM-ENQ-003 | PHOTOGRAPHER | `/admin/enquiries` header | body | Print enquiries and contact messages, newest first. Reply from your own email; this application does not send mail itself. | `app/routes/admin/enquiries.tsx:103`-`106` | no | Page lede; states that no mail is sent. |
+| ADM-ENQ-003 | PHOTOGRAPHER | `/admin/enquiries` header | body | Print enquiries and contact messages, newest first. To reply, click the sender's email address: replies go from your own email, as the site doesn't send email itself. | `app/routes/admin/enquiries.tsx:104` | no | Page lede; states that no mail is sent. Revised in the V1 polish pass. |
 | ADM-ENQ-004 | PHOTOGRAPHER | `/admin/enquiries` action result | confirmation | Marked as {status}. | `app/routes/admin/enquiries.tsx:63` | no | `{status}` is the lower-cased handled state. |
 | ADM-ENQ-005 | PHOTOGRAPHER | `/admin/enquiries` action result | warning | That enquiry no longer exists, so nothing was changed. | `app/routes/admin/enquiries.tsx:65` | no | Record disappeared between render and submit. |
 | ADM-ENQ-006 | PHOTOGRAPHER | `/admin/enquiries` action result | warning | That state is not one this application recognises. | `app/routes/admin/enquiries.tsx:67` | no | Allow-list refusal. |
 | ADM-ENQ-007 | PHOTOGRAPHER | `/admin/enquiries` action result | warning | The change could not be saved, so the enquiry is unchanged. | `app/routes/admin/enquiries.tsx:70` | no | Storage failure. |
-| ADM-ENQ-008 | PHOTOGRAPHER | `/admin/enquiries` empty state | empty state | No enquiries have been received yet. | `app/routes/admin/enquiries.tsx:125` | no | Shown when the list read succeeded and is empty. |
+| ADM-ENQ-008 | PHOTOGRAPHER | `/admin/enquiries` empty state | empty state | No enquiries yet. When someone gets in touch through the contact form or asks about a print, their message will appear here. | `app/routes/admin/enquiries.tsx:126` | no | Shown when the list read succeeded and is empty. Revised in the V1 polish pass. |
 | ADM-ENQ-009 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | 1 enquiry, or {n} enquiries, newest first | `app/routes/admin/enquiries.tsx:131`-`133` | no | Table caption with singular/plural handling. |
 | ADM-ENQ-010 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | Received | `app/routes/admin/enquiries.tsx:137` | no | Column heading. |
 | ADM-ENQ-011 | PHOTOGRAPHER | `/admin/enquiries` table | metadata | From | `app/routes/admin/enquiries.tsx:138` | no | Column heading. |
@@ -725,33 +731,33 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | MGR-DASH-001 | MANAGER | `/manager` header | heading | Manager | `app/routes/manager/dashboard.tsx:36` | no | Eyebrow. |
 | MGR-DASH-002 | MANAGER | `/manager` header | heading | Site status | `app/routes/manager/dashboard.tsx:37` | no | Page `h1`. |
-| MGR-DASH-003 | MANAGER | `/manager` header | body | Functional foundations for maintenance: live binding, storage and identity state from this deployment, plus the authorised users who can sign in. | `app/routes/manager/dashboard.tsx:38`-`41` | no | Page lede. |
+| MGR-DASH-003 | MANAGER | `/manager` header | body | A quick look at how the site is running, and who can sign in to manage it. | `app/routes/manager/dashboard.tsx:39` | no | Page lede. Revised in the V1 polish pass. |
 | MGR-DASH-004 | MANAGER | `/manager` status tables | metadata | Authentication | `app/routes/manager/dashboard.tsx:44` | no | Table caption; the rows come from `SYS-DIAG`. |
 | MGR-DASH-005 | MANAGER | `/manager` status tables | metadata | Database | `app/routes/manager/dashboard.tsx:45` | no | Table caption. |
 | MGR-DASH-006 | MANAGER | `/manager` status tables | metadata | Storage | `app/routes/manager/dashboard.tsx:46` | no | Table caption. |
-| MGR-DASH-007 | MANAGER | `/manager` authorised users | heading | Authorised users | `app/routes/manager/dashboard.tsx:48` | no | Section `h2`. |
-| MGR-DASH-008 | MANAGER | `/manager` authorised users | helper text | Roles are read from the database on every request. A photographer signs into /admin only; managers may use both areas. | `app/routes/manager/dashboard.tsx:49`-`52` | no | Explains the role split; names the `/admin` path. |
-| MGR-DASH-009 | MANAGER | `/manager` authorised users | metadata | Authorised-user directory | `app/routes/manager/dashboard.tsx:54` | no | Table caption. |
+| MGR-DASH-007 | MANAGER | `/manager` authorised users | heading | Who can sign in | `app/routes/manager/dashboard.tsx:47` | no | Section `h2`. Revised in the V1 polish pass. |
+| MGR-DASH-008 | MANAGER | `/manager` authorised users | helper text | Photographers can use the photography workspace at /admin. Managers can use that and this area too. Role changes take effect straight away. | `app/routes/manager/dashboard.tsx:49` | no | Explains the role split; names the `/admin` path. Revised in the V1 polish pass. |
+| MGR-DASH-009 | MANAGER | `/manager` authorised users | metadata | People who can sign in | `app/routes/manager/dashboard.tsx:53` | no | Table caption. Revised in the V1 polish pass. |
 | MGR-DASH-010 | MANAGER | `/manager` authorised users | metadata | Email | `app/routes/manager/dashboard.tsx:57` | no | Column heading. |
 | MGR-DASH-011 | MANAGER | `/manager` authorised users | metadata | Role | `app/routes/manager/dashboard.tsx:58` | no | Column heading. |
 | MGR-DASH-012 | MANAGER | `/manager` authorised users | metadata | Active | `app/routes/manager/dashboard.tsx:59` | no | Column heading. |
 | MGR-DASH-013 | MANAGER | `/manager` authorised users | metadata | Updated | `app/routes/manager/dashboard.tsx:60` | no | Column heading. |
 | MGR-DASH-014 | MANAGER | `/manager` authorised users | metadata | yes, or no | `app/routes/manager/dashboard.tsx:68` | no | Active-state value. |
-| MGR-DASH-015 | MANAGER | `/manager` technical areas | heading | Technical areas | `app/routes/manager/dashboard.tsx:75` | no | Section `h2`. |
+| MGR-DASH-015 | MANAGER | `/manager` technical areas | heading | More tools | `app/routes/manager/dashboard.tsx:74` | no | Section `h2`. Revised in the V1 polish pass. |
 | MGR-DASH-016 | MANAGER | `/manager` technical areas | navigation | Diagnostics | `app/routes/manager/dashboard.tsx:79` | no | Duplicate wording of `MGR-NAV-003`. |
-| MGR-DASH-017 | MANAGER | `/manager` technical areas | helper text | — bindings, object counts and configuration state | `app/routes/manager/dashboard.tsx:81` | no | Description beside the Diagnostics link. |
+| MGR-DASH-017 | MANAGER | `/manager` technical areas | helper text | — a detailed technical health check, for troubleshooting | `app/routes/manager/dashboard.tsx:80` | no | Description beside the Diagnostics link. Revised in the V1 polish pass. |
 | MGR-DASH-018 | MANAGER | `/manager` technical areas | navigation | Settings | `app/routes/manager/dashboard.tsx:85` | no | Duplicate wording of `MGR-NAV-004`. |
-| MGR-DASH-019 | MANAGER | `/manager` technical areas | helper text | — reserved for deployment preferences | `app/routes/manager/dashboard.tsx:87` | no | "Reserved for" is forward-looking wording; the settings screen is now built, so this description is out of date. |
+| MGR-DASH-019 | MANAGER | `/manager` technical areas | helper text | — add people, change roles and review how the site is set up | `app/routes/manager/dashboard.tsx:86` | no | Revised in the V1 polish pass; the row previously described superseded text ("reserved for deployment preferences"). |
 | MGR-DASH-020 | MANAGER | `/manager` technical areas | navigation | Maintenance | `app/routes/manager/dashboard.tsx:91` | no | Duplicate wording of `MGR-NAV-005`. |
-| MGR-DASH-021 | MANAGER | `/manager` technical areas | helper text | — reserved for safeguarded operations | `app/routes/manager/dashboard.tsx:93` | no | "Reserved for" is forward-looking wording; the maintenance screen is now built, so this description is out of date. |
+| MGR-DASH-021 | MANAGER | `/manager` technical areas | helper text | — check that stored photos and records are in good order | `app/routes/manager/dashboard.tsx:92` | no | Revised in the V1 polish pass; the row previously described superseded text ("reserved for safeguarded operations"). |
 
 ## Manager diagnostics — `MGR-DIAG`
 
 | ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | MGR-DIAG-001 | MANAGER | `/manager/diagnostics` header | heading | Diagnostics | `app/routes/manager/diagnostics.tsx:29` | no | Eyebrow. |
-| MGR-DIAG-002 | MANAGER | `/manager/diagnostics` header | heading | Deployment state | `app/routes/manager/diagnostics.tsx:30` | no | Page `h1`. |
-| MGR-DIAG-003 | MANAGER | `/manager/diagnostics` header | body | Counts come from the live bindings on this request. Configuration is reported as present or absent; no secret, token, key or environment value is read or shown. | `app/routes/manager/diagnostics.tsx:31`-`34` | no | Page lede; states the no-secrets rule. |
+| MGR-DIAG-002 | MANAGER | `/manager/diagnostics` header | heading | Technical health check | `app/routes/manager/diagnostics.tsx:30` | no | Page `h1`. Revised in the V1 polish pass. |
+| MGR-DIAG-003 | MANAGER | `/manager/diagnostics` header | body | A detailed view for troubleshooting. Counts are read live, and each setting is only shown as present or missing. No passwords, keys or other secret values appear here. | `app/routes/manager/diagnostics.tsx:32` | no | Page lede; states the no-secrets rule. Revised in the V1 polish pass. |
 | MGR-DIAG-004 | MANAGER | `/manager/diagnostics` tables | metadata | Identity | `app/routes/manager/diagnostics.tsx:37` | no | Table caption. |
 | MGR-DIAG-005 | MANAGER | `/manager/diagnostics` tables | metadata | Database | `app/routes/manager/diagnostics.tsx:38` | no | Table caption. |
 | MGR-DIAG-006 | MANAGER | `/manager/diagnostics` tables | metadata | Storage | `app/routes/manager/diagnostics.tsx:39` | no | Table caption. |
@@ -807,7 +813,7 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | MGR-SETTINGS-001 | MANAGER | `/manager/settings` header | heading | Manager | `app/routes/manager/settings.tsx:140` | no | Eyebrow. |
 | MGR-SETTINGS-002 | MANAGER | `/manager/settings` header | heading | Settings | `app/routes/manager/settings.tsx:141` | no | Page `h1`. |
-| MGR-SETTINGS-003 | MANAGER | `/manager/settings` header | body | Who may use the operator areas, and what this deployment has configured. Cloudflare Access decides who can reach the site; this list decides what they may do inside it. | `app/routes/manager/settings.tsx:142`-`145` | no | Page lede; explains the authorisation model. |
+| MGR-SETTINGS-003 | MANAGER | `/manager/settings` header | body | Who can use the management areas, and how the site is set up. Cloudflare Access controls who can reach these areas at all; this list controls what each person can do once they're in. | `app/routes/manager/settings.tsx:124` | no | Page lede; explains the authorisation model. Revised in the V1 polish pass. |
 | MGR-SETTINGS-004 | MANAGER | `/manager/settings` | heading | Authorised accounts | `app/routes/manager/settings.tsx:158` | no | Section `h2`. |
 | MGR-SETTINGS-005 | MANAGER | `/manager/settings` | accessibility label | Authorised application accounts and their roles | `app/routes/manager/settings.tsx:165`-`167` | no | Table caption, visually hidden. |
 | MGR-SETTINGS-006 | MANAGER | `/manager/settings` | metadata | Email | `app/routes/manager/settings.tsx:170` | no | Column heading. |
@@ -819,30 +825,30 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | MGR-SETTINGS-012 | MANAGER | `/manager/settings` | button | Save role | `app/routes/manager/settings.tsx:198` | no | Submits one role change. |
 | MGR-SETTINGS-013 | MANAGER | `/manager/settings` | button | Deactivate | `app/routes/manager/settings.tsx:211` | no | Shown for an active account. |
 | MGR-SETTINGS-014 | MANAGER | `/manager/settings` | button | Reactivate | `app/routes/manager/settings.tsx:211` | no | Shown for a deactivated account. |
-| MGR-SETTINGS-015 | MANAGER | `/manager/settings` | helper text | There must always be at least one active manager: the last one cannot be deactivated or demoted. | `app/routes/manager/settings.tsx:220`-`223` | no | States the last-manager rule. |
-| MGR-SETTINGS-016 | MANAGER | `/manager/settings` | field label | Add an authorised address | `app/routes/manager/settings.tsx:227` | no | New-account email field. |
+| MGR-SETTINGS-015 | MANAGER | `/manager/settings` | helper text | The site always needs at least one active manager, so the last one can't be deactivated or given a different role. | `app/routes/manager/settings.tsx:203` | no | States the last-manager rule. Revised in the V1 polish pass. |
+| MGR-SETTINGS-016 | MANAGER | `/manager/settings` | field label | Add someone by email address | `app/routes/manager/settings.tsx:209` | no | New-account email field. Revised in the V1 polish pass. |
 | MGR-SETTINGS-017 | MANAGER | `/manager/settings` | field label | Role | `app/routes/manager/settings.tsx:229` | no | New-account role selector. |
 | MGR-SETTINGS-018 | MANAGER | `/manager/settings` | button | Add account | `app/routes/manager/settings.tsx:238` | no | Creates the authorised account. |
 | MGR-SETTINGS-019 | MANAGER | `/manager/settings` | metadata | yes, or no | `app/routes/manager/settings.tsx:129` | no | Active-state value in the table and the deployment table. |
-| MGR-SETTINGS-020 | MANAGER | `/manager/settings` | heading | Deployment state | `app/routes/manager/settings.tsx:246` | no | Section `h2`. |
-| MGR-SETTINGS-021 | MANAGER | `/manager/settings` | helper text | Read from this deployment's configuration. Values are not displayed: no audiences, account details or credentials appear here, and none of it is editable. | `app/routes/manager/settings.tsx:247`-`250` | no | States the no-secrets rule. |
+| MGR-SETTINGS-020 | MANAGER | `/manager/settings` | heading | Site setup | `app/routes/manager/settings.tsx:228` | no | Pinned by check-v1-completion-served.mjs. Revised in the V1 polish pass (was "Deployment state"). |
+| MGR-SETTINGS-021 | MANAGER | `/manager/settings` | helper text | For reference only. Each item shows whether it's set up, never its actual value, and nothing here can be changed from this page. The three development-only settings at the bottom should all say "no" on the live site. | `app/routes/manager/settings.tsx:230` | no | States the no-secrets rule. Revised in the V1 polish pass. |
 | MGR-SETTINGS-022 | MANAGER | `/manager/settings` | accessibility label | Deployment configuration presence | `app/routes/manager/settings.tsx:253` | no | Table caption, visually hidden. |
-| MGR-SETTINGS-023 | MANAGER | `/manager/settings` | metadata | Operator identity mode | `app/routes/manager/settings.tsx:256` | no | Deployment row label. |
-| MGR-SETTINGS-024 | MANAGER | `/manager/settings` | metadata | Cloudflare Access configured | `app/routes/manager/settings.tsx:260` | no | Deployment row label. |
-| MGR-SETTINGS-025 | MANAGER | `/manager/settings` | metadata | Canonical public origin configured | `app/routes/manager/settings.tsx:264` | no | Deployment row label. |
-| MGR-SETTINGS-026 | MANAGER | `/manager/settings` | metadata | Database binding present | `app/routes/manager/settings.tsx:268` | no | Deployment row label. |
-| MGR-SETTINGS-027 | MANAGER | `/manager/settings` | metadata | Private masters bucket bound | `app/routes/manager/settings.tsx:272` | no | Deployment row label. |
-| MGR-SETTINGS-028 | MANAGER | `/manager/settings` | metadata | Public derivatives bucket bound | `app/routes/manager/settings.tsx:276` | no | Deployment row label. |
-| MGR-SETTINGS-029 | MANAGER | `/manager/settings` | metadata | Image processing binding present | `app/routes/manager/settings.tsx:280` | no | Deployment row label. |
-| MGR-SETTINGS-030 | MANAGER | `/manager/settings` | metadata | Development identity enabled | `app/routes/manager/settings.tsx:284` | no | Deployment row label. |
-| MGR-SETTINGS-031 | MANAGER | `/manager/settings` | metadata | Development seed fallback enabled | `app/routes/manager/settings.tsx:288` | no | Deployment row label. |
-| MGR-SETTINGS-032 | MANAGER | `/manager/settings` | metadata | Development notices enabled | `app/routes/manager/settings.tsx:292` | no | Deployment row label; reports the `SHOW_DEVELOPMENT_NOTICES` switch. |
+| MGR-SETTINGS-023 | MANAGER | `/manager/settings` | metadata | Sign-in method | `app/routes/manager/settings.tsx:239` | no | Deployment row label. Revised in the V1 polish pass. |
+| MGR-SETTINGS-024 | MANAGER | `/manager/settings` | metadata | Cloudflare Access set up | `app/routes/manager/settings.tsx:243` | no | Deployment row label. Revised in the V1 polish pass. |
+| MGR-SETTINGS-025 | MANAGER | `/manager/settings` | metadata | Public web address set | `app/routes/manager/settings.tsx:247` | no | Deployment row label. Revised in the V1 polish pass. |
+| MGR-SETTINGS-026 | MANAGER | `/manager/settings` | metadata | Database connected | `app/routes/manager/settings.tsx:251` | no | Deployment row label. Revised in the V1 polish pass. |
+| MGR-SETTINGS-027 | MANAGER | `/manager/settings` | metadata | Original photo storage connected | `app/routes/manager/settings.tsx:255` | no | Deployment row label. Revised in the V1 polish pass. |
+| MGR-SETTINGS-028 | MANAGER | `/manager/settings` | metadata | Public image storage connected | `app/routes/manager/settings.tsx:259` | no | Deployment row label. Revised in the V1 polish pass. |
+| MGR-SETTINGS-029 | MANAGER | `/manager/settings` | metadata | Image processing connected | `app/routes/manager/settings.tsx:263` | no | Deployment row label. Revised in the V1 polish pass. |
+| MGR-SETTINGS-030 | MANAGER | `/manager/settings` | metadata | Test sign-in (development only) | `app/routes/manager/settings.tsx:267` | no | Deployment row label. Revised in the V1 polish pass. |
+| MGR-SETTINGS-031 | MANAGER | `/manager/settings` | metadata | Sample content fallback (development only) | `app/routes/manager/settings.tsx:271` | no | Deployment row label. Revised in the V1 polish pass. |
+| MGR-SETTINGS-032 | MANAGER | `/manager/settings` | metadata | Preview notices (development only) | `app/routes/manager/settings.tsx:275` | no | Deployment row label; reports the `SHOW_DEVELOPMENT_NOTICES` switch. Revised in the V1 polish pass. |
 | MGR-SETTINGS-033 | MANAGER | `/manager/settings` | metadata | Photographer — uploads, edits and publishes photographs | `app/auth/user-management.ts:33` (`ROLE_LABELS`) | no | Role option in the add-account selector. |
 | MGR-SETTINGS-034 | MANAGER | `/manager/settings` | metadata | Manager — everything a photographer can do, plus users, maintenance and diagnostics | `app/auth/user-management.ts:34` (`ROLE_LABELS`) | no | Role option in the add-account selector. |
 | MGR-SETTINGS-035 | MANAGER | `/manager/settings` | warning | No database is configured in this environment, so nothing was changed. | `app/routes/manager/settings.tsx:67` | no | Same wording as `ADM-PHOTOS-004`. |
 | MGR-SETTINGS-036 | MANAGER | `/manager/settings` | warning | That action was not recognised, so nothing was changed. | `app/routes/manager/settings.tsx:76` | no | Unrecognised intent. |
-| MGR-SETTINGS-037 | MANAGER | `/manager/settings` | confirmation | {email} now has the {role} role, once Cloudflare Access admits that address. | `app/routes/manager/settings.tsx:87` | no | Explains that a row alone grants nothing. |
-| MGR-SETTINGS-038 | MANAGER | `/manager/settings` | warning | {email} is already an authorised account. | `app/routes/manager/settings.tsx:91` | no | Duplicate refusal. |
+| MGR-SETTINGS-037 | MANAGER | `/manager/settings` | confirmation | Added. {email} now has the {role} role and can sign in once Cloudflare Access lets that address in. | `app/routes/manager/settings.tsx:68` | no | Explains that a row alone grants nothing. Revised in the V1 polish pass. |
+| MGR-SETTINGS-038 | MANAGER | `/manager/settings` | warning | {email} already has access. | `app/routes/manager/settings.tsx:72` | no | Duplicate refusal. Revised in the V1 polish pass. |
 | MGR-SETTINGS-039 | MANAGER | `/manager/settings` | warning | The account could not be saved. | `app/routes/manager/settings.tsx:95` | no | Storage failure. |
 | MGR-SETTINGS-040 | MANAGER | `/manager/settings` | confirmation | {email} now has the {role} role. | `app/routes/manager/settings.tsx:109` | no | Role change success. |
 | MGR-SETTINGS-041 | MANAGER | `/manager/settings` | confirmation | {email} is now active, or {email} is now deactivated. | `app/routes/manager/settings.tsx:110` | no | Activation change success. |
@@ -857,19 +863,19 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | MGR-MAINT-001 | MANAGER | `/manager/maintenance` header | heading | Maintenance | `app/routes/manager/maintenance.tsx:39`, `:52` | no | Eyebrow. |
 | MGR-MAINT-002 | MANAGER | `/manager/maintenance` header | heading | Maintenance | `app/routes/manager/maintenance.tsx:40`, `:53` | no | Page `h1`. |
-| MGR-MAINT-003 | MANAGER | `/manager/maintenance` header | body | Read-only integrity checks over the stored data and the storage bindings. Nothing on this page changes anything. | `app/routes/manager/maintenance.tsx:54`-`57` | no | Page lede. |
-| MGR-MAINT-004 | MANAGER | `/manager/maintenance` summary | confirmation | Every check passed: the stored data is internally consistent. | `app/routes/manager/maintenance.tsx:62` | no | Shown when no finding needs attention. |
-| MGR-MAINT-005 | MANAGER | `/manager/maintenance` summary | warning | {n} check, or {n} checks, need attention — see below. Nothing has been changed automatically. | `app/routes/manager/maintenance.tsx:63` | no | Singular/plural count of findings. |
-| MGR-MAINT-006 | MANAGER | `/manager/maintenance` | heading | Stored records | `app/routes/manager/maintenance.tsx:67` | no | Section `h2`. |
+| MGR-MAINT-003 | MANAGER | `/manager/maintenance` header | body | A quick check that the stored photos and records are all in order. This page only looks; it never changes anything. | `app/routes/manager/maintenance.tsx:55` | no | Page lede. Revised in the V1 polish pass. |
+| MGR-MAINT-004 | MANAGER | `/manager/maintenance` summary | confirmation | All checks passed. Everything is in order. | `app/routes/manager/maintenance.tsx:62` | no | Shown when no finding needs attention. Revised in the V1 polish pass. |
+| MGR-MAINT-005 | MANAGER | `/manager/maintenance` summary | warning | One check needs, or {n} checks need, a look. The details are below, and nothing has been changed automatically. | `app/routes/manager/maintenance.tsx:63` | no | Singular/plural count of findings. Revised in the V1 polish pass, which also fixed the old singular ("1 check need attention"). |
+| MGR-MAINT-006 | MANAGER | `/manager/maintenance` | heading | What is stored | `app/routes/manager/maintenance.tsx:67` | no | Section `h2`. Revised in the V1 polish pass. |
 | MGR-MAINT-007 | MANAGER | `/manager/maintenance` | accessibility label | Record counts | `app/routes/manager/maintenance.tsx:70` | no | Table caption, visually hidden. |
 | MGR-MAINT-008 | MANAGER | `/manager/maintenance` | metadata | Count | `app/routes/manager/maintenance.tsx:83` | no | Cell label used by the responsive table layout. |
-| MGR-MAINT-009 | MANAGER | `/manager/maintenance` | metadata | Authorised accounts | `app/routes/manager/maintenance.tsx:73` | no | Record label; value is `{n} ({m} active manager(s))`. |
+| MGR-MAINT-009 | MANAGER | `/manager/maintenance` | metadata | People with access | `app/routes/manager/maintenance.tsx:73` | no | Value reads "{n} ({m} active manager/managers)"; the plural is now grammatical. Revised in the V1 polish pass. |
 | MGR-MAINT-010 | MANAGER | `/manager/maintenance` | metadata | Galleries | `app/routes/manager/maintenance.tsx:74` | no | Record label; value is `{n} ({m} published)`. |
 | MGR-MAINT-011 | MANAGER | `/manager/maintenance` | metadata | Photographs | `app/routes/manager/maintenance.tsx:75` | no | Record label; value is `{n} ({m} published)`. |
 | MGR-MAINT-012 | MANAGER | `/manager/maintenance` | metadata | Tags | `app/routes/manager/maintenance.tsx:76` | no | Record label; value is `{n} across {m} photograph links`. |
 | MGR-MAINT-013 | MANAGER | `/manager/maintenance` | metadata | Enquiries | `app/routes/manager/maintenance.tsx:77` | no | Record label; value is `{n} ({m} new)`. |
 | MGR-MAINT-014 | MANAGER | `/manager/maintenance` | metadata | Likes | `app/routes/manager/maintenance.tsx:78` | no | Record label; value is a count. |
-| MGR-MAINT-015 | MANAGER | `/manager/maintenance` | metadata | Share events | `app/routes/manager/maintenance.tsx:79` | no | Record label; value is a count. |
+| MGR-MAINT-015 | MANAGER | `/manager/maintenance` | metadata | Shares started | `app/routes/manager/maintenance.tsx:79` | no | Record label; value is a count. Revised in the V1 polish pass. |
 | MGR-MAINT-016 | MANAGER | `/manager/maintenance` | heading | Integrity checks | `app/routes/manager/maintenance.tsx:92` | no | Section `h2`. |
 | MGR-MAINT-017 | MANAGER | `/manager/maintenance` | accessibility label | Integrity check results | `app/routes/manager/maintenance.tsx:95` | no | Table caption, visually hidden. |
 | MGR-MAINT-018 | MANAGER | `/manager/maintenance` | metadata | Check | `app/routes/manager/maintenance.tsx:98` | no | Column heading. |
@@ -896,17 +902,18 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | MGR-MAINT-039 | MANAGER | `/manager/maintenance` | metadata | Active managers | `app/data/maintenance.server.ts:183`, `:188` | no | Check label. |
 | MGR-MAINT-040 | MANAGER | `/manager/maintenance` | warning | There is no active manager, so the manager area cannot be reached at all. Database intervention is required to recover. | `app/data/maintenance.server.ts:186` | no | Lockout warning; states that recovery needs a developer. |
 | MGR-MAINT-041 | MANAGER | `/manager/maintenance` | metadata | {n} active manager(s). | `app/data/maintenance.server.ts:188` | no | Detail line. |
-| MGR-MAINT-042 | MANAGER | `/manager/maintenance` | heading | Stored objects | `app/routes/manager/maintenance.tsx:120` | no | Section `h2`. |
+| MGR-MAINT-042 | MANAGER | `/manager/maintenance` | heading | Image files | `app/routes/manager/maintenance.tsx:120` | no | Pinned by check-v1-completion-served.mjs. Revised in the V1 polish pass (was "Stored objects"). |
 | MGR-MAINT-043 | MANAGER | `/manager/maintenance` | accessibility label | Object existence probe | `app/routes/manager/maintenance.tsx:126` | no | Table caption, visually hidden. |
-| MGR-MAINT-044 | MANAGER | `/manager/maintenance` | metadata | Photographs inspected | `app/routes/manager/maintenance.tsx:129` | no | Probe row label. |
-| MGR-MAINT-045 | MANAGER | `/manager/maintenance` | metadata | Private masters missing | `app/routes/manager/maintenance.tsx:133` | no | Probe row label. |
-| MGR-MAINT-046 | MANAGER | `/manager/maintenance` | metadata | Web derivatives missing | `app/routes/manager/maintenance.tsx:137` | no | Probe row label. |
+| MGR-MAINT-044 | MANAGER | `/manager/maintenance` | metadata | Photos checked | `app/routes/manager/maintenance.tsx:152` | no | Shown in both the full and the partially read table. |
+| MGR-MAINT-045 | MANAGER | `/manager/maintenance` | metadata | Originals missing | `app/routes/manager/maintenance.tsx:156` | no | Probe row label. Revised in the V1 polish pass. |
+| MGR-MAINT-046 | MANAGER | `/manager/maintenance` | metadata | Web-sized images missing | `app/routes/manager/maintenance.tsx:160` | no | Probe row label. Revised in the V1 polish pass. |
 | MGR-MAINT-047 | MANAGER | `/manager/maintenance` | metadata | Thumbnails missing | `app/routes/manager/maintenance.tsx:141` | no | Probe row label. |
 | MGR-MAINT-048 | MANAGER | `/manager/maintenance` | metadata | Checked the most recent {n} photograph(s). Missing objects are counted, never listed. | `app/data/maintenance.server.ts:265` | no | Probe note. |
 | MGR-MAINT-049 | MANAGER | `/manager/maintenance` | warning | Storage bindings are not both present in this environment, so objects were not inspected. | `app/data/maintenance.server.ts:215` | no | Shown when the probe cannot run. |
-| MGR-MAINT-050 | MANAGER | `/manager/maintenance` | heading | Destructive tools | `app/routes/manager/maintenance.tsx:152` | no | Section `h2`. |
-| MGR-MAINT-051 | MANAGER | `/manager/maintenance` | warning | There are none, by design. Nothing here resets data, purges derivatives or deletes accounts: those operations would risk an archive that has no backup, and no part of V1 needs them. Unpublishing a photograph or a gallery is the reversible withdrawal mechanism, and it lives on those screens. | `app/routes/manager/maintenance.tsx:153`-`158` | no | Names the product version ("V1"); explains a deliberate absence. |
+| MGR-MAINT-050 | MANAGER | `/manager/maintenance` | heading | Deleting and resetting | `app/routes/manager/maintenance.tsx:175` | no | Section `h2`. Revised in the V1 polish pass. |
+| MGR-MAINT-051 | MANAGER | `/manager/maintenance` | warning | There are no delete or reset tools here, on purpose. The photo archive has no separate backup, so one wrong click could lose work for good. To take something off the public site, unpublish the photo or gallery from its own page instead; that can always be undone. | `app/routes/manager/maintenance.tsx:177` | no | Names the product version ("V1"); explains a deliberate absence. Revised in the V1 polish pass. |
 | MGR-MAINT-052 | MANAGER | `/manager/maintenance` unavailable state | warning | No database is configured in this environment, so no integrity report can be produced. | `app/data/maintenance.server.ts:83` | no | Shown instead of the whole report. |
+| MGR-MAINT-053 | MANAGER | `/manager/maintenance` stored objects (partial read) | table label | Files missing so far | `app/routes/manager/maintenance.tsx:135` | no | Shown only when the object listing was partially read. Inventoried in the V1 polish pass (was "Objects reported missing so far"). |
 
 ## Manager 404 — `MGR-NOTFOUND`
 
@@ -975,7 +982,7 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | SYS-META-020 | PUBLIC | `/contact` | metadata | Contact — Anyaparallax Photography | `app/routes/contact.tsx:74` | no | Title when the loader data is absent. |
 | SYS-META-021 | PUBLIC | `/contact` | metadata | Contact Anyaparallax about band, gig, event, car or print photography. Messages are read by Anya and answered personally; no public email address is published here. | `app/routes/contact.tsx:59`-`61` | no | Meta description. |
 | SYS-META-022 | PUBLIC | `/privacy` | metadata | Privacy — Anyaparallax Photography | `app/routes/privacy.tsx:6` | no | Document title. |
-| SYS-META-023 | PUBLIC | `/privacy` | metadata | What this website stores when you send an enquiry or interact with a photograph, and what it deliberately does not collect. | `app/routes/privacy.tsx:9`-`10` | no | Meta description. |
+| SYS-META-023 | PUBLIC | `/privacy` | metadata | What this site keeps when you send an enquiry or like a photo, the one small cookie it uses, and what it never collects. | `app/routes/privacy.tsx:10` | no | Meta description. Revised in the V1 polish pass. |
 | SYS-META-024 | PUBLIC | `/prints/enquire` | metadata | Print enquiry — Anyaparallax Photography, or Print enquiry — {photo.title} | `app/routes/prints.enquire.tsx:76` | no | Title, with the photograph appended when one is named. |
 | SYS-META-025 | PUBLIC | `/prints/enquire` | metadata | Register interest in a print, or ask about availability, format, size and price. Enquiries are answered personally; there is no checkout and no payment on this site. | `app/routes/prints.enquire.tsx:78`-`79` | no | Meta description. |
 | SYS-META-026 | PUBLIC | `/prints/enquire/received` | metadata | Enquiry received — Anyaparallax Photography | `app/routes/prints.enquire.received.tsx:16` | no | Static title; no submission detail reaches it. |
@@ -1163,7 +1170,7 @@ Text that only assistive technology receives, plus the labels and status message
 
 **These are recommendations only.** No copy in this repository has been rewritten, and nothing in this section changes a string. Classifications: `KEEP` (accurate and ready as it stands), `REVIEW` (worth an operator's eye before launch), `REWRITE_RECOMMENDED` (names implementation detail, development/process language or internal history, or is otherwise likely to be replaced), `OPERATOR_CONTENT_REQUIRED` (a placeholder for content only the operator can supply) and `LEGAL/PRIVACY_REVIEW` (a statement with legal or privacy weight). Every ID above appears exactly once below; `via settings` entries inherit the classification of the copy they hold, not of the setting.
 
-### KEEP — 798 IDs
+### KEEP — 804 IDs
 
 PUB-NAV-001, PUB-NAV-002, PUB-NAV-003, PUB-NAV-004, PUB-NAV-005, PUB-NAV-006, PUB-NAV-007,
 PUB-NAV-008, PUB-NAV-009, PUB-NAV-010, PUB-NAV-011, PUB-NAV-012, PUB-FOOTER-001, PUB-FOOTER-003,
@@ -1296,24 +1303,24 @@ SYS-UPLOADVAL-030, SYS-UPLOADVAL-031, SYS-VALID-001, SYS-VALID-002, SYS-VALID-00
 SYS-VALID-005, SYS-VALID-006, SYS-VALID-007, SYS-VALID-008, SYS-VALID-009, SYS-VALID-010,
 SYS-VALID-011, SYS-VALID-012, SYS-VALID-013, SYS-VALID-014, SYS-VALID-015, SYS-VALID-016,
 SYS-VALID-017, SYS-AREA-002, SYS-AREA-004, SYS-AREA-008, SYS-AREA-009, SYS-AREA-010,
-SYS-AREA-012, SYS-AREA-014, SYS-AREA-016, SYS-AREA-018, SYS-AREA-019, SYS-AREA-021
+SYS-AREA-012, SYS-AREA-014, SYS-AREA-016, SYS-AREA-018, SYS-AREA-019, SYS-AREA-021, MGR-DASH-008, MGR-DASH-019, MGR-DASH-021, MGR-MAINT-051, PUB-ENGAGE-024, MGR-MAINT-053
 
-### REVIEW — 52 IDs
+### REVIEW — 50 IDs
 
 PUB-FOOTER-002, PUB-FOOTER-017, PUB-FOOTER-018, PUB-HOME-002, PUB-HOME-008, PUB-UI-006,
 PUB-ENGAGE-011, PUB-FORM-001, ADM-NAV-019, ADM-PHOTOS-010, ADM-PHOTOS-037, ADM-EDIT-009,
 ADM-EDIT-039, ADM-UPLOAD-036, ADM-GALLERY-018, ADM-GALLERY-041, ADM-GALLERY-052, ADM-PRINTS-022,
-ADM-SETTINGS-028, MGR-DASH-008, MGR-SETTINGS-045, MGR-MAINT-024, MGR-MAINT-026, MGR-MAINT-028,
+ADM-SETTINGS-028, MGR-SETTINGS-045, MGR-MAINT-024, MGR-MAINT-026, MGR-MAINT-028,
 MGR-MAINT-030, MGR-MAINT-032, MGR-MAINT-034, MGR-MAINT-036, MGR-MAINT-038, MGR-MAINT-041,
-MGR-MAINT-048, MGR-MAINT-051, SYS-META-005, SYS-META-008, SYS-META-019, SYS-UPLOADVAL-017,
+MGR-MAINT-048, SYS-META-005, SYS-META-008, SYS-META-019, SYS-UPLOADVAL-017,
 SYS-UPLOADVAL-022, SYS-UPLOADVAL-025, SYS-UPLOADVAL-032, SYS-UPLOADVAL-033, SYS-AREA-001,
 SYS-AREA-003, SYS-AREA-005, SYS-AREA-006, SYS-AREA-007, SYS-AREA-011, SYS-AREA-013, SYS-AREA-015,
 SYS-AREA-017, SYS-AREA-020, SYS-AREA-023, SYS-AREA-024
 
-### REWRITE_RECOMMENDED — 10 IDs
+### REWRITE_RECOMMENDED — 8 IDs
 
 PUB-HOME-014, PUB-GALLERIES-004, PUB-GALLERY-005, PUB-ABOUT-003, ADM-DASH-019, ADM-DASH-021,
-ADM-UPLOAD-028, MGR-DASH-019, MGR-DASH-021, SYS-AREA-022
+ADM-UPLOAD-028, SYS-AREA-022
 
 ### OPERATOR_CONTENT_REQUIRED — 20 IDs
 
@@ -1322,22 +1329,21 @@ PUB-ABOUT-004, PUB-ABOUT-005, PUB-ABOUT-007, PUB-ABOUT-010, ADM-EDIT-002, ADM-ED
 ADM-SETTINGS-022, ADM-SETTINGS-023, ADM-SETTINGS-024, ADM-SETTINGS-025, SYS-META-009,
 SYS-META-011, SYS-META-012, SYS-META-014
 
-### LEGAL/PRIVACY_REVIEW — 31 IDs
+### LEGAL/PRIVACY_REVIEW — 34 IDs
 
 PUB-PRINTSENQ-011, PUB-CONTACT-004, PUB-CONTACT-009, PUB-FORM-022, PUB-PRIVACY-001,
 PUB-PRIVACY-002, PUB-PRIVACY-003, PUB-PRIVACY-004, PUB-PRIVACY-005, PUB-PRIVACY-006
 PUB-PRIVACY-007, PUB-PRIVACY-008, PUB-PRIVACY-009, PUB-PRIVACY-010, PUB-PRIVACY-011,
 PUB-PRIVACY-012, PUB-PRIVACY-013, PUB-PRIVACY-014, PUB-PRIVACY-015, PUB-PRIVACY-016,
 PUB-PRIVACY-017, PUB-PRIVACY-018, PUB-PRIVACY-019, PUB-PRIVACY-020, PUB-PRIVACY-021,
-PUB-PRIVACY-022, PUB-PRIVACY-023, PUB-ABOUT-011, PUB-PRIVACY-024, PUB-PRIVACY-025, PUB-PRIVACY-026
-
+PUB-PRIVACY-022, PUB-PRIVACY-023, PUB-ABOUT-011, PUB-PRIVACY-024, PUB-PRIVACY-025, PUB-PRIVACY-026, PUB-PRIVACY-027, PUB-PRIVACY-028, PUB-PRIVACY-029
 
 ## Coverage and counts
 
-- **Total IDs: 908** (every one appears exactly once in the tables above, exactly once in the Rewrite flags section, and once in the companion CSV).
-- **Per audience:** `PUBLIC` 281 · `PHOTOGRAPHER` 400 · `MANAGER` 187 · `SYSTEM/ERROR` 40.
+- **Total IDs: 916** (every one appears exactly once in the tables above, exactly once in the Rewrite flags section, and once in the companion CSV).
+- **Per audience:** `PUBLIC` 288 · `PHOTOGRAPHER` 400 · `MANAGER` 188 · `SYSTEM/ERROR` 40.
 - **Per surface:** 40 surfaces, itemised below.
-- **Flags:** KEEP: 798 · REVIEW: 52 · REWRITE_RECOMMENDED: 10 · OPERATOR_CONTENT_REQUIRED: 20 · LEGAL/PRIVACY_REVIEW: 28.
+- **Flags:** KEEP: 804 · REVIEW: 50 · REWRITE_RECOMMENDED: 8 · OPERATOR_CONTENT_REQUIRED: 20 · LEGAL/PRIVACY_REVIEW: 34.
 - **Files that could not be classified: none.** Every file in the scan list was read and either contributed entries or is listed below as carrying no user-visible copy. The seed fixture set (`app/data/seed.ts`) is deliberately described in the dynamic-content section rather than enumerated record by record.
 
 ### IDs per surface
@@ -1349,13 +1355,13 @@ PUB-PRIVACY-022, PUB-PRIVACY-023, PUB-ABOUT-011, PUB-PRIVACY-024, PUB-PRIVACY-02
 - `PUB-GALLERIES` — 7 IDs
 - `PUB-GALLERY` — 8 IDs
 - `PUB-PHOTO` — 16 IDs
-- `PUB-ENGAGE` — 23 IDs
+- `PUB-ENGAGE` — 24 IDs
 - `PUB-PRINTS` — 16 IDs
 - `PUB-PRINTSENQ` — 13 IDs
 - `PUB-CONTACT` — 9 IDs
 - `PUB-FORM` — 34 IDs
 - `PUB-ACK` — 10 IDs
-- `PUB-PRIVACY` — 23 IDs
+- `PUB-PRIVACY` — 29 IDs
 - `PUB-ABOUT` — 16 IDs
 - `PUB-WATERMARK` — 2 IDs
 - `ADM-NAV` — 19 IDs
@@ -1372,7 +1378,7 @@ PUB-PRIVACY-022, PUB-PRIVACY-023, PUB-ABOUT-011, PUB-PRIVACY-024, PUB-PRIVACY-02
 - `MGR-DASH` — 21 IDs
 - `MGR-DIAG` — 51 IDs
 - `MGR-SETTINGS` — 45 IDs
-- `MGR-MAINT` — 52 IDs
+- `MGR-MAINT` — 53 IDs
 - `MGR-NOTFOUND` — 4 IDs
 - `SYS-ACCESS` — 10 IDs
 - `SYS-ERR` — 12 IDs

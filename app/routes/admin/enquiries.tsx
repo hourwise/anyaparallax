@@ -101,8 +101,8 @@ export default function AdminEnquiriesRoute() {
         <p className="eyebrow">Enquiries</p>
         <h1>Enquiries</h1>
         <p className="lede">
-          Print enquiries and contact messages, newest first. Reply from your own email; this
-          application does not send mail itself.
+          Print enquiries and contact messages, newest first. To reply, click the sender's
+          email address: replies go from your own email, as the site doesn't send email itself.
         </p>
       </header>
 
@@ -122,7 +122,10 @@ export default function AdminEnquiriesRoute() {
       )}
 
       {view.available && view.enquiries.length === 0 ? (
-        <p className="muted">No enquiries have been received yet.</p>
+        <p className="notice">
+          No enquiries yet. When someone gets in touch through the contact form or asks about a
+          print, their message will appear here.
+        </p>
       ) : null}
 
       {view.available && view.enquiries.length > 0 ? (

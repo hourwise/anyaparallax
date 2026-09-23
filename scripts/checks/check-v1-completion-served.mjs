@@ -260,7 +260,7 @@ try {
     "the privacy page is not served",
   );
   check(
-    privacy.includes("To be completed before public launch"),
+    privacy.includes("Details still to be confirmed"),
     "the privacy page does not mark the operator-supplied facts",
   );
   const sitemap = await (await fetch(`${origin}/sitemap.xml`)).text();
@@ -630,7 +630,7 @@ try {
   const managerSettingsBody = await managerSettings.text();
   check(managerSettings.status === 200, `manager settings returned ${managerSettings.status}`);
   check(
-    managerSettingsBody.includes("Authorised accounts") && managerSettingsBody.includes("Deployment state"),
+    managerSettingsBody.includes("Authorised accounts") && managerSettingsBody.includes("Site setup"),
     "manager settings is missing its two sections",
   );
   check(
@@ -724,7 +724,7 @@ try {
   const maintenanceBody = await maintenance.text();
   check(maintenance.status === 200, `maintenance returned ${maintenance.status}`);
   check(
-    maintenanceBody.includes("Integrity checks") && maintenanceBody.includes("Stored objects"),
+    maintenanceBody.includes("Integrity checks") && maintenanceBody.includes("Image files"),
     "maintenance is missing its report sections",
   );
   for (const [label, pattern] of [

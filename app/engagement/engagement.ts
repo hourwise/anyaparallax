@@ -35,7 +35,8 @@ export function isShareChannel(value: unknown): value is ShareChannel {
 
 /** Operator-facing labels, used by the controls and by the checks. */
 export const SHARE_CHANNEL_LABELS: Record<ShareChannel, string> = {
-  native: "Share",
+  // The device's own share sheet. Also how the channel reads on the admin dashboard.
+  native: "Other apps",
   copy_link: "Copy link",
   whatsapp: "WhatsApp",
   facebook: "Facebook",
@@ -81,15 +82,15 @@ export type ShareRecordResult = {
  */
 export const SHARE_STATUS_COPY = {
   /** Web Share resolved. The OS may have gone anywhere; the application does not know. */
-  nativeOpened: "Share panel opened.",
+  nativeOpened: "Share menu opened.",
   /** The sheet could not be opened at all. */
-  nativeUnavailable: "This browser cannot open a share panel. Use one of the options below.",
+  nativeUnavailable: "Your device's share menu isn't available here. Try one of the other options.",
   /** An outbound share link was opened in a new tab. */
-  outboundOpened: "Opened in a new tab. Complete the share there.",
+  outboundOpened: "Opened in a new tab.",
   /** The clipboard write completed; this is the one outcome we can assert. */
   linkCopied: "Link copied.",
   /** The clipboard write failed. */
-  copyFailed: "Could not copy automatically. Select the link and copy it manually.",
+  copyFailed: "Couldn't copy the link automatically. You can select it below and copy it yourself.",
 } as const;
 
 export type ShareStatus = keyof typeof SHARE_STATUS_COPY;

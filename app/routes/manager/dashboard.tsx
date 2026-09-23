@@ -36,8 +36,7 @@ export default function ManagerDashboardRoute() {
         <p className="eyebrow">Manager</p>
         <h1>Site status</h1>
         <p className="lede">
-          Functional foundations for maintenance: live binding, storage and identity state
-          from this deployment, plus the authorised users who can sign in.
+          A quick look at how the site is running, and who can sign in to manage it.
         </p>
       </header>
 
@@ -45,13 +44,13 @@ export default function ManagerDashboardRoute() {
       <StatusTable caption="Database" entries={diagnostics.database.entries} />
       <StatusTable caption="Storage" entries={diagnostics.storage.entries} />
 
-      <h2>Authorised users</h2>
+      <h2>Who can sign in</h2>
       <p className="muted">
-        Roles are read from the database on every request. A photographer signs into
-        <code> /admin</code> only; managers may use both areas.
+        Photographers can use the photography workspace at <code>/admin</code>. Managers can
+        use that and this area too. Role changes take effect straight away.
       </p>
       <table className="status-table">
-        <caption>Authorised-user directory</caption>
+        <caption>People who can sign in</caption>
         <thead>
           <tr>
             <th scope="col">Email</th>
@@ -72,25 +71,25 @@ export default function ManagerDashboardRoute() {
         </tbody>
       </table>
 
-      <h2>Technical areas</h2>
+      <h2>More tools</h2>
       <ul className="plain-list">
         <li>
           <Link className="text-link" to="/manager/diagnostics">
             Diagnostics
           </Link>{" "}
-          <span className="muted">— bindings, object counts and configuration state</span>
+          <span className="muted">— a detailed technical health check, for troubleshooting</span>
         </li>
         <li>
           <Link className="text-link" to="/manager/settings">
             Settings
           </Link>{" "}
-          <span className="muted">— application accounts and this deployment's state</span>
+          <span className="muted">— add people, change roles and review how the site is set up</span>
         </li>
         <li>
           <Link className="text-link" to="/manager/maintenance">
             Maintenance
           </Link>{" "}
-          <span className="muted">— integrity checks and stored-object reporting</span>
+          <span className="muted">— check that stored photos and records are in good order</span>
         </li>
       </ul>
     </section>
