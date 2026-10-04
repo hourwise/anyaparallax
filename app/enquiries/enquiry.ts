@@ -130,6 +130,15 @@ export function isEnquiryStatus(value: unknown): value is EnquiryStatus {
   return typeof value === "string" && (ENQUIRY_STATUSES as readonly string[]).includes(value);
 }
 
+/** True once an enquiry is at least six calendar months old. */
+export function isEnquiryOlderThanSixMonths(createdAt: string, now = new Date()): boolean {
+  const created = new Date(createdAt);
+  if (Number.isNaN(created.getTime())) return false;
+  const threshold = new Date(now.getTime());
+  threshold.setUTCMonth(threshold.getUTCMonth() - 6);
+  return created.getTime() <= threshold.getTime();
+}
+
 /** Does this category carry the print-only preferences? */
 export function carriesPrintPreferences(category: EnquiryCategory): boolean {
   return category === PRINT_ENQUIRY_CATEGORY;

@@ -24,6 +24,7 @@ import { isSecureRequestUrl } from "../engagement/anonymous-browser.server";
 import { likePhoto, recordShare, unlikePhoto } from "../engagement/engagement.server";
 import { isSameOriginRequest } from "../lib/same-origin";
 import { checkRequestSize } from "../lib/request-bound";
+import { readPublicSiteSettings } from "../data/site-settings.server";
 
 /**
  * The largest body this endpoint will parse (REPAIR-09D).
@@ -111,10 +112,14 @@ export async function action({
     return notFound();
   }
   const target = { id: photo.id, slug: photo.slug };
+  const settings = await readPublicSiteSettings(env);
 
   switch (action) {
     case "like":
     case "unlike": {
+      if (!settings.likesEnabled) {
+        return json({ error: "likes-disabled" }, 403);
+      }
       const outcome =
         action === "like"
           ? await likePhoto(target, request, env, isSecureRequestUrl(request.url))

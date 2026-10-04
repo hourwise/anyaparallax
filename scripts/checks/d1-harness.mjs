@@ -129,6 +129,7 @@ export function buildFixtureSql(seed) {
     "DELETE FROM enquiries;",
     "UPDATE galleries SET cover_photo_id = NULL;",
     "DELETE FROM photos;",
+    "DELETE FROM gallery_series;",
     "DELETE FROM galleries;",
     "DELETE FROM tags;",
     "DELETE FROM users;",

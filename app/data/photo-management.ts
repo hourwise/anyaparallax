@@ -137,6 +137,7 @@ export type ManagedPhotoSummary = {
   readonly title: string;
   readonly slug: string;
   readonly galleryId: string;
+  readonly seriesId: string | null;
   readonly galleryName: string;
   /** Whether the photograph's gallery is published; the second half of visibility. */
   readonly galleryPublished: boolean;
@@ -169,6 +170,13 @@ export type GalleryOption = {
   readonly published: boolean;
 };
 
+export type SeriesOption = {
+  readonly id: string;
+  readonly galleryId: string;
+  readonly title: string;
+  readonly displayOrder: number;
+};
+
 /** Per-field validation messages, so a refusal says which field needs attention. */
 export type PhotoField =
   | "title"
@@ -176,6 +184,7 @@ export type PhotoField =
   | "location"
   | "captureDate"
   | "galleryId"
+  | "seriesId"
   | "tags"
   | "form";
 
@@ -187,6 +196,7 @@ export type PhotoMetadataInput = {
   readonly location: unknown;
   readonly captureDate: unknown;
   readonly galleryId: unknown;
+  readonly seriesId?: unknown;
   readonly tags: readonly unknown[];
 };
 
@@ -211,6 +221,7 @@ export type ValidatedPhotoMetadata = {
   readonly location: string | null;
   readonly captureDate: string | null;
   readonly galleryId: string;
+  readonly seriesId: string | null;
   readonly tags: readonly string[];
 };
 
@@ -263,7 +274,11 @@ export function isValidCaptureDate(value: string): boolean {
  */
 export function validatePhotoMetadata(
   input: PhotoMetadataInput,
-  options: { readonly galleryIds: readonly string[]; readonly tagIds: readonly string[] },
+  options: {
+    readonly galleryIds: readonly string[];
+    readonly tagIds: readonly string[];
+    readonly series?: readonly { readonly id: string; readonly galleryId: string }[];
+  },
 ): PhotoMetadataValidation {
   const errors: PhotoFieldErrors = {};
 
@@ -296,6 +311,17 @@ export function validatePhotoMetadata(
     errors.galleryId = "That gallery does not exist.";
   }
 
+  const seriesIdText = fieldText(input.seriesId);
+  const seriesId = seriesIdText.length > 0 ? seriesIdText : null;
+  if (seriesId !== null) {
+    const chosen = (options.series ?? []).find((series) => series.id === seriesId);
+    if (!chosen) {
+      errors.seriesId = "That series does not exist.";
+    } else if (chosen.galleryId !== galleryId) {
+      errors.seriesId = "Choose a series from the photograph's gallery.";
+    }
+  }
+
   const requested = [...new Set(input.tags.map(fieldText).filter((tag) => tag.length > 0))].sort();
   if (requested.some((tag) => !options.tagIds.includes(tag))) {
     errors.tags = "One or more of the selected tags no longer exists.";
@@ -312,6 +338,7 @@ export function validatePhotoMetadata(
       location: location.length > 0 ? location : null,
       captureDate: captureDate.length > 0 ? captureDate : null,
       galleryId,
+      seriesId,
       tags: requested,
     },
   };

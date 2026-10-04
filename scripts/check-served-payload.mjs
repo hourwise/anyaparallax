@@ -386,10 +386,12 @@ try {
         );
       }
     }
-    // A heading with nothing under it would be the same defect in another shape:
-    // the social block is omitted entirely rather than left empty.
-    if (footer.includes("footer__social")) {
-      failures.push(`${route}'s footer still renders the social block with the notices off`);
+    // The approved Instagram profile renders; networks that remain unset do not.
+    if (!footer.includes('href="https://www.instagram.com/anyaparallax/"')) {
+      failures.push(`${route}'s footer does not render the canonical launch Instagram profile`);
+    }
+    if (/facebook\.com|tiktok\.com|snapchat\.com|wa\.me|pinterest\./i.test(footer)) {
+      failures.push(`${route}'s footer renders a social profile that was not configured`);
     }
     // ...and the truthful navigation is retained, so removing the block cost the
     // footer nothing a visitor needs.
@@ -398,6 +400,34 @@ try {
         failures.push(`${route}'s footer no longer links ${link}`);
       }
     }
+  }
+
+  const galleryHtml = await (await fetch(`${origin}/gallery/nightlife`)).text();
+  if (!galleryHtml.includes('aria-label="View ')) {
+    failures.push("the gallery rendered no linked photograph thumbnails");
+  }
+  if (galleryHtml.includes("photo-figure__caption")) {
+    failures.push("the gallery still renders a visible title/caption beneath each thumbnail");
+  }
+
+  const launchPages = {
+    home: await (await fetch(`${origin}/`)).text(),
+    about: await (await fetch(`${origin}/about`)).text(),
+    contact: await (await fetch(`${origin}/contact`)).text(),
+    privacy: await (await fetch(`${origin}/privacy`)).text(),
+  };
+  for (const [label, value] of [
+    ["homepage strapline", launchPages.home.includes("A shift in focus")],
+    ["About identity", launchPages.about.includes("North West England")],
+    ["public contact address", launchPages.contact.includes("contact@anyaparallax.co.uk")],
+    ["privacy contact", launchPages.privacy.includes("phil@pcgsoft.co.uk")],
+    ["privacy retention", launchPages.privacy.includes("six months")],
+    ["copyright", launchPages.home.includes("© 2026 anyaparallax")],
+  ]) {
+    if (!value) failures.push(`the served launch pages omit the approved ${label}`);
+  }
+  if (/engagement__like|>\s*Like\s*</i.test(launchPages.home + galleryHtml)) {
+    failures.push("the public gallery/home payload still offers the disabled like UI");
   }
 
   // REPAIR-09A: gallery-cover alternative text.
@@ -503,8 +533,8 @@ if (failures.length > 0) {
 console.log(
   `Served-payload check passed: ${routes.length} public routes inspected, no private-master identifiers in served HTML and no ` +
     `development placeholder/preview chrome; the footer on six representative pages carried no operator-process or ` +
-    `unfinished-site wording, omitted the social block entirely rather than leaving an empty heading, and kept its ` +
-    `truthful contact and print links; ${hiddenRoutes.length} hidden routes and ${notFoundRoutes.length} public 404s ` +
+    `unfinished-site wording, rendered only the canonical configured Instagram profile, and kept its ` +
+    `truthful contact and print links; launch copy and title-free gallery thumbnails were verified; ${hiddenRoutes.length} hidden routes and ${notFoundRoutes.length} public 404s ` +
     `returned 404 without preview wording; ` +
     `${protectedCases.length} operator-route cases enforced the expected 401/403/200 boundary.`,
 );

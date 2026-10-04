@@ -222,6 +222,15 @@ export class EnquiryStore {
     return result.results?.[0]?.status === status;
   }
 
+  /** Delete one explicitly identified enquiry; unknown ids are refused. */
+  async deleteEnquiry(id: string): Promise<boolean> {
+    const before = await this.#db.prepare("SELECT id FROM enquiries WHERE id = ?1 LIMIT 1").bind(id).all<{ id: string }>();
+    if (!before.results?.[0]) return false;
+    await this.#db.prepare("DELETE FROM enquiries WHERE id = ?1").bind(id).run();
+    const after = await this.#db.prepare("SELECT id FROM enquiries WHERE id = ?1 LIMIT 1").bind(id).all<{ id: string }>();
+    return !after.results?.[0];
+  }
+
   /** How many enquiries are stored, per handled state. */
   async statusCounts(): Promise<ReadonlyMap<string, number>> {
     const result = await this.#db

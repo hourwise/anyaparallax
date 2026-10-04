@@ -76,6 +76,7 @@ export class SeedPortfolioRepository implements PortfolioRepository {
     return {
       ...toPublicGallery(gallery),
       photos: this.#photosInGallery(gallery.id).map(toPublicPhoto),
+      series: [],
     };
   }
 
@@ -233,6 +234,7 @@ export class SeedPortfolioRepository implements PortfolioRepository {
       slug: input.slug,
       description: input.description,
       galleryId: input.galleryId,
+      seriesId: input.seriesId ?? null,
       tags: [...new Set(input.tags)],
       location: input.location,
       captureDate: input.captureDate,

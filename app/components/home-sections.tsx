@@ -213,28 +213,28 @@ export function LatestWorkSection({ photos }: { photos: readonly HomepagePhotoCa
   );
 }
 
-export function AboutPreviewSection() {
+export function AboutPreviewSection({ name, role, location, photo, photoAlt }: { name: string; role: string; location: string; photo: string | null; photoAlt: string }) {
   return (
     <section className="section container" aria-labelledby="about-heading">
       <div className="split split--about">
         <div className="split__copy">
           <p className="eyebrow">About</p>
-          <h2 id="about-heading">{aboutPreview.title}</h2>
-          <p className="lede">{aboutPreview.body}</p>
+          <h2 id="about-heading">Hi, I&rsquo;m {name}.</h2>
+          <p className="lede">I&rsquo;m a {role.toLowerCase()} based in {location}. I photograph live music, cars, people, places and the moments happening around me.</p>
           <p>
             <Link className="text-link" to={aboutPreview.to}>
               {aboutPreview.linkLabel}
             </Link>
           </p>
         </div>
-        <div className="split__media split__media--portrait">
+        {photo ? <div className="split__media split__media--portrait">
           <PhotoFigure
-            src={aboutPreview.photo.photo}
-            alt={aboutPreview.photo.alt}
+            src={photo}
+            alt={photoAlt}
             ratio={aboutPreview.photo.ratio}
             sizes="(min-width: 56.25rem) 30vw, 100vw"
           />
-        </div>
+        </div> : null}
       </div>
     </section>
   );

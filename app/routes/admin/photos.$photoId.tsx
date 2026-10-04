@@ -80,6 +80,7 @@ type SubmittedValues = {
   readonly location: string;
   readonly captureDate: string;
   readonly galleryId: string;
+  readonly seriesId: string;
   readonly tags: readonly string[];
   readonly published: string;
   readonly featured: string;
@@ -168,6 +169,7 @@ export async function action({
     location: text(form, "location"),
     captureDate: text(form, "captureDate"),
     galleryId: text(form, "galleryId"),
+    seriesId: text(form, "seriesId"),
     tags: form.getAll("tags").map((tag) => String(tag)),
     published: text(form, "published"),
     featured: text(form, "featured"),
@@ -191,11 +193,12 @@ export async function action({
       location: form.get("location"),
       captureDate: form.get("captureDate"),
       galleryId: form.get("galleryId"),
+      seriesId: form.get("seriesId"),
       tags: values.tags,
       published,
       featured,
     },
-    { galleryIds: view.galleries.map((gallery) => gallery.id), tagIds },
+    { galleryIds: view.galleries.map((gallery) => gallery.id), tagIds, series: view.series },
   );
 
   switch (result.status) {
@@ -269,6 +272,7 @@ export default function AdminPhotoEditRoute() {
       ? "featured"
       : "not-featured";
   const selectedTags = submitted ? submitted.tags : photo.tags;
+  const selectedGalleryId = submitted ? submitted.galleryId : photo.galleryId;
 
   return (
     <section className="page">
@@ -383,7 +387,7 @@ export default function AdminPhotoEditRoute() {
               id="galleryId"
               name="galleryId"
               required
-              defaultValue={submitted ? submitted.galleryId : photo.galleryId}
+              defaultValue={selectedGalleryId}
             >
               {galleries.map((gallery) => (
                 <option key={gallery.id} value={gallery.id}>
@@ -394,6 +398,18 @@ export default function AdminPhotoEditRoute() {
               ))}
             </select>
           </label>
+          <label htmlFor="seriesId">
+            Series (optional)
+            <select id="seriesId" name="seriesId" defaultValue={submitted ? submitted.seriesId : (photo.seriesId ?? "")}>
+              <option value="">No series</option>
+              {view.series.map((series) => (
+                <option key={series.id} value={series.id}>
+                  {view.galleries.find((gallery) => gallery.id === series.galleryId)?.name}: {series.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="muted">Choose a series from the selected gallery. Moving galleries with no series selected clears the old assignment.</p>
           <label htmlFor="tags">
             Tags
             <select

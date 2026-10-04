@@ -47,6 +47,7 @@ export type NewPhotoInput = {
   readonly slug: string;
   readonly description: string;
   readonly galleryId: string;
+  readonly seriesId?: string | null;
   readonly tags: readonly string[];
   readonly location: string | null;
   readonly captureDate: string | null;

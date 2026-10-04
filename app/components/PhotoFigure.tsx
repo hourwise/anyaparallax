@@ -32,6 +32,8 @@ type PhotoFigureProps = {
   galleryLink?: PhotoFigureLink;
   /** Optional link from the caption title to the photograph page. */
   titleLink?: PhotoFigureLink;
+  /** Optional link around the image itself; useful for title-free gallery grids. */
+  mediaLink?: PhotoFigureLink;
   /** Lazy-load by default; the hero and other above-the-fold images load eagerly. */
   loading?: "lazy" | "eager";
   /** Responsive sizes hint; layout is governed by CSS grid. */
@@ -61,6 +63,7 @@ export function PhotoFigure({
   featured = false,
   galleryLink,
   titleLink,
+  mediaLink,
   loading = "lazy",
   sizes = "(min-width: 56.25rem) 33vw, 100vw",
   className,
@@ -76,14 +79,13 @@ export function PhotoFigure({
           reference can never be rendered as a `src` from here.
         */}
         {src ? (
-          <img
-            className="photo-figure__image"
-            src={src}
-            alt={alt}
-            loading={loading}
-            decoding="async"
-            sizes={sizes}
-          />
+          mediaLink ? (
+            <Link to={mediaLink.to} title={mediaLink.title} aria-label={mediaLink.label}>
+              <img className="photo-figure__image" src={src} alt={alt} loading={loading} decoding="async" sizes={sizes} />
+            </Link>
+          ) : (
+            <img className="photo-figure__image" src={src} alt={alt} loading={loading} decoding="async" sizes={sizes} />
+          )
         ) : (
           <span className="photo-figure__image photo-figure__image--unavailable">
             Image unavailable
@@ -114,4 +116,3 @@ export function PhotoFigure({
     </figure>
   );
 }
-

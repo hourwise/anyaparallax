@@ -1,13 +1,20 @@
 import type { MetaFunction } from "react-router";
+import { useLoaderData } from "react-router";
 
 import { site } from "../data/site";
+import { appEnvironmentFrom } from "../data/context.server";
+import { readPublicSiteSettings } from "../data/site-settings.server";
+
+export async function loader({ context }: { context: unknown }) {
+  return { likesEnabled: (await readPublicSiteSettings(appEnvironmentFrom(context))).likesEnabled };
+}
 
 export const meta: MetaFunction = () => [
   { title: `Privacy — ${site.name} ${site.secondary}` },
   {
     name: "description",
     content:
-      "What this site keeps when you send an enquiry or like a photo, the one small cookie it uses, and what it never collects.",
+      "What this site keeps when you send an enquiry or share a photo, how long it is kept, and who handles it.",
   },
 ];
 
@@ -18,18 +25,13 @@ export const meta: MetaFunction = () => [
  * footer link to nothing would be worse than no link at all.
  *
  * WHAT IT MAY AND MAY NOT SAY. Every statement below describes the ACTUAL code: the
- * enquiry rows and the columns they do not have, the anonymous per-browser identifier
- * used to count a like once, the absence of any IP/user-agent/referrer/fingerprint
- * storage, the absence of third-party analytics, and Cloudflare Access for operator
- * sign-in. Nothing here is a legal claim, and the three facts this application cannot know
- * — who the data controller is, how long enquiries are kept, and which address to write to
- * — are shown as still to be confirmed rather than invented.
- *
- * OWNER TASK: replace the "Details still to be confirmed" block with those three facts
- * before public launch. The served completion check looks for that heading, so update
- * `scripts/checks/check-v1-completion-served.mjs` in the same change.
+ * enquiry rows and the columns they do not have, conditional like behaviour, the
+ * absence of IP/user-agent/referrer/fingerprint storage and third-party analytics,
+ * the approved controller/contact/retention facts, and Cloudflare Access for
+ * operator sign-in. Nothing here claims more than the implementation proves.
  */
 export default function PrivacyRoute() {
+  const { likesEnabled } = useLoaderData<typeof loader>();
   return (
     <section className="page">
       <header className="page__header">
@@ -41,14 +43,9 @@ export default function PrivacyRoute() {
         </p>
       </header>
 
-      <section className="workspace-block" aria-labelledby="operator-tasks-heading">
-        <h2 id="operator-tasks-heading">Details still to be confirmed</h2>
-        <p className="notice notice--warning">
-          Before the site opens to the public, this page will also say who is responsible for
-          your information, how long enquiries are kept, and where to write about your data.
-          Until then, you can reach us through the{" "}
-          <a className="text-link" href="/contact">contact form</a>.
-        </p>
+      <section className="workspace-block" aria-labelledby="controller-heading">
+        <h2 id="controller-heading">Who handles your information</h2>
+        <p>The personal information submitted through this site is handled by Phil at PCGSoft on behalf of anyaparallax.</p>
       </section>
 
       <section className="workspace-block" aria-labelledby="enquiries-heading">
@@ -69,29 +66,27 @@ export default function PrivacyRoute() {
           Enquiries can only be read in the site's private management area, which is protected
           by Cloudflare Access.
         </p>
+        <p>We keep enquiry information for up to six months unless it is still needed to deal with an ongoing enquiry. Older enquiries are then deleted.</p>
       </section>
 
       <section className="workspace-block" aria-labelledby="engagement-heading">
         <h2 id="engagement-heading">Likes and shares</h2>
-        <h3>The one cookie we use</h3>
-        <p>
+        {likesEnabled ? <><h3>Likes</h3><p>
           The first time you like a photo, the site sets a single cookie called{" "}
           <code>anyaparallax_browser</code>. It holds a random value, and its only job is to
           make sure the same browser can't like the same photo twice. It belongs to this site
           alone and isn't shared with anyone.
-        </p>
-        <p>
+        </p><p>
           The value is not derived from your IP address, your device, the page you came from or
           anything you type. We don't even store the value itself: the database keeps a
           scrambled, one-way version of it (a SHA-256 digest), which is enough to spot a repeat
           like and can't be turned back into the cookie.
-        </p>
-        <p>
+        </p><p>
           For the technically curious: the cookie is HttpOnly (scripts on the page can't read
           it), SameSite=Lax, Secure on encrypted connections, and it lasts up to 400 days. If
           you clear your cookies it's gone, and a new one is only created if you like a photo
           again.
-        </p>
+        </p></> : <><h3>Likes</h3><p>Likes are currently disabled. The site does not offer a Like action, show like counts or create the like cookie while this setting is off.</p></>}
         <h3>Sharing</h3>
         <p>
           When you use one of the share buttons, the site notes which photo and which option
@@ -106,7 +101,7 @@ export default function PrivacyRoute() {
           <li>No third-party analytics, advertising or tracking scripts.</li>
           <li>No record of your IP address, browser or the page you came from.</li>
           <li>No fingerprinting, and no following you from site to site.</li>
-          <li>No account needed to browse, like or share.</li>
+          <li>No account needed to browse or share.</li>
           <li>
             No analytics, advertising or profiling cookies. You don't need to accept any
             cookie to browse the site.
@@ -127,9 +122,8 @@ export default function PrivacyRoute() {
         <h2 id="questions-heading">Questions or requests</h2>
         <p>
           If you'd like to ask about an enquiry you've sent, or have it corrected or deleted,
-          just send a message through the{" "}
-          <a className="text-link" href="/contact">contact form</a> and let us know. There's no
-          public email address on the site.
+          email <a className="text-link" href="mailto:phil@pcgsoft.co.uk">phil@pcgsoft.co.uk</a>.
+          Use this address for access, correction, deletion or any other privacy enquiry.
         </p>
       </section>
     </section>

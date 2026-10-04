@@ -4,9 +4,9 @@ import { Link, useLoaderData } from "react-router";
 import { PhotoFigure } from "../components/PhotoFigure";
 import { siteOriginFrom } from "../data/canonical-origin";
 import { appEnvironmentFrom } from "../data/context.server";
+import { ENQUIRY_COPY } from "../enquiries/enquiry";
 import { listPrintEligiblePhotos } from "../data/queries";
 import { site } from "../data/site";
-import { ENQUIRY_COPY } from "../enquiries/enquiry";
 import { metadataTags, pageMetadataFor } from "../engagement/metadata";
 import {
   photoPath,
@@ -72,10 +72,10 @@ export default function PrintsRoute() {
     <section className="page container">
       <header className="page__header">
         <p className="eyebrow">Prints</p>
-        <h1>Fine art prints</h1>
+        <h1>Prints</h1>
         <p className="lede">
-          Bring the city to your walls. Selected photographs are offered as prints, and every
-          enquiry is handled personally by Anya.
+          Selected photographs are available as prints. If there&rsquo;s an image you&rsquo;d like, send me an
+          enquiry with the size or format you have in mind and I&rsquo;ll get back to you with the options.
         </p>
       </header>
 
@@ -84,7 +84,8 @@ export default function PrintsRoute() {
         offer. It is the same sentence the enquiry form shows, so the site cannot
         describe its own capability two different ways.
       */}
-      <p className="notice">{ENQUIRY_COPY.noCheckoutNotice}</p>
+      <p className="notice">Sizes, finishes and prices are arranged individually.</p>
+      <p className="muted">{ENQUIRY_COPY.noCheckoutNotice}</p>
 
       <div className="prose">
         <h2>How it works</h2>
@@ -123,7 +124,7 @@ export default function PrintsRoute() {
                   sizes="(min-width: 56.25rem) 33vw, (min-width: 34rem) 50vw, 100vw"
                   caption={
                     <Link className="text-link" to={printEnquiryPathForPhoto(photo.slug)}>
-                      Enquire about a print
+                      Available as a print — enquire
                     </Link>
                   }
                   titleLink={{
@@ -144,7 +145,7 @@ export default function PrintsRoute() {
 
       <p className="section-actions">
         <Link className="button button--accent" to={printsEnquirePath}>
-          Register print interest
+          Enquire about a print
         </Link>
         <Link className="button" to="/galleries">
           Browse the galleries

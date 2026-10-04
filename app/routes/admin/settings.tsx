@@ -6,6 +6,7 @@ import { appEnvironmentFrom } from "../../data/context.server";
 import {
   SOCIAL_NETWORKS,
   SITE_SETTING_KEYS,
+  PROFILE_SETTING_FIELDS,
   TEXT_SETTING_FIELDS,
   WATERMARK_DEFAULT_LABELS,
   WATERMARK_DEFAULT_STATES,
@@ -21,6 +22,7 @@ import { parseTagIntent } from "../../data/taxonomy";
 import { managedTagsView, taxonomyManagerFor } from "../../data/taxonomy.server";
 import { WATERMARK_POSITIONS } from "../../images/image-processor";
 import { isSameOriginRequest, refuseCrossOriginRequest } from "../../lib/same-origin";
+import { checkRequestSize } from "../../lib/request-bound";
 
 export const meta: MetaFunction = () => [
   { title: "Settings — Anyaparallax admin" },
@@ -57,8 +59,15 @@ export async function loader({ request, context }: { request: Request; context: 
         TEXT_SETTING_FIELDS.map((field) => [field.key, rows[field.key] ?? ""]),
       ) as Record<string, string>,
       social: Object.fromEntries(
-        SOCIAL_NETWORKS.map((network) => [network.key, rows[network.key] ?? ""]),
+        SOCIAL_NETWORKS.map((network) => [network.key, rows[network.key] ?? (network.id === "instagram" ? "https://www.instagram.com/anyaparallax/" : "")]),
       ) as Record<string, string>,
+      profile: Object.fromEntries(PROFILE_SETTING_FIELDS.map((field) => [field.key, rows[field.key] ?? (
+        field.key === SITE_SETTING_KEYS.displayName ? settings.displayName :
+        field.key === SITE_SETTING_KEYS.publicRole ? settings.publicRole :
+        field.key === SITE_SETTING_KEYS.location ? settings.location :
+        field.key === SITE_SETTING_KEYS.biography ? settings.biography : settings.aboutPhotoAlt
+      )])) as Record<string, string>,
+      likesEnabled: settings.likesEnabled ? "enabled" : "disabled",
     },
     tags,
   };
@@ -84,8 +93,21 @@ export async function action({ request, context }: { request: Request; context: 
     throw refuseCrossOriginRequest();
   }
   const env = appEnvironmentFrom(context);
+  if (request.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data") && !checkRequestSize(request, 21 * 1024 * 1024).ok) {
+    return { message: "That portrait upload is too large or does not declare a safe size.", tone: "warning" as const };
+  }
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "settings");
+
+  if (intent === "about-photo-upload" || intent === "about-photo-remove") {
+    const { removeAboutPhoto, replaceAboutPhoto } = await import("../../images/about-photo.server");
+    const result = intent === "about-photo-upload"
+      ? await replaceAboutPhoto(env, form.get("aboutPhoto"))
+      : await removeAboutPhoto(env);
+    return result.ok
+      ? { message: intent === "about-photo-upload" ? "About portrait updated." : "About portrait removed.", tone: "ok" as const }
+      : { message: result.reason, tone: "warning" as const };
+  }
 
   if (intent === "settings") {
     const validation = validateSiteSettings({
@@ -95,6 +117,8 @@ export async function action({ request, context }: { request: Request; context: 
       social: Object.fromEntries(
         SOCIAL_NETWORKS.map((network) => [network.key, form.get(network.key)]),
       ),
+      profile: Object.fromEntries(PROFILE_SETTING_FIELDS.map((field) => [field.key, form.get(field.key)])),
+      likesEnabled: form.get("likesEnabled"),
     });
     if (!validation.ok) {
       return refused(validation.errors);
@@ -105,11 +129,15 @@ export async function action({ request, context }: { request: Request; context: 
         validation.values.watermarkEnabled ? "enabled" : "disabled",
       ] as const,
       [SITE_SETTING_KEYS.watermarkPosition, validation.values.watermarkPosition] as const,
+      [SITE_SETTING_KEYS.likesEnabled, validation.values.likesEnabled ? "enabled" : "disabled"] as const,
       ...TEXT_SETTING_FIELDS.map(
         (field) => [field.key, validation.values.text[field.key] ?? ""] as const,
       ),
       ...SOCIAL_NETWORKS.map(
         (network) => [network.key, validation.values.social[network.id] ?? ""] as const,
+      ),
+      ...PROFILE_SETTING_FIELDS.map(
+        (field) => [field.key, validation.values.profile[field.key] ?? ""] as const,
       ),
     ];
     const written = await writeSiteSettings(env, entries);
@@ -260,6 +288,31 @@ export default function AdminSettingsRoute() {
           ))}
         </section>
 
+        <section className="workspace-block" aria-labelledby="profile-heading">
+          <h2 id="profile-heading">About / profile</h2>
+          <p className="field-help">These details appear on the public home and About pages.</p>
+          {PROFILE_SETTING_FIELDS.map((field) => (
+            <div key={field.key}>
+              <label htmlFor={field.key}>{field.label}</label>
+              {field.key === SITE_SETTING_KEYS.biography ? (
+                <textarea id={field.key} name={field.key} rows={14} maxLength={field.limit} defaultValue={values.profile[field.key] ?? ""} />
+              ) : (
+                <input id={field.key} name={field.key} type="text" maxLength={field.limit} defaultValue={values.profile[field.key] ?? ""} />
+              )}
+              {actionData?.errors?.[field.key] ? <p className="field-error">{actionData.errors[field.key]}</p> : null}
+            </div>
+          ))}
+        </section>
+
+        <section className="workspace-block" aria-labelledby="likes-heading">
+          <h2 id="likes-heading">Likes</h2>
+          <p className="field-help">Likes are off for launch. Sharing remains available.</p>
+          <select id="likesEnabled" name="likesEnabled" defaultValue={values.likesEnabled}>
+            <option value="disabled">Disabled</option>
+            <option value="enabled">Enabled</option>
+          </select>
+        </section>
+
         <section className="workspace-block" aria-labelledby="copy-heading">
           <h2 id="copy-heading">Introductions</h2>
           <p className="field-help">
@@ -286,6 +339,21 @@ export default function AdminSettingsRoute() {
           Save settings
         </button>
       </Form>
+
+      <section className="workspace-block" aria-labelledby="about-photo-heading">
+        <h2 id="about-photo-heading">About photograph</h2>
+        <p className="field-help">Optional. The original stays private; only the current web derivative can be served.</p>
+        <Form method="post" encType="multipart/form-data" className="inline-form">
+          <input type="hidden" name="intent" value="about-photo-upload" />
+          <label htmlFor="aboutPhoto">Add or replace portrait</label>
+          <input id="aboutPhoto" name="aboutPhoto" type="file" accept="image/jpeg,image/png" required />
+          <button type="submit" disabled={busy}>Upload portrait</button>
+        </Form>
+        <Form method="post" className="inline-form" onSubmit={(event) => { if (!window.confirm("Remove the current About portrait?")) event.preventDefault(); }}>
+          <input type="hidden" name="intent" value="about-photo-remove" />
+          <button type="submit" disabled={busy}>Remove portrait</button>
+        </Form>
+      </section>
 
       <section className="workspace-block" aria-labelledby="tags-heading">
         <h2 id="tags-heading">Tags</h2>

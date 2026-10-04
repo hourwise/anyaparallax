@@ -23,14 +23,14 @@ import { aspectRatioOf } from "./model";
 import { galleryPath, photoPath } from "../lib/paths";
 
 export const homepageMeta = {
-  title: "Anyaparallax Photography — Night cities, live music, the moments after dark",
+  title: "anyaparallax — A shift in focus",
   /**
    * TRUE AT EVERY STAGE. The development wording is no longer part of this
    * sentence: it is appended by the route only while the development notices are
    * enabled, so a production page description cannot claim to be a preview.
    */
   description:
-    "Street photography, live music and the energy of the night. The Anyaparallax photography portfolio.",
+    "Photography from North West England — live music, cars, people, places and moments.",
   /** Appended to {@link homepageMeta.description} when development notices are on. */
   previewSuffix: " Development preview.",
 } as const;
@@ -59,10 +59,8 @@ export const hero = {
   note: "Development preview — photography, copy and galleries are placeholders.",
 } as const;
 
-/** Short About preview. Final biography and wording await operator approval. */
+/** Stable presentation details for the approved homepage About preview. */
 export const aboutPreview = {
-  title: "About Anya",
-  body: "I'm Anya — a photographer drawn to the energy of cities, live music, cars and the moments that happen after dark. Anyaparallax is where that work gathers.",
   to: "/about",
   linkLabel: "More about Anya",
   photo: {

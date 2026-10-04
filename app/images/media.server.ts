@@ -26,6 +26,7 @@ import { isD1Binding } from "../data/repository.d1.server";
 import { refFromPublicUrl } from "../data/storage";
 import { isR2Bucket, readPublicImageFrom } from "../data/storage.server";
 import { isPublishedDerivative } from "./media-publication.server";
+import { SITE_SETTING_KEYS } from "../data/site-settings";
 
 /**
  * Cache policy for a served derivative (Slice 06 repair 02).
@@ -82,7 +83,9 @@ export async function serveMedia(splat: string, environment: unknown): Promise<R
     return notFound();
   }
   try {
-    if (!(await isPublishedDerivative(env.DB, key))) {
+    const siteAsset = await env.DB.prepare("SELECT value FROM site_settings WHERE key = ?1 AND value = ?2 LIMIT 1")
+      .bind(SITE_SETTING_KEYS.aboutPhotoDerivative, key).all<{ value: string }>();
+    if (!siteAsset.results?.[0] && !(await isPublishedDerivative(env.DB, key))) {
       return notFound();
     }
   } catch {

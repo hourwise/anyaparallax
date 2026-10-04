@@ -1,6 +1,8 @@
 # Anyaparallax V1 — copy glossary
 
-**Scope.** This is an inventory of every string a person can see or hear in the Anyaparallax application as it stands in this repository: public pages, the photographer area, the manager area, and the error, refusal and validation copy around them. It is a description of the code, not a rewrite: no copy has been changed.
+**Scope.** This is a reviewed inventory of public and operator copy in the Anyaparallax application. The checker proves stable-ID and Markdown/CSV parity; it does not prove source exhaustiveness.
+
+**V1 launch-content pass (2026-10-04).** Anya's approved identity, biography, contact, print, privacy, series and likes-off decisions are now applied. Existing IDs remain stable where wording changed; obsolete wording is marked removed, and genuinely new controls use the `PUB-LAUNCH` / `ADM-LAUNCH` IDs below.
 
 **V1 polish pass (2026-09-23).** The like/share controls, the privacy notice, the manager pages and the enquiries empty state were rewritten after preview acceptance. Rows touched by that pass say so in their Notes, strings that no longer render read `[removed in the V1 polish pass]` and keep their IDs, and the full old → new list is in `DOCS/ANYAPARALLAX_V1_POLISH_COPY_CHANGES.md`.
 
@@ -22,9 +24,9 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 
 | ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| PUB-NAV-001 | PUBLIC | Every public page (header brand) | body | Anyaparallax | `app/components/SiteHeader.tsx:37` (`site.name`, `app/data/site.ts:54`) | no | Wordmark half one; shared with the footer brand line and the operator-area brand. |
-| PUB-NAV-002 | PUBLIC | Every public page (header brand) | body | Photography | `app/components/SiteHeader.tsx:38` (`site.secondary`, `app/data/site.ts:55`) | no | Wordmark half two. |
-| PUB-NAV-003 | PUBLIC | Every public page (header brand) | accessibility label | Anyaparallax Photography — home | `app/components/SiteHeader.tsx:36` | no | Accessible name of the brand link. |
+| PUB-NAV-001 | PUBLIC | Every public page (header brand) | body | anyaparallax | `app/components/SiteHeader.tsx` (`site.name`, `app/data/site.ts`) | no | Lowercase launch wordmark. |
+| PUB-NAV-002 | PUBLIC | Every public page (header brand) | body | [removed in the V1 launch-content pass] | `app/data/site.ts` (`site.secondary`) | no | The separate Photography wordmark suffix was removed. |
+| PUB-NAV-003 | PUBLIC | Every public page (header brand) | accessibility label | anyaparallax — home | `app/components/SiteHeader.tsx` | no | Accessible name of the brand link. |
 | PUB-NAV-004 | PUBLIC | Every public page (mobile nav toggle) | button | Menu | `app/components/SiteHeader.tsx:49` | no | Shown while the mobile menu is closed. |
 | PUB-NAV-005 | PUBLIC | Every public page (mobile nav toggle) | button | Close | `app/components/SiteHeader.tsx:49` | no | Shown while the mobile menu is open. |
 | PUB-NAV-006 | PUBLIC | Every public page (primary nav) | accessibility label | Primary | `app/components/SiteHeader.tsx:56` | no | Accessible name of the primary navigation landmark. |
@@ -53,7 +55,7 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 | PUB-FOOTER-012 | PUBLIC | Public footer Follow link; also the `/admin/settings` social field label | navigation | Bluesky | `app/data/site-settings.ts:54` (`SOCIAL_NETWORKS`) | no | URL comes from the `social.bluesky` setting. |
 | PUB-FOOTER-013 | PUBLIC | Public footer Follow link; also the `/admin/settings` social field label | navigation | X | `app/data/site-settings.ts:55` (`SOCIAL_NETWORKS`) | no | URL comes from the `social.x` setting. |
 | PUB-FOOTER-014 | PUBLIC | Public footer Follow link; also the `/admin/settings` social field label | navigation | YouTube | `app/data/site-settings.ts:56` (`SOCIAL_NETWORKS`) | no | URL comes from the `social.youtube` setting. |
-| PUB-FOOTER-015 | PUBLIC | Every public page (footer meta) | footer | © {year} Anyaparallax Photography | `app/components/SiteFooter.tsx:74` | no | `{year}` is the current calendar year at render time. |
+| PUB-FOOTER-015 | PUBLIC | Every public page (footer meta) | footer | © 2026 anyaparallax | `app/components/SiteFooter.tsx` | no | Approved fixed launch copyright. |
 | PUB-FOOTER-016 | PUBLIC | Every public page (footer meta) | footer | Privacy | `app/components/SiteFooter.tsx:77` | no | Link label only; the destination page's wording is `PUB-PRIVACY-*`. |
 | PUB-FOOTER-017 | PUBLIC | Every public page (footer credit) | footer | Built by PCGSoft © 2026 | `app/components/SiteFooter.tsx:80`-`84` | no | Hard-coded year and an outbound credit link; operator decides whether to keep the credit. |
 | PUB-FOOTER-018 | PUBLIC | Every public page (footer note) | footer | Development preview. Not approved final content. | `app/components/SiteFooter.tsx:87` (`site.provisionalFooterNote`, `app/data/site.ts:73`) | no | Gated by `SHOW_DEVELOPMENT_NOTICES`. |
@@ -1166,11 +1168,34 @@ Text that only assistive technology receives, plus the labels and status message
 - **Screen-reader status messages.** `PUB-ENGAGE-004`, `PUB-ENGAGE-005`, `PUB-ENGAGE-018` to `PUB-ENGAGE-022`, `PUB-ENGAGE-023`, `PUB-FORM-003`, `PUB-FORM-004`, `PUB-FORM-033`, `PUB-FORM-034`, `PUB-CONTACT-005`, `PUB-PRINTSENQ-013`, `ADM-PHOTOS-*` action results, `ADM-EDIT-*` action results, `ADM-GALLERY-*` action results, `ADM-ENQ-004` to `ADM-ENQ-007`, `ADM-PRINTS-004` to `ADM-PRINTS-008`, `ADM-SETTINGS-036` to `ADM-SETTINGS-045`, `ADM-UPLOAD-026` to `ADM-UPLOAD-036`, `MGR-SETTINGS-035` to `MGR-SETTINGS-044` and `MGR-MAINT-004`/`-005`. All of these render inside an `aria-live` region or a `role="status"`/`role="alert"` element.
 - **Language.** `SYS-ERR-012` sets the document language to `en`.
 
+## V1 launch additions — `PUB-LAUNCH` / `ADM-LAUNCH`
+
+| ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUB-LAUNCH-001 | PUBLIC | `/` hero | heading | A shift in focus | `site_settings` key `site.strapline` | via settings | Approved homepage strapline and default. |
+| PUB-LAUNCH-002 | PUBLIC | `/about` | heading | Hi, I'm Anya. | `app/routes/about.tsx` | no | Approved public heading; no surname. |
+| PUB-LAUNCH-003 | PUBLIC | `/about` and `/` | metadata | North West England | `site_settings` key `profile.location` | via settings | Approved public location and default. |
+| PUB-LAUNCH-004 | PUBLIC | `/contact` | heading | Work with me | `app/routes/contact.tsx` | no | Approved friendly booking heading. |
+| PUB-LAUNCH-005 | PUBLIC | `/contact` | link | contact@anyaparallax.co.uk | `app/routes/contact.tsx` | no | Public work-enquiry address. |
+| PUB-LAUNCH-006 | PUBLIC | `/prints` | body | Sizes, finishes and prices are arranged individually. | `app/routes/prints.tsx` | no | Enquiry-only print wording; no public prices. |
+| PUB-LAUNCH-007 | PUBLIC | Print photograph CTA | button | Available as a print — enquire | `app/routes/prints.tsx`, `app/routes/photo.tsx` | no | Per-photo enquiry action. |
+| PUB-LAUNCH-008 | PUBLIC | Public footer | footer | All photographs are copyright © anyaparallax unless otherwise stated. | `app/components/SiteFooter.tsx` | no | Approved copyright wording. |
+| PUB-LAUNCH-009 | PUBLIC | `/privacy` | body | The personal information submitted through this site is handled by Phil at PCGSoft on behalf of anyaparallax. | `app/routes/privacy.tsx` | no | Approved controller wording; no family relationship claimed. |
+| PUB-LAUNCH-010 | PUBLIC | `/privacy` | link | phil@pcgsoft.co.uk | `app/routes/privacy.tsx` | no | Privacy access, correction and deletion contact. |
+| PUB-LAUNCH-011 | PUBLIC | `/privacy` | body | We keep enquiry information for up to six months unless it is still needed to deal with an ongoing enquiry. Older enquiries are then deleted. | `app/routes/privacy.tsx` | no | Approved retention wording; no automatic-deletion claim. |
+| PUB-LAUNCH-012 | PUBLIC | `/privacy` | body | Likes are currently disabled. | `app/routes/privacy.tsx` | conditional | Shown while `engagement.likes_enabled` is disabled. |
+| PUB-LAUNCH-013 | PUBLIC | Gallery with unassigned photographs | heading | More | `app/routes/gallery.tsx` | no | Neutral heading rendered only when a series gallery has unassigned photographs. |
+| PUB-LAUNCH-014 | PUBLIC | Footer social links | navigation | Instagram | `social.instagram` | via settings | Defaults to the canonical anyaparallax profile URL. |
+| ADM-LAUNCH-001 | PHOTOGRAPHER | `/admin/settings` | heading | About / profile | `app/routes/admin/settings.tsx` | no | Bounded profile editor section. |
+| ADM-LAUNCH-002 | PHOTOGRAPHER | `/admin/settings` | heading | About photograph | `app/routes/admin/settings.tsx` | no | Add, replace and remove the optional portrait. |
+| ADM-LAUNCH-003 | PHOTOGRAPHER | `/admin/galleries` | heading | Series | `app/routes/admin/galleries.tsx` | no | Create, rename, order and safely delete gallery subsections. |
+| ADM-LAUNCH-004 | PHOTOGRAPHER | `/admin/enquiries` | button | Delete | `app/routes/admin/enquiries.tsx` | no | Confirmed individual enquiry deletion. |
+
 ## Rewrite flags
 
 **These are recommendations only.** No copy in this repository has been rewritten, and nothing in this section changes a string. Classifications: `KEEP` (accurate and ready as it stands), `REVIEW` (worth an operator's eye before launch), `REWRITE_RECOMMENDED` (names implementation detail, development/process language or internal history, or is otherwise likely to be replaced), `OPERATOR_CONTENT_REQUIRED` (a placeholder for content only the operator can supply) and `LEGAL/PRIVACY_REVIEW` (a statement with legal or privacy weight). Every ID above appears exactly once below; `via settings` entries inherit the classification of the copy they hold, not of the setting.
 
-### KEEP — 804 IDs
+### KEEP — 822 IDs
 
 PUB-NAV-001, PUB-NAV-002, PUB-NAV-003, PUB-NAV-004, PUB-NAV-005, PUB-NAV-006, PUB-NAV-007,
 PUB-NAV-008, PUB-NAV-009, PUB-NAV-010, PUB-NAV-011, PUB-NAV-012, PUB-FOOTER-001, PUB-FOOTER-003,
@@ -1303,7 +1328,10 @@ SYS-UPLOADVAL-030, SYS-UPLOADVAL-031, SYS-VALID-001, SYS-VALID-002, SYS-VALID-00
 SYS-VALID-005, SYS-VALID-006, SYS-VALID-007, SYS-VALID-008, SYS-VALID-009, SYS-VALID-010,
 SYS-VALID-011, SYS-VALID-012, SYS-VALID-013, SYS-VALID-014, SYS-VALID-015, SYS-VALID-016,
 SYS-VALID-017, SYS-AREA-002, SYS-AREA-004, SYS-AREA-008, SYS-AREA-009, SYS-AREA-010,
-SYS-AREA-012, SYS-AREA-014, SYS-AREA-016, SYS-AREA-018, SYS-AREA-019, SYS-AREA-021, MGR-DASH-008, MGR-DASH-019, MGR-DASH-021, MGR-MAINT-051, PUB-ENGAGE-024, MGR-MAINT-053
+SYS-AREA-012, SYS-AREA-014, SYS-AREA-016, SYS-AREA-018, SYS-AREA-019, SYS-AREA-021, MGR-DASH-008, MGR-DASH-019, MGR-DASH-021, MGR-MAINT-051, PUB-ENGAGE-024, MGR-MAINT-053,
+PUB-LAUNCH-001, PUB-LAUNCH-002, PUB-LAUNCH-003, PUB-LAUNCH-004, PUB-LAUNCH-005, PUB-LAUNCH-006,
+PUB-LAUNCH-007, PUB-LAUNCH-008, PUB-LAUNCH-009, PUB-LAUNCH-010, PUB-LAUNCH-011, PUB-LAUNCH-012,
+PUB-LAUNCH-013, PUB-LAUNCH-014, ADM-LAUNCH-001, ADM-LAUNCH-002, ADM-LAUNCH-003, ADM-LAUNCH-004
 
 ### REVIEW — 50 IDs
 

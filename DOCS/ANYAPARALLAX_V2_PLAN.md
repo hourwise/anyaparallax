@@ -6,6 +6,16 @@ photograph pages, an operator area managing galleries, photographs, tags and set
 manager area, print enquiries with no commerce, and Cloudflare Access as the authentication authority.
 V2 adds capability; it does not reopen V1's decisions about publication, privacy or authority.
 
+## Anya's current priorities (2026-10-04)
+
+These preferences supersede the older generic ordering below when selecting future work.
+
+- **High interest:** online print purchasing eventually (including framed/canvas options), private client galleries, automatic enquiry email notification, automatic enquiry deletion after six months, scheduled publication, selling event photography, and a booking/request-a-shoot workflow.
+- **Low priority / no:** fixed public print prices, password-protected galleries (no current requirement), and a statistics/analytics dashboard.
+- **Conditional / unsure:** digital downloads and Instagram/TikTok integration.
+
+Automatic retention cleanup remains future automation. V1 provides a protected individual-delete action and an age indicator; it does not claim deletion is automatic. Ecommerce remains outside V1.
+
 ## What V1 already provides
 
 - Public routes in `app/routes.ts`: `/`, `/galleries`, `/gallery/:slug`, `/photo/:slug`, `/about`,
@@ -88,7 +98,7 @@ this document.
 - 14. Social profile/feed integrations — M. Needs the operator's platform accounts.
 - 15. Mobile-friendly large-batch ingestion — M/L. No dependencies.
 - 16. Optional multiple photographers/contributors — L. Recommended against in V2.0.
-- 17. Image collections/series beyond galleries — M/L. Recommended against until a real need.
+- 17. Further collection structures beyond V1 gallery series — M/L. Recommended against until a real need.
 
 ### 1. Backup, export and recovery tools
 

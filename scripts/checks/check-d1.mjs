@@ -377,7 +377,7 @@ check(
 );
 note(`users indexes: ${userIndexes.join(", ")}`);
 
-// Migrations 0001, 0002 and 0003 applied from an empty state, in order.
+// Migrations 0001 through 0004 applied from an empty state, in order.
 //
 // The list is asserted in full rather than by count: a migration applied out of
 // order, or a rewritten earlier migration, would change the schema the fixture was
@@ -388,7 +388,7 @@ const appliedMigrations = database
   .map((row) => row.name);
 check(
   appliedMigrations.join(",") ===
-    "0001_initial_schema.sql,0002_user_email_identity_uniqueness.sql,0003_enquiry_preferences.sql",
+    "0001_initial_schema.sql,0002_user_email_identity_uniqueness.sql,0003_enquiry_preferences.sql,0004_launch_profile_and_series.sql",
   `migrations applied out of order or incomplete: ${appliedMigrations.join(", ")}`,
 );
 

@@ -56,6 +56,7 @@ export type UploadOptions = {
   readonly title: string;
   readonly description: string;
   readonly galleryId: string;
+  readonly seriesId?: string | null;
   readonly tags: readonly string[];
   readonly location: string | null;
   readonly captureDate: string | null;
@@ -266,6 +267,7 @@ export async function ingestUploads(input: {
         slug,
         description: input.options.description,
         galleryId: input.options.galleryId,
+        seriesId: input.options.seriesId ?? null,
         tags: input.options.tags,
         location: input.options.location,
         captureDate: input.options.captureDate,

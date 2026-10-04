@@ -164,6 +164,13 @@ function postForm(path, fields, { identity = PHOTOGRAPHER, ...originHeaders } = 
   });
 }
 
+function getAs(path, identity = PHOTOGRAPHER) {
+  return fetch(`${origin}${path}`, {
+    redirect: "manual",
+    headers: identity === null ? {} : { [IDENTITY_HEADER]: identity },
+  });
+}
+
 /** A multipart upload the way the operator's own form sends it. */
 function postUpload(path, fields, { identity = PHOTOGRAPHER, ...originHeaders } = {}) {
   const body = new FormData();
@@ -215,6 +222,7 @@ function storedObjects(directory) {
 async function stateDigest() {
   const statements = [
     "SELECT id, title, published, published_at, featured, print_available, gallery_id FROM photos ORDER BY id",
+    "SELECT id, gallery_id, title, slug, display_order FROM gallery_series ORDER BY id",
     "SELECT id, status FROM enquiries ORDER BY id",
     "SELECT COUNT(*) AS total FROM photo_tags",
     "SELECT key, value FROM site_settings ORDER BY key",
@@ -265,6 +273,44 @@ function uploadFields(title) {
     watermarkEnabled: "on",
     watermarkPosition: DEFAULT_WATERMARK_POSITION,
     published: "on",
+  };
+}
+
+/** About portrait upload, using the field name rendered by workspace settings. */
+function postAboutPhoto({ identity = PHOTOGRAPHER, ...headers } = {}) {
+  const body = new FormData();
+  body.set("intent", "about-photo-upload");
+  body.set(
+    "aboutPhoto",
+    new Blob([readFileSync(resolve(root, "scripts", "fixtures", "portrait.jpg"))], { type: "image/jpeg" }),
+    "portrait.jpg",
+  );
+  return fetch(`${origin}/admin/settings`, {
+    method: "POST",
+    redirect: "manual",
+    headers: {
+      ...(identity === null ? {} : { [IDENTITY_HEADER]: identity }),
+      ...headers,
+    },
+    body,
+  });
+}
+
+/** A complete launch-valid settings form; individual cases override only what they exercise. */
+function settingsFields(overrides = {}) {
+  return {
+    intent: "settings",
+    watermarkEnabled: "enabled",
+    watermarkPosition: "bottom-right",
+    likesEnabled: "disabled",
+    "site.strapline": "A shift in focus",
+    "profile.display_name": "anyaparallax",
+    "profile.role": "Photographer",
+    "profile.location": "North West England",
+    "profile.biography": "A photographer based in North West England.",
+    "profile.photo_alt": "",
+    "social.instagram": "https://www.instagram.com/anyaparallax/",
+    ...overrides,
   };
 }
 
@@ -374,24 +420,36 @@ const ACTIONS = [
     },
   },
   {
+    label: "the gallery series manager",
+    path: "/admin/galleries",
+    accepted: [
+      {
+        fields: { intent: "series-create", galleryId: "gallery-nightlife", title: "CSRF Series A", displayOrder: "20" },
+        expect: /Series saved/,
+      },
+      {
+        fields: { intent: "series-create", galleryId: "gallery-nightlife", title: "CSRF Series B", displayOrder: "21" },
+        expect: /Series saved/,
+      },
+    ],
+    refused: { intent: "series-create", galleryId: "gallery-nightlife", title: "Hostile series", displayOrder: "0" },
+  },
+  {
     label: "workspace settings",
     path: "/admin/settings",
     accepted: [
       {
-        fields: { intent: "settings", watermarkEnabled: "enabled", watermarkPosition: "bottom-right" },
+        fields: settingsFields(),
         expect: /Settings saved/,
       },
       {
-        fields: { intent: "settings", watermarkEnabled: "disabled", watermarkPosition: "center" },
+        fields: settingsFields({ watermarkEnabled: "disabled", watermarkPosition: "center" }),
         expect: /Settings saved/,
       },
     ],
-    refused: {
-      intent: "settings",
-      watermarkEnabled: "enabled",
-      watermarkPosition: "bottom-right",
+    refused: settingsFields({
       "site.strapline": "CSRF attack strapline",
-    },
+    }),
   },
   {
     label: "manager account management",
@@ -625,6 +683,48 @@ try {
     );
   }
 
+  // The About portrait uses the same settings action but a distinct multipart
+  // body and R2 mutation path. Prove both hostile upload and hostile removal
+  // stop before D1 or either bucket changes.
+  for (const [label, headers, send] of [
+    ["a hostile Origin", { origin: HOSTILE_ORIGIN }, (h) => postAboutPhoto(h)],
+    ["no Origin and a hostile Referer", { referer: HOSTILE_REFERER }, (h) => postAboutPhoto(h)],
+    ["a hostile portrait removal", { referer: HOSTILE_REFERER }, (h) => postForm("/admin/settings", { intent: "about-photo-remove" }, h)],
+  ]) {
+    const before = await stateDigest();
+    const response = await send(headers);
+    await response.text();
+    check([400, 403].includes(response.status), `${label} returned ${response.status}, expected a refusal`);
+    check((await stateDigest()) === before, `${label} changed About settings or an R2 bucket`);
+  }
+
+  // Individual enquiry deletion has its own destructive intent. GET is inert;
+  // hostile, anonymous, unknown and inactive callers leave the row in place;
+  // the authorised same-origin POST removes exactly that row.
+  const enquiryStillExists = async () =>
+    (await queryLocalD1(`SELECT COUNT(*) AS total FROM enquiries WHERE id = ${quote(enquiryRow.id)}`))[0]?.total === 1;
+  const getDeleteAttempt = await getAs(`/admin/enquiries?intent=delete&enquiryId=${encodeURIComponent(enquiryRow.id)}`, PHOTOGRAPHER);
+  await getDeleteAttempt.text();
+  check(getDeleteAttempt.status === 200 && await enquiryStillExists(), "a GET request deleted an enquiry");
+  for (const [label, options, expected] of [
+    ["hostile Origin", { origin: HOSTILE_ORIGIN }, [400, 403]],
+    ["hostile Referer", { referer: HOSTILE_REFERER }, [403]],
+    ["anonymous caller", { identity: null }, [401]],
+    ["unknown caller", { identity: UNKNOWN }, [403]],
+    ["inactive caller", { identity: INACTIVE }, [403]],
+  ]) {
+    const response = await postForm("/admin/enquiries", { intent: "delete", enquiryId: enquiryRow.id }, options);
+    await response.text();
+    check(expected.includes(response.status), `enquiry deletion by ${label} returned ${response.status}`);
+    check(await enquiryStillExists(), `enquiry deletion by ${label} changed the row`);
+  }
+  const deleted = await postForm("/admin/enquiries", { intent: "delete", enquiryId: enquiryRow.id }, { origin });
+  const deletedBody = await deleted.text();
+  check(deleted.status === 200 && /Enquiry deleted/.test(deletedBody), "authorised enquiry deletion did not report success");
+  check(!(await enquiryStillExists()), "authorised enquiry deletion left the row in place");
+  const missingDelete = await postForm("/admin/enquiries", { intent: "delete", enquiryId: "enquiry-does-not-exist" }, { origin });
+  check(missingDelete.status === 200 && /no longer exists/i.test(await missingDelete.text()), "unknown enquiry deletion was not refused plainly");
+
   // --- D. The audit's highest-risk scenario --------------------------------
 
   // A real photograph created through the real pipeline by the upload case above,
@@ -793,7 +893,7 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  "Operator CSRF check passed: the same-origin guard has exactly one definition, every one of the seven mutating operator actions (photo library, editor, print eligibility, enquiry queue, upload, gallery manager and workspace settings) uses it, and the one mutating manager action (account management) is held to the same boundary and to the manager guard itself; for each action an exact same-origin Origin and a same-origin Referer reached normal " +
+  "Operator CSRF check passed: the same-origin guard has exactly one definition, every mutating operator route uses it, including gallery-series, profile, About portrait and individual enquiry deletion paths, and the mutating manager action is held to the same boundary and to the manager guard itself; for each matrix action an exact same-origin Origin and a same-origin Referer reached normal " +
     "behaviour, while a hostile Origin, a hostile Origin beside a friendly Referer, an opaque `Origin: null`, a " +
     "hostile Referer alone, the absence of both headers and a malformed Referer were all refused with an unchanged " +
     "database and object storage — the framework's own origin check answering 400 for a contradicted Origin and this " +

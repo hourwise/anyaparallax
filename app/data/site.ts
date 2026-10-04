@@ -51,8 +51,8 @@ export function developmentNoticesEnabled(
 }
 
 export const site = {
-  name: "Anyaparallax",
-  secondary: "Photography",
+  name: "anyaparallax",
+  secondary: "",
   /**
    * The site description, TRUE AT EVERY STAGE.
    *
@@ -62,7 +62,7 @@ export const site = {
    * the metadata of every published photograph.
    */
   description:
-    "Night cities, live music and the moments after dark. Anyaparallax photography.",
+    "Photography from North West England — live music, cars, people, places and moments.",
   /**
    * A development notice. Rendered ONLY while {@link developmentNoticesEnabled} is
    * true, and never part of the default public output.

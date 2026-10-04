@@ -45,6 +45,7 @@ export type EngagementControlsProps = {
   /** Canonical public URL of this photograph, from the configured origin. */
   readonly canonicalUrl: string;
   readonly shareTarget: ShareTarget;
+  readonly likesEnabled?: boolean;
 };
 
 type ActionPayload =
@@ -92,7 +93,7 @@ const PANEL_ORDER: readonly ShareChannel[] = [
 const COPIED_NOTE_MS = 3000;
 
 export function EngagementControls(props: EngagementControlsProps) {
-  const { engagement, availabilityReason, shareTarget, canonicalUrl } = props;
+  const { engagement, availabilityReason, shareTarget, canonicalUrl, likesEnabled = true } = props;
   const likeFetcher = useFetcher<ActionPayload>();
   const shareFetcher = useFetcher<ActionPayload>();
   const [status, setStatus] = useState<ShareStatus | null>(null);
@@ -219,9 +220,9 @@ export function EngagementControls(props: EngagementControlsProps) {
   }
 
   return (
-    <div className="engagement" role="group" aria-label="Like and share">
+    <div className="engagement" role="group" aria-label={likesEnabled ? "Like and share" : "Share"}>
       <div className="engagement__row">
-        <div className="engagement__like-group">
+        {likesEnabled ? <div className="engagement__like-group">
           <button
             type="button"
             className="engagement__like"
@@ -243,7 +244,7 @@ export function EngagementControls(props: EngagementControlsProps) {
               </span>
             </p>
           ) : null}
-        </div>
+        </div> : null}
 
         <button
           type="button"
@@ -256,7 +257,7 @@ export function EngagementControls(props: EngagementControlsProps) {
         </button>
       </div>
 
-      {!available && availabilityReason ? (
+      {likesEnabled && !available && availabilityReason ? (
         <p className="engagement__note" role="status">
           {availabilityReason}
         </p>

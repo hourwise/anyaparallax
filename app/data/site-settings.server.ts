@@ -18,6 +18,7 @@
 import { isD1Binding, type D1DatabaseBinding } from "./repository.d1.server";
 import {
   SOCIAL_NETWORKS,
+  APPROVED_ABOUT_BIO,
   SITE_SETTING_KEYS,
   parseWatermarkDefault,
   parseWatermarkPosition,
@@ -25,6 +26,7 @@ import {
   type SocialNetworkId,
 } from "./site-settings";
 import { DEFAULT_WATERMARK_POSITION, type WatermarkPosition } from "../images/image-processor";
+import { publicImagePathFrom } from "./storage";
 
 export type SiteSettingsEnvironment = { readonly DB?: unknown };
 
@@ -33,6 +35,13 @@ export type PublicSiteSettings = {
   readonly watermarkDefaultEnabled: boolean;
   readonly watermarkDefaultPosition: WatermarkPosition;
   readonly strapline: string;
+  readonly displayName: string;
+  readonly publicRole: string;
+  readonly location: string;
+  readonly biography: string;
+  readonly aboutPhotoAlt: string;
+  readonly aboutPhotoPath: string | null;
+  readonly likesEnabled: boolean;
   readonly galleriesIntro: string;
   readonly aboutIntro: string;
   readonly contactIntro: string;
@@ -43,11 +52,18 @@ export type PublicSiteSettings = {
 export const DEFAULT_PUBLIC_SETTINGS: PublicSiteSettings = {
   watermarkDefaultEnabled: true,
   watermarkDefaultPosition: DEFAULT_WATERMARK_POSITION,
-  strapline: "",
+  strapline: "A shift in focus",
+  displayName: "anyaparallax",
+  publicRole: "Photographer",
+  location: "North West England",
+  biography: APPROVED_ABOUT_BIO,
+  aboutPhotoAlt: "",
+  aboutPhotoPath: null,
+  likesEnabled: false,
   galleriesIntro: "",
   aboutIntro: "",
   contactIntro: "",
-  socialLinks: [],
+  socialLinks: [{ id: "instagram", label: "Instagram", url: "https://www.instagram.com/anyaparallax/" }],
 };
 
 /** Every stored key/value pair, untyped. Missing database or table yields an empty map. */
@@ -80,7 +96,8 @@ export async function readPublicSiteSettings(
 ): Promise<PublicSiteSettings> {
   const rows = await readSiteSettingRows(env);
   const socialLinks = SOCIAL_NETWORKS.flatMap((network) => {
-    const url = (rows[network.key] ?? "").trim();
+    const defaultUrl = network.id === "instagram" ? "https://www.instagram.com/anyaparallax/" : "";
+    const url = (rows[network.key] ?? defaultUrl).trim();
     return url.length === 0 ? [] : [{ id: network.id, label: network.label, url }];
   });
   return {
@@ -90,7 +107,14 @@ export async function readPublicSiteSettings(
     watermarkDefaultPosition:
       parseWatermarkPosition(rows[SITE_SETTING_KEYS.watermarkPosition]) ??
       DEFAULT_PUBLIC_SETTINGS.watermarkDefaultPosition,
-    strapline: rows[SITE_SETTING_KEYS.strapline] ?? "",
+    strapline: rows[SITE_SETTING_KEYS.strapline] ?? DEFAULT_PUBLIC_SETTINGS.strapline,
+    displayName: rows[SITE_SETTING_KEYS.displayName] ?? DEFAULT_PUBLIC_SETTINGS.displayName,
+    publicRole: rows[SITE_SETTING_KEYS.publicRole] ?? DEFAULT_PUBLIC_SETTINGS.publicRole,
+    location: rows[SITE_SETTING_KEYS.location] ?? DEFAULT_PUBLIC_SETTINGS.location,
+    biography: rows[SITE_SETTING_KEYS.biography] ?? DEFAULT_PUBLIC_SETTINGS.biography,
+    aboutPhotoAlt: rows[SITE_SETTING_KEYS.aboutPhotoAlt] ?? DEFAULT_PUBLIC_SETTINGS.aboutPhotoAlt,
+    aboutPhotoPath: publicImagePathFrom(rows[SITE_SETTING_KEYS.aboutPhotoDerivative]),
+    likesEnabled: rows[SITE_SETTING_KEYS.likesEnabled] === "enabled",
     galleriesIntro: rows[SITE_SETTING_KEYS.galleriesIntro] ?? "",
     aboutIntro: rows[SITE_SETTING_KEYS.aboutIntro] ?? "",
     contactIntro: rows[SITE_SETTING_KEYS.contactIntro] ?? "",
@@ -116,7 +140,7 @@ export async function writeSiteSettings(
   const statements = entries.map(([key, value]) =>
     db
       .prepare(
-        `INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)
+        `INSERT INTO site_settings (key, value, updated_at) VALUES (?1, ?2, ?3)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
       )
       .bind(key, value, now),

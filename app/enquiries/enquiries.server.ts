@@ -187,6 +187,14 @@ export async function updateEnquiryStatus(
   }
 }
 
+export async function deleteEnquiry(id: string, env: EnquiryEnvironment | undefined): Promise<"ok" | "bad-request" | "not-found" | "unavailable"> {
+  if (typeof id !== "string" || id.length === 0 || id.length > 128) return "bad-request";
+  const store = storeFor(env);
+  if (!store) return "unavailable";
+  try { return (await store.deleteEnquiry(id)) ? "ok" : "not-found"; }
+  catch { return "unavailable"; }
+}
+
 /** How many enquiries sit in each handled state, for the operator dashboard. */
 export async function readEnquiryCounts(
   env: EnquiryEnvironment | undefined,

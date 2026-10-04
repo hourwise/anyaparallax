@@ -69,6 +69,7 @@ export function toPublicPhoto(photo: PhotoRecord): PublicPhoto {
     title: photo.title,
     description: photo.description,
     galleryId: photo.galleryId,
+    seriesId: photo.seriesId,
     tags: photo.tags,
     location: photo.location,
     captureDate: photo.captureDate,

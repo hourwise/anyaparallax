@@ -38,10 +38,11 @@ export async function loader({ request, context }: { request: Request; context: 
   // cannot accidentally publish into a hidden collection) and from the tag
   // registry for tags, because `photo_tags` needs tag IDS and the public
   // projection deliberately omits them.
-  const [galleries, tags, settings] = await Promise.all([
+  const [galleries, tags, settings, references] = await Promise.all([
     listPublishedGalleries(env),
     listTagOptions(env),
     readPublicSiteSettings(env),
+    knownReferenceIds(env),
   ]);
   // The workspace defaults the operator set in /admin/settings. They are DEFAULTS for the
   // form, never a restriction: the per-upload control still decides what this upload does.
@@ -49,6 +50,7 @@ export async function loader({ request, context }: { request: Request; context: 
     user,
     galleries,
     tags,
+    series: references.series,
     watermarkDefaults: {
       enabled: settings.watermarkDefaultEnabled,
       position: settings.watermarkDefaultPosition,
@@ -71,6 +73,7 @@ function readOptions(form: FormData) {
     title: text("title"),
     description: text("description"),
     galleryId: text("galleryId"),
+    seriesId: text("seriesId"),
     tags: form.getAll("tags").map((value) => String(value)),
     location: text("location") || null,
     captureDate: text("captureDate") || null,
@@ -166,6 +169,7 @@ export async function action({ request, context }: { request: Request; context: 
       location: submitted.location ?? "",
       captureDate: submitted.captureDate ?? "",
       galleryId: submitted.galleryId,
+      seriesId: submitted.seriesId,
       tags: submitted.tags,
     },
     references,
@@ -228,6 +232,7 @@ export async function action({ request, context }: { request: Request; context: 
       title: metadata.value.title,
       description: metadata.value.description,
       galleryId: metadata.value.galleryId,
+      seriesId: metadata.value.seriesId,
       tags: [...metadata.value.tags],
       location: metadata.value.location,
       captureDate: metadata.value.captureDate,
@@ -242,7 +247,7 @@ export async function action({ request, context }: { request: Request; context: 
 }
 
 export default function AdminUploadRoute() {
-  const { user, galleries, tags, watermarkDefaults } = useLoaderData<typeof loader>();
+  const { user, galleries, tags, series, watermarkDefaults } = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const navigation = useNavigation();
   const busy = navigation.state === "submitting";
@@ -302,6 +307,15 @@ export default function AdminUploadRoute() {
                 <option key={tag.id} value={tag.id}>
                   {tag.name}
                 </option>
+              ))}
+            </select>
+          </label>
+          <label htmlFor="seriesId">
+            Series (optional)
+            <select id="seriesId" name="seriesId">
+              <option value="">No series</option>
+              {series.map((item) => (
+                <option key={item.id} value={item.id}>{galleries.find((gallery) => gallery.id === item.galleryId)?.name}: {item.title}</option>
               ))}
             </select>
           </label>

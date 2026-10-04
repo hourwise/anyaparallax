@@ -6,6 +6,7 @@ import { PlaceholderNotice } from "../components/PlaceholderNotice";
 import { site, developmentNoticesEnabled } from "../data/site";
 import { getPublishedGallery } from "../data/queries";
 import { appEnvironmentFrom } from "../data/context.server";
+import { groupGalleryPhotos } from "../data/gallery-series";
 import { galleriesPath, photoPath } from "../lib/paths";
 
 export async function loader({ context, params }: { context: unknown; params: { slug?: string } }) {
@@ -36,6 +37,10 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
 export default function GalleryRoute() {
   const { gallery, showDevelopmentNotices } = useLoaderData<typeof loader>();
   const count = gallery.photos.length;
+  const visiblePhotos = gallery.photos.filter(
+    (photo): photo is typeof photo & { thumbnailImagePath: string } => photo.thumbnailImagePath !== null,
+  );
+  const groups = groupGalleryPhotos(gallery.series, visiblePhotos);
   return (
     <section className="page container">
       <header className="page__header">
@@ -59,30 +64,25 @@ export default function GalleryRoute() {
       {count === 0 ? (
         <p className="muted">No photographs are published in this gallery yet.</p>
       ) : (
-        <div className="gallery-grid">
-          {gallery.photos
-            .filter(
-              (photo): photo is typeof photo & { thumbnailImagePath: string } =>
-                photo.thumbnailImagePath !== null,
-            )
-            .map((photo) => (
-            <PhotoFigure
-              className="gallery-grid__item"
-              key={photo.id}
-              src={photo.thumbnailImagePath}
-              // The photograph's own words, never an injected development prefix
-              // (REPAIR-09A). Every grid on the site used to announce each
-              // photograph as a development placeholder.
-              alt={photo.description || photo.title}
-              ratio={`${photo.width} / ${photo.height}`}
-              sizes="(min-width: 56.25rem) 33vw, (min-width: 34rem) 50vw, 100vw"
-              titleLink={{
-                to: photoPath(photo.slug),
-                label: photo.title,
-                title: `${photo.title} — photograph page`,
-              }}
-            />
-            ))}
+        <div className="gallery-series-list">
+          {groups.map((group) => (
+            <section key={group.id} className="gallery-series" aria-labelledby={group.title ? `series-${group.id}` : undefined}>
+              {group.title ? <h2 id={`series-${group.id}`} className="gallery-series__heading">{group.title}</h2> : null}
+              <div className="gallery-grid">
+                {group.photos.map((photo) => (
+                  <PhotoFigure
+                    className="gallery-grid__item"
+                    key={photo.id}
+                    src={photo.thumbnailImagePath}
+                    alt={photo.description || photo.title}
+                    ratio={`${photo.width} / ${photo.height}`}
+                    sizes="(min-width: 56.25rem) 33vw, (min-width: 34rem) 50vw, 100vw"
+                    mediaLink={{ to: photoPath(photo.slug), label: `View ${photo.title}`, title: `${photo.title} — photograph page` }}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 

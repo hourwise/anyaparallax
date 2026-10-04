@@ -8,6 +8,7 @@ import { appEnvironmentFrom } from "../data/context.server";
 import { site } from "../data/site";
 import { getPhotoDetail, getPublishedGallery, resolveTags } from "../data/queries";
 import { readEngagement } from "../engagement/engagement.server";
+import { readPublicSiteSettings } from "../data/site-settings.server";
 import { metadataTags, photoMetadataFor } from "../engagement/metadata";
 import { galleriesPath, galleryPath, photoPath, printEnquiryPathForPhoto } from "../lib/paths";
 
@@ -50,7 +51,10 @@ export async function loader({
   // Engagement is read for THIS browser only. The count comes from storage, and
   // when storage is unreachable it reports itself unavailable rather than
   // inventing a number.
-  const view = await readEngagement({ id: photo.id, slug: photo.slug }, request, env);
+  const settings = await readPublicSiteSettings(env);
+  const view = settings.likesEnabled
+    ? await readEngagement({ id: photo.id, slug: photo.slug }, request, env)
+    : { availability: { available: false as const, reason: "" }, engagement: null };
 
   return {
     detail,
@@ -61,6 +65,7 @@ export async function loader({
     // storage key beyond the public path already rendered.
     engagement: view.engagement,
     engagementUnavailableReason: view.availability.available ? null : view.availability.reason,
+    likesEnabled: settings.likesEnabled,
     // The document tags are built from THESE values rather than recomputed, so a
     // tag can never disagree with the data the page was rendered from.
     metadata,
@@ -204,7 +209,7 @@ export default function PhotoRoute() {
           {photo.printAvailable ? (
             <div className="photo-actions">
               <Link className="button button--accent" to={printEnquiryPathForPhoto(photo.slug)}>
-                Enquire about a print
+                Available as a print — enquire
               </Link>
               <span className="photo-actions__note">
                 Print enquiries are answered personally. There is no basket, checkout or payment on
@@ -216,6 +221,7 @@ export default function PhotoRoute() {
 
         <EngagementControls
           slug={photo.slug}
+          likesEnabled={data.likesEnabled}
           engagement={data.engagement}
           availabilityReason={data.engagementUnavailableReason}
           canonicalUrl={data.share.canonical}
@@ -290,4 +296,3 @@ export default function PhotoRoute() {
     </section>
   );
 }
-

@@ -393,14 +393,15 @@ try {
     "a published print-eligible photograph does not expose the enquiry path",
   );
   check(
-    eligibleHtml.includes("Enquire about a print"),
+    eligibleHtml.includes("Available as a print — enquire"),
     "the print action is not described in words a visitor can act on",
   );
   const ineligiblePhoto = await fetch(`${origin}/photo/${NOT_ELIGIBLE}`);
   const ineligibleHtml = await ineligiblePhoto.text();
   check(ineligiblePhoto.status === 200, `the ineligible photograph returned ${ineligiblePhoto.status}`);
   check(
-    !ineligibleHtml.includes("Enquire about a print") && !ineligibleHtml.includes("/prints/enquire"),
+    !ineligibleHtml.includes("Available as a print — enquire") &&
+      !ineligibleHtml.includes("/prints/enquire"),
     "a photograph that is not offered for print exposed a print action",
   );
   // The flag itself IS public — it is what the page decides from — so the page must

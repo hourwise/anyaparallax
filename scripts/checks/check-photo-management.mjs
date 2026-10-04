@@ -180,7 +180,7 @@ check(
 const summaryKeys = Object.keys(publishedSummary ?? {}).sort().join(",");
 check(
   summaryKeys ===
-    "featured,galleryId,galleryName,galleryPublished,id,printAvailable,publiclyVisible,published,slug,title,updatedAt",
+    "featured,galleryId,galleryName,galleryPublished,id,printAvailable,publiclyVisible,published,seriesId,slug,title,updatedAt",
   `the summary exposes unexpected fields: ${summaryKeys}`,
 );
 check(

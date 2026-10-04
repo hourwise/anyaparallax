@@ -15,6 +15,14 @@ import { WATERMARK_POSITIONS, type WatermarkPosition } from "../images/image-pro
 export const SITE_SETTING_KEYS = {
   watermarkEnabled: "watermark.default_enabled",
   watermarkPosition: "watermark.default_position",
+  likesEnabled: "engagement.likes_enabled",
+  displayName: "profile.display_name",
+  publicRole: "profile.role",
+  location: "profile.location",
+  biography: "profile.biography",
+  aboutPhotoAlt: "profile.photo_alt",
+  aboutPhotoMaster: "profile.photo_master",
+  aboutPhotoDerivative: "profile.photo_derivative",
   strapline: "site.strapline",
   galleriesIntro: "site.galleries_intro",
   aboutIntro: "site.about_intro",
@@ -26,6 +34,9 @@ export const SITE_SETTING_KEYS = {
   socialBluesky: "social.bluesky",
   socialX: "social.x",
   socialYoutube: "social.youtube",
+  socialPinterest: "social.pinterest",
+  socialSnapchat: "social.snapchat",
+  socialWhatsapp: "social.whatsapp",
 } as const;
 
 export type SiteSettingKey = (typeof SITE_SETTING_KEYS)[keyof typeof SITE_SETTING_KEYS];
@@ -36,7 +47,34 @@ export const SITE_SETTING_LIMITS = {
   galleriesIntro: 300,
   aboutIntro: 300,
   contactIntro: 300,
+  displayName: 80,
+  publicRole: 80,
+  location: 120,
+  biography: 5000,
+  aboutPhotoAlt: 300,
 } as const;
+
+export const APPROVED_ABOUT_BIO = `I'm a 17-year-old photographer based in North West England. I started taking photography seriously in summer 2025, although I've loved cameras for as long as I can remember — from the little Sony digital cameras I used growing up to the Sony a6000 I shoot with now.
+
+I'm still exploring different styles of photography, which is one of the things I enjoy most about it. Over the past year I've photographed live music, car shows, nature, travel and sport, and I'm always looking for new people, places and experiences to photograph.
+
+Music is a huge part of my life, so live photography feels like a natural combination of two things I love. I enjoy gigs, meeting new people and capturing moments that only happen once. My interest in cars comes from my dad and from growing up around car shows, while nature, animals and travel give me the chance to photograph things at a completely different pace.
+
+I'm also drawn to cities after dark. I think it's easy to miss how much character there is in familiar places once the light changes, and photography gives me a reason to notice those details.
+
+I'm influenced by photographers including Ashley Gellman and Clemente_310, alongside many others whose work I discover along the way.
+
+I want to keep developing my work in live music, cars, pets and events while continuing to document the places I go and the things happening around me.
+
+I'm available for live music, band shoots, events, car photography, acting headshots, pet photography and other projects. If you'd like to work together, get in touch.`;
+
+export const PROFILE_SETTING_FIELDS = [
+  { key: SITE_SETTING_KEYS.displayName, label: "Public display name", limit: SITE_SETTING_LIMITS.displayName },
+  { key: SITE_SETTING_KEYS.publicRole, label: "Public role", limit: SITE_SETTING_LIMITS.publicRole },
+  { key: SITE_SETTING_KEYS.location, label: "Location", limit: SITE_SETTING_LIMITS.location },
+  { key: SITE_SETTING_KEYS.biography, label: "About biography", limit: SITE_SETTING_LIMITS.biography },
+  { key: SITE_SETTING_KEYS.aboutPhotoAlt, label: "About photo alternative text", limit: SITE_SETTING_LIMITS.aboutPhotoAlt },
+] as const;
 
 /**
  * The social profiles the site may link to.
@@ -54,6 +92,9 @@ export const SOCIAL_NETWORKS = [
   { id: "bluesky", label: "Bluesky", key: SITE_SETTING_KEYS.socialBluesky, hosts: ["bsky.app"] },
   { id: "x", label: "X", key: SITE_SETTING_KEYS.socialX, hosts: ["x.com", "twitter.com"] },
   { id: "youtube", label: "YouTube", key: SITE_SETTING_KEYS.socialYoutube, hosts: ["youtube.com", "youtu.be"] },
+  { id: "pinterest", label: "Pinterest", key: SITE_SETTING_KEYS.socialPinterest, hosts: ["pinterest.com", "pinterest.co.uk", "pin.it"] },
+  { id: "snapchat", label: "Snapchat", key: SITE_SETTING_KEYS.socialSnapchat, hosts: ["snapchat.com"] },
+  { id: "whatsapp", label: "WhatsApp", key: SITE_SETTING_KEYS.socialWhatsapp, hosts: ["wa.me", "whatsapp.com"] },
 ] as const;
 
 export type SocialNetwork = (typeof SOCIAL_NETWORKS)[number];
@@ -162,6 +203,8 @@ export type SiteSettingsSubmission = {
   readonly text: Readonly<Record<string, string>>;
   /** Keyed by network id; every configured network is present, blank when unset. */
   readonly social: Readonly<Record<string, string>>;
+  readonly profile: Readonly<Record<string, string>>;
+  readonly likesEnabled: boolean;
 };
 
 export type SettingsValidation =
@@ -180,6 +223,8 @@ export function validateSiteSettings(input: {
   readonly watermarkPosition: unknown;
   readonly text: Readonly<Record<string, unknown>>;
   readonly social: Readonly<Record<string, unknown>>;
+  readonly profile?: Readonly<Record<string, unknown>>;
+  readonly likesEnabled?: unknown;
 }): SettingsValidation {
   const errors: Record<string, string> = {};
 
@@ -211,11 +256,26 @@ export function validateSiteSettings(input: {
     social[network.id] = value;
   }
 
+  const profile: Record<string, string> = {};
+  for (const field of PROFILE_SETTING_FIELDS) {
+    const raw = input.profile?.[field.key];
+    const value = field.key === SITE_SETTING_KEYS.biography
+      ? (typeof raw === "string" ? raw.replace(/\r\n/g, "\n").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").trim() : "")
+      : settingText(raw);
+    if (value.length > field.limit) errors[field.key] = `Keep this to ${field.limit} characters or fewer.`;
+    if (field.key !== SITE_SETTING_KEYS.aboutPhotoAlt && value.length === 0) errors[field.key] = "This public profile field cannot be blank.";
+    profile[field.key] = value;
+  }
+  const likesEnabled = input.likesEnabled === "enabled";
+  if (input.likesEnabled !== "enabled" && input.likesEnabled !== "disabled") {
+    errors["likesEnabled"] = "Choose whether likes are enabled.";
+  }
+
   if (Object.keys(errors).length > 0 || enabled === null || position === null) {
     return { ok: false, errors };
   }
   return {
     ok: true,
-    values: { watermarkEnabled: enabled, watermarkPosition: position, text, social },
+    values: { watermarkEnabled: enabled, watermarkPosition: position, text, social, profile, likesEnabled },
   };
 }

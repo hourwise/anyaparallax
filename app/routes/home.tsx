@@ -6,7 +6,6 @@ import {
   ExploreGalleriesSection,
   FeaturedWorkSection,
   HeroSection,
-  LatestWorkSection,
 } from "../components/home-sections";
 import {
   hero,
@@ -19,10 +18,10 @@ import {
   galleryCover,
   listFeaturedWithGallery,
   listPublishedGalleries,
-  listRecentWithGallery,
   publishedPhotoCounts,
 } from "../data/queries";
 import { developmentNoticesEnabled } from "../data/site";
+import { readPublicSiteSettings } from "../data/site-settings.server";
 
 /**
  * The page description is the production sentence, with the development wording
@@ -54,26 +53,26 @@ export async function loader({ context }: { context: unknown }) {
     ),
   );
 
+  const settings = await readPublicSiteSettings(env);
   return {
     featured: (await listFeaturedWithGallery(5, env)).map(toPhotoCard),
-    latest: (await listRecentWithGallery(4, env)).map(toPhotoCard),
     galleries,
+    settings,
     showDevelopmentNotices: developmentNoticesEnabled(env),
   };
 }
 
 export default function HomeRoute() {
-  const { featured, latest, galleries, showDevelopmentNotices } = useLoaderData<
+  const { featured, galleries, settings, showDevelopmentNotices } = useLoaderData<
     typeof loader
   >();
 
   return (
     <>
-      <HeroSection hero={hero} showDevelopmentNotices={showDevelopmentNotices} />
+      <HeroSection hero={{ ...hero, headline: [settings.strapline], supporting: `${settings.publicRole} · ${settings.location}` }} showDevelopmentNotices={showDevelopmentNotices} />
       <FeaturedWorkSection photos={featured} />
       <ExploreGalleriesSection galleries={galleries} showDevelopmentNotices={showDevelopmentNotices} />
-      <LatestWorkSection photos={latest} />
-      <AboutPreviewSection />
+      <AboutPreviewSection name="Anya" role={settings.publicRole} location={settings.location} photo={settings.aboutPhotoPath} photoAlt={settings.aboutPhotoAlt} />
     </>
   );
 }

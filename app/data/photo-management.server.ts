@@ -41,6 +41,7 @@ import {
   MANAGED_PHOTO_LIST_LIMIT,
   validatePhotoMetadata,
   type GalleryOption,
+  type SeriesOption,
   type ManagedPhotoDetail,
   type ManagedPhotoSummary,
   type PhotoEditInput,
@@ -63,6 +64,7 @@ export type ManagedPhotoEditorView =
       readonly status: "ok";
       readonly photo: ManagedPhotoDetail;
       readonly galleries: readonly GalleryOption[];
+      readonly series: readonly SeriesOption[];
     }
   | { readonly status: "not-found" }
   | { readonly status: "unavailable"; readonly reason: string };
@@ -74,6 +76,7 @@ type ManagedPhotoRow = {
   slug: string;
   description: string;
   gallery_id: string;
+  series_id: string | null;
   location: string | null;
   capture_date: string | null;
   published: number;
@@ -88,7 +91,7 @@ type ManagedPhotoRow = {
   gallery_published: number;
 };
 
-const PHOTO_COLUMNS = `p.id, p.title, p.slug, p.description, p.gallery_id, p.location,
+const PHOTO_COLUMNS = `p.id, p.title, p.slug, p.description, p.gallery_id, p.series_id, p.location,
   p.capture_date, p.published, p.featured, p.print_available,
   p.original_storage_key, p.web_storage_key, p.thumbnail_storage_key,
   p.published_at, p.updated_at,
@@ -102,6 +105,7 @@ function toSummary(row: ManagedPhotoRow): ManagedPhotoSummary {
     title: row.title,
     slug: row.slug,
     galleryId: row.gallery_id,
+    seriesId: row.series_id,
     galleryName: row.gallery_name,
     galleryPublished,
     published,
@@ -236,6 +240,9 @@ export class PhotoManager {
       slug: string;
       published: number;
     }>("SELECT id, name, slug, published FROM galleries ORDER BY display_order ASC, name ASC");
+    const series = await this.#all<{ id: string; gallery_id: string; title: string; display_order: number }>(
+      "SELECT id, gallery_id, title, display_order FROM gallery_series ORDER BY gallery_id, display_order, title",
+    );
 
     return {
       status: "ok",
@@ -251,6 +258,12 @@ export class PhotoManager {
         name: gallery.name,
         slug: gallery.slug,
         published: gallery.published === 1,
+      })),
+      series: series.map((item) => ({
+        id: item.id,
+        galleryId: item.gallery_id,
+        title: item.title,
+        displayOrder: Number(item.display_order),
       })),
     };
   }
@@ -302,6 +315,9 @@ export class PhotoManager {
     if (expected.galleryId !== undefined && row.gallery_id !== expected.galleryId) {
       mismatches.push("gallery");
     }
+    if (expected.seriesId !== undefined && row.series_id !== expected.seriesId) {
+      mismatches.push("series");
+    }
     if (expected.published !== undefined && (row.published === 1) !== expected.published) {
       mismatches.push("publication state");
     }
@@ -346,7 +362,11 @@ export class PhotoManager {
   async updatePhoto(
     photoId: unknown,
     input: PhotoEditInput,
-    options: { readonly galleryIds: readonly string[]; readonly tagIds: readonly string[] },
+    options: {
+      readonly galleryIds: readonly string[];
+      readonly tagIds: readonly string[];
+      readonly series?: readonly { readonly id: string; readonly galleryId: string }[];
+    },
   ): Promise<PhotoMutationResult> {
     if (typeof photoId !== "string" || photoId.length === 0 || photoId.length > 128) {
       return { status: "bad-request", errors: { form: "No photograph was identified." } };
@@ -384,9 +404,9 @@ export class PhotoManager {
         .prepare(
           `UPDATE photos
               SET title = ?1, description = ?2, location = ?3, capture_date = ?4,
-                  gallery_id = ?5, published = ?6, published_at = ?7, featured = ?8,
-                  updated_at = ?9
-            WHERE id = ?10`,
+                  gallery_id = ?5, series_id = ?6, published = ?7, published_at = ?8, featured = ?9,
+                  updated_at = ?10
+            WHERE id = ?11`,
         )
         .bind(
           value.title,
@@ -394,6 +414,7 @@ export class PhotoManager {
           value.location,
           value.captureDate,
           value.galleryId,
+          value.seriesId,
           input.published ? 1 : 0,
           this.#publishedAtFor(before, input.published, now),
           input.featured ? 1 : 0,
@@ -524,18 +545,24 @@ export class PhotoManager {
  */
 export async function knownReferenceIds(
   env: PhotoManagementEnvironment | undefined,
-): Promise<{ readonly galleryIds: readonly string[]; readonly tagIds: readonly string[] }> {
+): Promise<{
+  readonly galleryIds: readonly string[];
+  readonly tagIds: readonly string[];
+  readonly series: readonly { readonly id: string; readonly galleryId: string; readonly title: string }[];
+}> {
   const db = env?.DB;
   if (!isD1Binding(db)) {
-    return { galleryIds: [], tagIds: [] };
+    return { galleryIds: [], tagIds: [], series: [] };
   }
-  const [galleryRows, tagRows] = await Promise.all([
+  const [galleryRows, tagRows, seriesRows] = await Promise.all([
     db.prepare("SELECT id FROM galleries LIMIT 500").all<{ id: string }>(),
     db.prepare("SELECT id FROM tags LIMIT 500").all<{ id: string }>(),
+    db.prepare("SELECT id, gallery_id, title FROM gallery_series LIMIT 1000").all<{ id: string; gallery_id: string; title: string }>(),
   ]);
   return {
     galleryIds: (galleryRows.results ?? []).map((row) => row.id),
     tagIds: (tagRows.results ?? []).map((row) => row.id),
+    series: (seriesRows.results ?? []).map((row) => ({ id: row.id, galleryId: row.gallery_id, title: row.title })),
   };
 }
 

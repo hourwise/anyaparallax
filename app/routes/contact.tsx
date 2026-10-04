@@ -191,19 +191,18 @@ export default function ContactRoute() {
     <section className="page container">
       <header className="page__header">
         <p className="eyebrow">Contact</p>
-        <h1>Contact</h1>
+        <h1>Work with me</h1>
         {contactIntro.length > 0 ? <p className="lede">{contactIntro}</p> : null}
         <p className="lede">
-          Band, gig, event, car and print enquiries all reach Anya through this form, and she
-          answers them personally.
+          I&rsquo;m available for live music and band shoots, events, car shows and automotive photography,
+          acting headshots, pet photography and other projects.
         </p>
       </header>
 
       <div className="prose">
         <p>
-          No public email address is published here, and nothing you send is forwarded anywhere
-          automatically: your message is stored in Anya&rsquo;s enquiry list, and she replies from
-          her own email.
+          If you&rsquo;ve got something in mind, get in touch and tell me a little about it. Use the form
+          or email <a href="mailto:contact@anyaparallax.co.uk">contact@anyaparallax.co.uk</a>.
         </p>
       </div>
 

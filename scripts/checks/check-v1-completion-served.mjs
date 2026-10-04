@@ -162,6 +162,27 @@ function getAs(path, identity) {
   });
 }
 
+/** A complete launch-valid settings form; cases override only the value under test. */
+function settingsFields(overrides = {}) {
+  return {
+    intent: "settings",
+    watermarkEnabled: "enabled",
+    watermarkPosition: "bottom-right",
+    likesEnabled: "disabled",
+    "site.strapline": "A shift in focus",
+    "site.galleries_intro": "",
+    "site.about_intro": "",
+    "site.contact_intro": "",
+    "profile.display_name": "anyaparallax",
+    "profile.role": "Photographer",
+    "profile.location": "North West England",
+    "profile.biography": "A photographer based in North West England.",
+    "profile.photo_alt": "",
+    "social.instagram": "https://www.instagram.com/anyaparallax/",
+    ...overrides,
+  };
+}
+
 async function photoCount() {
   return (await queryLocalD1("SELECT COUNT(*) AS total FROM photos"))[0]?.total ?? 0;
 }
@@ -260,14 +281,17 @@ try {
     "the privacy page is not served",
   );
   check(
-    privacy.includes("Details still to be confirmed"),
-    "the privacy page does not mark the operator-supplied facts",
+    privacy.includes("Phil at PCGSoft on behalf of anyaparallax") &&
+      privacy.includes("phil@pcgsoft.co.uk") &&
+      privacy.includes("six months"),
+    "the privacy page does not serve the approved controller, contact and retention facts",
   );
   const sitemap = await (await fetch(`${origin}/sitemap.xml`)).text();
   check(sitemap.includes("/privacy"), "the sitemap omits the privacy page");
   check(
-    !home.includes('class="footer__social"'),
-    "the footer renders social chrome although no profiles are configured",
+    !home.includes('class="footer__social"') ||
+      home.includes('href="https://www.instagram.com/anyaparallax/"'),
+    "the footer renders social chrome without the canonical configured profile",
   );
 
   // --- C. Gallery management -----------------------------------------------
@@ -453,22 +477,13 @@ try {
 
   // --- E. Workspace settings ----------------------------------------------
 
-  const savedSettings = await postForm("/admin/settings", {
-    intent: "settings",
+  const savedSettings = await postForm("/admin/settings", settingsFields({
     watermarkEnabled: "disabled",
     watermarkPosition: "center",
     "site.strapline": "Night cities and live music.",
     "site.galleries_intro": "Collections from the served check.",
-    "site.about_intro": "",
-    "site.contact_intro": "",
     "social.instagram": "https://www.instagram.com/example/",
-    "social.facebook": "",
-    "social.tiktok": "",
-    "social.threads": "",
-    "social.bluesky": "",
-    "social.x": "",
-    "social.youtube": "",
-  });
+  }));
   check(savedSettings.status === 200, `saving settings returned ${savedSettings.status}`);
   await savedSettings.text();
   const storedPosition = (
@@ -505,12 +520,11 @@ try {
   const beforeInvalid = JSON.stringify(
     await queryLocalD1("SELECT value FROM site_settings WHERE key = 'social.x'"),
   );
-  const invalidSocial = await postForm("/admin/settings", {
-    intent: "settings",
+  const invalidSocial = await postForm("/admin/settings", settingsFields({
     watermarkEnabled: "disabled",
     watermarkPosition: "center",
     "social.x": "http://not-a-real-network.example/profile",
-  });
+  }));
   const invalidBody = await invalidSocial.text();
   check(
     invalidSocial.status === 200 && /not a X profile|https/i.test(invalidBody),
@@ -523,11 +537,10 @@ try {
   );
 
   // An unknown watermark default is refused too.
-  const invalidWatermark = await postForm("/admin/settings", {
-    intent: "settings",
+  const invalidWatermark = await postForm("/admin/settings", settingsFields({
     watermarkEnabled: "sometimes",
     watermarkPosition: "diagonal",
-  });
+  }));
   const invalidWatermarkBody = await invalidWatermark.text();
   check(
     invalidWatermark.status === 200 &&
@@ -539,16 +552,22 @@ try {
 
   // Blank hides the link again.
   await (
-    await postForm("/admin/settings", {
-      intent: "settings",
+    await postForm("/admin/settings", settingsFields({
       watermarkEnabled: "enabled",
       watermarkPosition: "bottom-right",
       "social.instagram": "",
-    })
+    }))
   ).text();
   check(
     !(await (await fetch(`${origin}/`)).text()).includes("instagram.com"),
     "clearing a social profile left the link on the public site",
+  );
+  // Leave the shared local fixture in the approved launch state for the later
+  // served-payload gates in the full suite.
+  await (await postForm("/admin/settings", settingsFields())).text();
+  check(
+    (await (await fetch(`${origin}/`)).text()).includes('href="https://www.instagram.com/anyaparallax/"'),
+    "restoring the launch settings did not restore the canonical Instagram profile",
   );
 
   // --- F. Tags -------------------------------------------------------------

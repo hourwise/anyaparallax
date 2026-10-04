@@ -1029,9 +1029,13 @@ try {
 
   // --- J. The engagement endpoint's body bound ---------------------------
 
+  const likesBefore = (await queryLocalD1("SELECT COUNT(*) AS total FROM likes"))[0]?.total;
   const like = await postForm("/engagement/stage-haze", { action: "like" });
-  check(like.status === 200, `a normal like returned ${like.status}`);
+  check(like.status === 403, `a disabled like returned ${like.status}, expected 403`);
+  check(like.headers.get("set-cookie") === null, "a disabled like issued an identity cookie");
   await like.text();
+  const likesAfter = (await queryLocalD1("SELECT COUNT(*) AS total FROM likes"))[0]?.total;
+  check(likesAfter === likesBefore, "a disabled like changed the stored like state");
   const share = await postForm("/engagement/stage-haze", { action: "share", channel: "copy_link" });
   check(share.status === 200, `a normal share returned ${share.status}`);
   await share.text();

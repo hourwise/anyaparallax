@@ -259,12 +259,12 @@ try {
     "the preview image was built from the REQUEST origin rather than the canonical origin",
   );
 
-  // --- The engagement controls are present -------------------------------
-  check(html.includes("engagement__like"), "the like control was not rendered");
+  // --- Launch engagement state: sharing remains, likes are disabled -------
+  check(!html.includes("engagement__like"), "the disabled like control was rendered");
   check(html.includes("engagement__share"), "the share control was not rendered");
   check(
-    /likes?</i.test(html),
-    "no like count or label was rendered",
+    !/likes?</i.test(html),
+    "a disabled like count or label was rendered",
   );
 
   // --- No identity material in loader data or markup ---------------------

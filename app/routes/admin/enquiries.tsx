@@ -8,8 +8,9 @@ import {
   ENQUIRY_STATUSES,
   ENQUIRY_STATUS_LABELS,
   PRINT_FORMAT_LABELS,
+  isEnquiryOlderThanSixMonths,
 } from "../../enquiries/enquiry";
-import { readEnquiries, updateEnquiryStatus } from "../../enquiries/enquiries.server";
+import { deleteEnquiry, readEnquiries, updateEnquiryStatus } from "../../enquiries/enquiries.server";
 import { photoPath } from "../../lib/paths";
 import { isSameOriginRequest, refuseCrossOriginRequest } from "../../lib/same-origin";
 
@@ -53,6 +54,12 @@ export async function action({ request, context }: { request: Request; context: 
   }
   const env = appEnvironmentFrom(context);
   const form = await request.formData();
+  if (form.get("intent") === "delete") {
+    const deleted = await deleteEnquiry(String(form.get("enquiryId") ?? ""), env);
+    if (deleted === "ok") return { message: "Enquiry deleted.", tone: "ok" as const };
+    if (deleted === "not-found") return { message: "That enquiry no longer exists.", tone: "warning" as const };
+    return { message: deleted === "bad-request" ? "No valid enquiry was identified." : "The enquiry could not be deleted.", tone: "warning" as const };
+  }
   const result = await updateEnquiryStatus(
     String(form.get("enquiryId") ?? ""),
     form.get("status"),
@@ -148,7 +155,7 @@ export default function AdminEnquiriesRoute() {
           <tbody>
             {view.enquiries.map((enquiry) => (
               <tr key={enquiry.id}>
-                <td>{displayTimestamp(enquiry.createdAt)}</td>
+                <td>{displayTimestamp(enquiry.createdAt)}{isEnquiryOlderThanSixMonths(enquiry.createdAt) ? <><br /><strong className="state-badge">Older than six months</strong></> : null}</td>
                 <td>
                   <strong>{enquiry.name}</strong>
                   <br />
@@ -205,6 +212,11 @@ export default function AdminEnquiriesRoute() {
                     <button type="submit" disabled={busy}>
                       Save
                     </button>
+                  </Form>
+                  <Form method="post" className="enquiry-table__state" onSubmit={(event) => { if (!window.confirm("Permanently delete this enquiry?")) event.preventDefault(); }}>
+                    <input type="hidden" name="intent" value="delete" />
+                    <input type="hidden" name="enquiryId" value={enquiry.id} />
+                    <button type="submit" disabled={busy}>Delete</button>
                   </Form>
                 </td>
               </tr>

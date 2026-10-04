@@ -186,9 +186,6 @@ const EXPECTED_NOTICES = [
     "the galleries meta-description suffix",
   ],
   ["/gallery/nightlife", "photographs are placeholder assets", "the gallery notice"],
-  ["/about", "Provisional wording.", "the About notice"],
-  ["/about", "Portrait placeholder", "the About portrait label"],
-  ["/about", "Provisional introduction and development preview", "the About meta description"],
   ["/no-such-page", "this development preview", "the 404 preview sentence"],
 ];
 
@@ -238,12 +235,17 @@ try {
     check(html.includes(text), `${path} does not render ${label}`);
   }
 
-  // The About preview suffix must reach the served meta description, not only the
-  // component tree.
+  // About is launch content now, and its no-photo state is intentional. It must
+  // not regress to the old provisional copy even when other development notices
+  // are deliberately enabled.
   const aboutHtml = await (await fetch(`${origin}/about`)).text();
   check(
-    (metaContent(aboutHtml, "name", "description") ?? "").includes("Provisional introduction"),
-    "the About meta description did not carry the preview wording while notices are on",
+    !/Provisional wording|Portrait placeholder|Provisional introduction/i.test(aboutHtml),
+    "the approved About page regressed to provisional or placeholder wording",
+  );
+  check(
+    (metaContent(aboutHtml, "name", "description") ?? "").includes("North West England"),
+    "the About meta description did not retain the approved launch identity",
   );
 
   // The unconditional repairs hold in this state too.
@@ -285,8 +287,8 @@ if (failures.length > 0) {
 }
 console.log(
   `Development-notice check passed: the shipped configuration leaves the notices off and only the exact string "true" ` +
-    `enables them; with SHOW_DEVELOPMENT_NOTICES=true all ${EXPECTED_NOTICES.length} development notices rendered ` +
-    "again, including the footer, homepage, gallery, About and 404 notices and the preview meta descriptions; and with " +
+    `enables them; with SHOW_DEVELOPMENT_NOTICES=true all ${EXPECTED_NOTICES.length} remaining development notices rendered ` +
+    "again, including the footer, homepage, gallery and 404 notices and their preview meta descriptions; the approved About page remained final; and with " +
     "the notices ON the placeholder caption and the injected alt prefix were still absent, so those repairs are " +
     "unconditional rather than configuration-dependent.",
 );

@@ -27,18 +27,19 @@ export async function loader({ context }: { context: unknown }) {
     showDevelopmentNotices,
     socialLinks: settings.socialLinks,
     strapline: settings.strapline,
+    displayName: settings.displayName,
   };
 }
 
 export default function PublicLayout() {
-  const { showDevelopmentNotices, socialLinks, strapline } = useLoaderData<typeof loader>();
+  const { showDevelopmentNotices, socialLinks, strapline, displayName } = useLoaderData<typeof loader>();
 
   return (
     <div className="site-shell">
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <SiteHeader />
+      <SiteHeader displayName={displayName} />
       <main className="site-main" id="main" tabIndex={-1}>
         <Outlet />
       </main>
@@ -46,6 +47,7 @@ export default function PublicLayout() {
         showDevelopmentNotices={showDevelopmentNotices}
         socialLinks={socialLinks}
         strapline={strapline}
+        displayName={displayName}
       />
     </div>
   );

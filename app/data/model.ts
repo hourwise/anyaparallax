@@ -40,6 +40,17 @@ export type GalleryRecord = {
   readonly updatedAt: string;
 };
 
+/** Optional editorial subsection inside one gallery. It is not a publication authority. */
+export type SeriesRecord = {
+  readonly id: string;
+  readonly galleryId: string;
+  readonly title: string;
+  readonly slug: string;
+  readonly displayOrder: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
 /** Tag row, as stored. */
 export type TagRecord = {
   readonly id: string;
@@ -55,6 +66,8 @@ export type PhotoRecord = {
   readonly description: string;
   /** Primary gallery. Multi-gallery membership is intentionally not modelled. */
   readonly galleryId: string;
+  /** Optional series; when present it must belong to `galleryId`. */
+  readonly seriesId: string | null;
   readonly tags: readonly string[];
   readonly location: string | null;
   /** ISO date (YYYY-MM-DD) when known. */
@@ -132,6 +145,7 @@ export type PublicPhoto = {
   readonly description: string;
   /** Gallery id for relationship checks; the display name comes from `PublicGallery`. */
   readonly galleryId: string;
+  readonly seriesId: string | null;
   /** Tag ids resolved through the public tag projection. */
   readonly tags: readonly string[];
   readonly location: string | null;
@@ -166,6 +180,15 @@ export type PublicGallery = {
   readonly displayOrder: number;
 };
 
+/** Public editorial grouping. Publication still belongs to the photo and gallery. */
+export type PublicSeries = {
+  readonly id: string;
+  readonly galleryId: string;
+  readonly title: string;
+  readonly slug: string;
+  readonly displayOrder: number;
+};
+
 /** A public photograph with its publishing gallery resolved. */
 export type PublicPhotoWithGallery = PublicPhoto & {
   readonly gallery: PublicGallery;
@@ -174,6 +197,7 @@ export type PublicPhotoWithGallery = PublicPhoto & {
 /** A public gallery with its published member photographs, in display order. */
 export type PublicGalleryWithPhotos = PublicGallery & {
   readonly photos: readonly PublicPhoto[];
+  readonly series: readonly PublicSeries[];
 };
 
 /** A public photograph with adjacent navigation inside its gallery. */

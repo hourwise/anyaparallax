@@ -16,6 +16,7 @@ type SiteFooterProps = {
   socialLinks?: readonly FooterSocialLink[];
   /** The operator's short strapline, rendered only when configured. */
   strapline?: string;
+  displayName?: string;
 };
 
 /**
@@ -35,15 +36,14 @@ export function SiteFooter({
   showDevelopmentNotices = false,
   socialLinks = [],
   strapline = "",
+  displayName = "anyaparallax",
 }: SiteFooterProps) {
-  const year = new Date().getFullYear();
-
   return (
     <footer className="site-footer">
       <div className="container footer__inner">
         <div className="footer__brand">
           <p className="footer__title">
-            {site.name} {site.secondary}
+            {displayName}
           </p>
           {strapline.length > 0 ? <p className="footer__note">{strapline}</p> : null}
           {showDevelopmentNotices ? <p className="footer__note">{site.provisionalNote}</p> : null}
@@ -78,8 +78,9 @@ export function SiteFooter({
 
         <div className="footer__meta">
           <p>
-            &copy; {year} {site.name} {site.secondary}
+            &copy; 2026 anyaparallax
           </p>
+          <p className="footer__note">All photographs are copyright &copy; anyaparallax unless otherwise stated.</p>
           <p className="footer__note">
             <Link to="/privacy">Privacy</Link>
           </p>

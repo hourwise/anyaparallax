@@ -1,7 +1,7 @@
 ID,Audience,Surface,ElementType,CurrentText,Source,UiEditable,Flag,Notes
-PUB-NAV-001,PUBLIC,Every public page (header brand),body,Anyaparallax,"`app/components/SiteHeader.tsx:37` (`site.name`, `app/data/site.ts:54`)",no,KEEP,Wordmark half one; shared with the footer brand line and the operator-area brand.
-PUB-NAV-002,PUBLIC,Every public page (header brand),body,Photography,"`app/components/SiteHeader.tsx:38` (`site.secondary`, `app/data/site.ts:55`)",no,KEEP,Wordmark half two.
-PUB-NAV-003,PUBLIC,Every public page (header brand),accessibility label,Anyaparallax Photography — home,`app/components/SiteHeader.tsx:36`,no,KEEP,Accessible name of the brand link.
+PUB-NAV-001,PUBLIC,Every public page (header brand),body,anyaparallax,"`app/components/SiteHeader.tsx` (`site.name`, `app/data/site.ts`)",no,KEEP,Lowercase launch wordmark.
+PUB-NAV-002,PUBLIC,Every public page (header brand),body,[removed in the V1 launch-content pass],`app/data/site.ts` (`site.secondary`),no,KEEP,The separate Photography wordmark suffix was removed.
+PUB-NAV-003,PUBLIC,Every public page (header brand),accessibility label,anyaparallax — home,`app/components/SiteHeader.tsx`,no,KEEP,Accessible name of the brand link.
 PUB-NAV-004,PUBLIC,Every public page (mobile nav toggle),button,Menu,`app/components/SiteHeader.tsx:49`,no,KEEP,Shown while the mobile menu is closed.
 PUB-NAV-005,PUBLIC,Every public page (mobile nav toggle),button,Close,`app/components/SiteHeader.tsx:49`,no,KEEP,Shown while the mobile menu is open.
 PUB-NAV-006,PUBLIC,Every public page (primary nav),accessibility label,Primary,`app/components/SiteHeader.tsx:56`,no,KEEP,Accessible name of the primary navigation landmark.
@@ -25,7 +25,7 @@ PUB-FOOTER-011,PUBLIC,Public footer Follow link; also the `/admin/settings` soci
 PUB-FOOTER-012,PUBLIC,Public footer Follow link; also the `/admin/settings` social field label,navigation,Bluesky,`app/data/site-settings.ts:54` (`SOCIAL_NETWORKS`),no,KEEP,URL comes from the `social.bluesky` setting.
 PUB-FOOTER-013,PUBLIC,Public footer Follow link; also the `/admin/settings` social field label,navigation,X,`app/data/site-settings.ts:55` (`SOCIAL_NETWORKS`),no,KEEP,URL comes from the `social.x` setting.
 PUB-FOOTER-014,PUBLIC,Public footer Follow link; also the `/admin/settings` social field label,navigation,YouTube,`app/data/site-settings.ts:56` (`SOCIAL_NETWORKS`),no,KEEP,URL comes from the `social.youtube` setting.
-PUB-FOOTER-015,PUBLIC,Every public page (footer meta),footer,© {year} Anyaparallax Photography,`app/components/SiteFooter.tsx:74`,no,KEEP,`{year}` is the current calendar year at render time.
+PUB-FOOTER-015,PUBLIC,Every public page (footer meta),footer,© 2026 anyaparallax,`app/components/SiteFooter.tsx`,no,KEEP,Approved fixed launch copyright.
 PUB-FOOTER-016,PUBLIC,Every public page (footer meta),footer,Privacy,`app/components/SiteFooter.tsx:77`,no,KEEP,Link label only; the destination page's wording is `PUB-PRIVACY-*`.
 PUB-FOOTER-017,PUBLIC,Every public page (footer credit),footer,Built by PCGSoft © 2026,`app/components/SiteFooter.tsx:80`-`84`,no,REVIEW,Hard-coded year and an outbound credit link; operator decides whether to keep the credit.
 PUB-FOOTER-018,PUBLIC,Every public page (footer note),footer,Development preview. Not approved final content.,"`app/components/SiteFooter.tsx:87` (`site.provisionalFooterNote`, `app/data/site.ts:73`)",no,REVIEW,Gated by `SHOW_DEVELOPMENT_NOTICES`.
@@ -915,3 +915,21 @@ SYS-AREA-021,PHOTOGRAPHER,`/admin` engagement block,warning,The engagement rows 
 SYS-AREA-022,SYSTEM/ERROR,Server-side repository selection,validation/error,"No D1 binding is available and ALLOW_DEVELOPMENT_SEED is not enabled. Configure the DB binding in wrangler.jsonc, or run with ALLOW_DEVELOPMENT_SEED=true for local development.",`app/data/queries.ts:89`-`92`,no,REWRITE_RECOMMENDED,"Thrown error message, shown in full only during local development. Names configuration files and variables."
 SYS-AREA-023,SYSTEM/ERROR,Server-side tag registry read,validation/error,No D1 binding is available and ALLOW_DEVELOPMENT_SEED is not enabled.,`app/data/queries.ts:231`-`232`,no,REVIEW,Thrown error message; development-facing.
 SYS-AREA-024,SYSTEM/ERROR,Enquiry store,validation/error,The enquiry was not stored and no row carries its submission token.,`app/enquiries/store.server.ts:176`,no,REVIEW,Thrown error message; development-facing.
+PUB-LAUNCH-001,PUBLIC,`/` hero,heading,A shift in focus,`site_settings` key `site.strapline`,via settings,KEEP,Approved homepage strapline and default.
+PUB-LAUNCH-002,PUBLIC,`/about`,heading,"Hi, I'm Anya.",`app/routes/about.tsx`,no,KEEP,Approved public heading; no surname.
+PUB-LAUNCH-003,PUBLIC,`/about` and `/`,metadata,North West England,`site_settings` key `profile.location`,via settings,KEEP,Approved public location and default.
+PUB-LAUNCH-004,PUBLIC,`/contact`,heading,Work with me,`app/routes/contact.tsx`,no,KEEP,Approved friendly booking heading.
+PUB-LAUNCH-005,PUBLIC,`/contact`,link,contact@anyaparallax.co.uk,`app/routes/contact.tsx`,no,KEEP,Public work-enquiry address.
+PUB-LAUNCH-006,PUBLIC,`/prints`,body,"Sizes, finishes and prices are arranged individually.",`app/routes/prints.tsx`,no,KEEP,Enquiry-only print wording; no public prices.
+PUB-LAUNCH-007,PUBLIC,Print photograph CTA,button,Available as a print — enquire,"`app/routes/prints.tsx`, `app/routes/photo.tsx`",no,KEEP,Per-photo enquiry action.
+PUB-LAUNCH-008,PUBLIC,Public footer,footer,All photographs are copyright © anyaparallax unless otherwise stated.,`app/components/SiteFooter.tsx`,no,KEEP,Approved copyright wording.
+PUB-LAUNCH-009,PUBLIC,`/privacy`,body,The personal information submitted through this site is handled by Phil at PCGSoft on behalf of anyaparallax.,`app/routes/privacy.tsx`,no,KEEP,Approved controller wording; no family relationship claimed.
+PUB-LAUNCH-010,PUBLIC,`/privacy`,link,phil@pcgsoft.co.uk,`app/routes/privacy.tsx`,no,KEEP,"Privacy access, correction and deletion contact."
+PUB-LAUNCH-011,PUBLIC,`/privacy`,body,We keep enquiry information for up to six months unless it is still needed to deal with an ongoing enquiry. Older enquiries are then deleted.,`app/routes/privacy.tsx`,no,KEEP,Approved retention wording; no automatic-deletion claim.
+PUB-LAUNCH-012,PUBLIC,`/privacy`,body,Likes are currently disabled.,`app/routes/privacy.tsx`,conditional,KEEP,Shown while `engagement.likes_enabled` is disabled.
+PUB-LAUNCH-013,PUBLIC,Gallery with unassigned photographs,heading,More,`app/routes/gallery.tsx`,no,KEEP,Neutral heading rendered only when a series gallery has unassigned photographs.
+PUB-LAUNCH-014,PUBLIC,Footer social links,navigation,Instagram,`social.instagram`,via settings,KEEP,Defaults to the canonical anyaparallax profile URL.
+ADM-LAUNCH-001,PHOTOGRAPHER,`/admin/settings`,heading,About / profile,`app/routes/admin/settings.tsx`,no,KEEP,Bounded profile editor section.
+ADM-LAUNCH-002,PHOTOGRAPHER,`/admin/settings`,heading,About photograph,`app/routes/admin/settings.tsx`,no,KEEP,"Add, replace and remove the optional portrait."
+ADM-LAUNCH-003,PHOTOGRAPHER,`/admin/galleries`,heading,Series,`app/routes/admin/galleries.tsx`,no,KEEP,"Create, rename, order and safely delete gallery subsections."
+ADM-LAUNCH-004,PHOTOGRAPHER,`/admin/enquiries`,button,Delete,`app/routes/admin/enquiries.tsx`,no,KEEP,Confirmed individual enquiry deletion.

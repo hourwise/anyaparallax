@@ -76,6 +76,7 @@ function toPhoto(seed: PhotoSeed): PhotoRecord {
     slug: seed.slug,
     description: seed.description,
     galleryId: seed.galleryId,
+    seriesId: null,
     tags: seed.tags,
     location: seed.location ?? null,
     captureDate: seed.captureDate,

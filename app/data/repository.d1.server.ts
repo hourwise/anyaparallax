@@ -15,6 +15,7 @@ import type {
   PublicGalleryWithPhotos,
   PublicPhoto,
   PublicPhotoWithGallery,
+  PublicSeries,
   PublicTag,
 } from "./model";
 import {
@@ -71,6 +72,7 @@ type PhotoRow = {
   slug: string;
   description: string;
   gallery_id: string;
+  series_id: string | null;
   location: string | null;
   capture_date: string | null;
   width: number;
@@ -115,6 +117,7 @@ function toPhotoRecord(row: PhotoRow, tags: readonly string[]): PhotoRecord {
     slug: row.slug,
     description: row.description,
     galleryId: row.gallery_id,
+    seriesId: row.series_id,
     tags,
     location: row.location,
     captureDate: row.capture_date,
@@ -188,13 +191,29 @@ export class D1PortfolioRepository implements PortfolioRepository {
       return null;
     }
     const gallery = toGalleryRecord(row);
-    const photos = await this.#photosForGallery(gallery.id);
+    const [photos, seriesRows] = await Promise.all([
+      this.#photosForGallery(gallery.id),
+      this.#all<{ id: string; gallery_id: string; title: string; slug: string; display_order: number }>(
+        this.#db.prepare(
+          `SELECT id, gallery_id, title, slug, display_order
+             FROM gallery_series WHERE gallery_id = ?1
+             ORDER BY display_order ASC, title ASC`,
+        ).bind(gallery.id),
+      ),
+    ]);
     const tagsByPhoto = await this.#tagsForPhotos(photos.map((photo) => photo.id));
     return {
       ...toPublicGallery(gallery),
       photos: photos.map((photo) =>
         toPublicPhoto(toPhotoRecord(photo, tagsByPhoto.get(photo.id) ?? [])),
       ),
+      series: seriesRows.map((series): PublicSeries => ({
+        id: series.id,
+        galleryId: series.gallery_id,
+        title: series.title,
+        slug: series.slug,
+        displayOrder: series.display_order,
+      })),
     };
   }
 
@@ -485,11 +504,11 @@ export class D1PortfolioRepository implements PortfolioRepository {
       this.#db
         .prepare(
           `INSERT INTO photos (
-             id, title, slug, description, gallery_id, location, capture_date,
+             id, title, slug, description, gallery_id, series_id, location, capture_date,
              width, height, original_storage_key, web_storage_key, thumbnail_storage_key,
              watermark_enabled, watermark_position, featured, published, print_available,
              created_at, updated_at, published_at
-           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)`,
+           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)`,
         )
         .bind(
           input.id,
@@ -497,6 +516,7 @@ export class D1PortfolioRepository implements PortfolioRepository {
           input.slug,
           input.description,
           input.galleryId,
+          input.seriesId ?? null,
           input.location,
           input.captureDate,
           input.width,
@@ -538,6 +558,7 @@ export class D1PortfolioRepository implements PortfolioRepository {
       slug: input.slug,
       description: input.description,
       galleryId: input.galleryId,
+      seriesId: input.seriesId ?? null,
       tags: tagIds,
       location: input.location,
       captureDate: input.captureDate,

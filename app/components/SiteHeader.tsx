@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from "react-router";
 
 import { primaryNav } from "../data/site";
 
-export function SiteHeader() {
+export function SiteHeader({ displayName = "anyaparallax" }: { displayName?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const { pathname } = useLocation();
@@ -33,9 +33,8 @@ export function SiteHeader() {
   return (
     <header className="site-header">
       <div className="container site-header__inner">
-        <Link className="brand" to="/" aria-label="Anyaparallax Photography — home">
-          <span className="brand__name">Anyaparallax</span>
-          <span className="brand__tagline">Photography</span>
+        <Link className="brand" to="/" aria-label={`${displayName} — home`}>
+          <span className="brand__name">{displayName}</span>
         </Link>
 
         <button

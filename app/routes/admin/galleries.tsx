@@ -18,6 +18,9 @@ import {
   type ManagedGallerySummary,
 } from "../../data/gallery-management.server";
 import { isSameOriginRequest, refuseCrossOriginRequest } from "../../lib/same-origin";
+import { seriesManagerFor } from "../../data/series-management.server";
+
+const SERIES_TITLE_LIMIT = 80;
 
 export const meta: MetaFunction = () => [
   { title: "Galleries — Anyaparallax admin" },
@@ -44,7 +47,10 @@ export const meta: MetaFunction = () => [
 export async function loader({ request, context }: { request: Request; context: unknown }) {
   await requireAdminAccess(request, context);
   const env = appEnvironmentFrom(context);
-  return { view: await managedGalleriesView(env) };
+  const view = await managedGalleriesView(env);
+  const seriesManager = seriesManagerFor(env);
+  const series = seriesManager ? await seriesManager.list().catch(() => []) : [];
+  return { view, series };
 }
 
 type ActionData = {
@@ -112,7 +118,23 @@ export async function action({ request, context }: { request: Request; context: 
   }
 
   const form = await request.formData();
-  const intent = parseGalleryIntent(form.get("intent"));
+  const rawIntent = String(form.get("intent") ?? "");
+  if (rawIntent.startsWith("series-")) {
+    const seriesManager = seriesManagerFor(env);
+    if (!seriesManager) return { message: "Series are unavailable.", tone: "warning" as const };
+    const result = rawIntent === "series-create"
+      ? await seriesManager.create(form.get("galleryId"), form.get("title"), form.get("displayOrder"))
+      : rawIntent === "series-update"
+        ? await seriesManager.update(form.get("seriesId"), form.get("title"), form.get("displayOrder"))
+        : rawIntent === "series-delete"
+          ? await seriesManager.deleteEmpty(form.get("seriesId"))
+          : { status: "bad-request" as const, reason: "That series action was not recognised." };
+    if (result.status === "ok") return { message: "Series saved.", tone: "ok" as const };
+    if (result.status === "in-use") return { message: `Remove ${result.photoCount} photograph${result.photoCount === 1 ? "" : "s"} from this series before deleting it.`, tone: "warning" as const };
+    if (result.status === "not-found") return { message: "That series or gallery no longer exists.", tone: "warning" as const };
+    return { message: result.status === "bad-request" ? result.reason : "The series could not be saved.", tone: "warning" as const };
+  }
+  const intent = parseGalleryIntent(rawIntent);
   if (!intent) {
     return {
       message: "That action was not recognised, so nothing was changed.",
@@ -187,7 +209,7 @@ export async function action({ request, context }: { request: Request; context: 
 }
 
 export default function AdminGalleriesRoute() {
-  const { view } = useLoaderData<typeof loader>();
+  const { view, series } = useLoaderData<typeof loader>();
   const actionData = useActionData<ActionData>();
   const busy = useNavigation().state !== "idle";
 
@@ -412,6 +434,39 @@ export default function AdminGalleriesRoute() {
                     </button>
                   </Form>
                 ) : null}
+
+                <section className="series-admin" aria-labelledby={`series-${gallery.id}`}>
+                  <h4 id={`series-${gallery.id}`}>Series</h4>
+                  <p className="field-help">Optional subsections shown inside this gallery.</p>
+                  {series.filter((item) => item.galleryId === gallery.id).map((item) => (
+                    <div key={item.id}>
+                      <Form method="post" className="inline-form">
+                        <input type="hidden" name="intent" value="series-update" />
+                        <input type="hidden" name="seriesId" value={item.id} />
+                        <label htmlFor={`series-title-${item.id}`}>Title</label>
+                        <input id={`series-title-${item.id}`} name="title" maxLength={SERIES_TITLE_LIMIT} defaultValue={item.title} />
+                        <label htmlFor={`series-order-${item.id}`}>Position</label>
+                        <input id={`series-order-${item.id}`} name="displayOrder" type="number" min={0} max={MAX_GALLERY_ORDER} defaultValue={item.displayOrder} />
+                        <button type="submit" disabled={busy}>Save series</button>
+                        <span className="field-help">{item.photoCount} photograph{item.photoCount === 1 ? "" : "s"}</span>
+                      </Form>
+                      <Form method="post" className="inline-form" onSubmit={(event) => { if (!window.confirm("Delete this empty series?")) event.preventDefault(); }}>
+                        <input type="hidden" name="intent" value="series-delete" />
+                        <input type="hidden" name="seriesId" value={item.id} />
+                        <button type="submit" disabled={busy || item.photoCount > 0}>Delete empty series</button>
+                      </Form>
+                    </div>
+                  ))}
+                  <Form method="post" className="inline-form">
+                    <input type="hidden" name="intent" value="series-create" />
+                    <input type="hidden" name="galleryId" value={gallery.id} />
+                    <label htmlFor={`new-series-${gallery.id}`}>New series title</label>
+                    <input id={`new-series-${gallery.id}`} name="title" required maxLength={SERIES_TITLE_LIMIT} />
+                    <label htmlFor={`new-series-order-${gallery.id}`}>Position (optional)</label>
+                    <input id={`new-series-order-${gallery.id}`} name="displayOrder" type="number" min={0} max={MAX_GALLERY_ORDER} />
+                    <button type="submit" disabled={busy}>Add series</button>
+                  </Form>
+                </section>
               </li>
             );
           })}
