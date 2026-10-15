@@ -524,7 +524,7 @@ cannot complete without them.
 | Final public copy | Approved wording for the homepage, galleries, prints, contact, About and footer, reconciled against `DOCS/ANYAPARALLAX_V1_COPY_GLOSSARY.md` (produced alongside this plan) | Item 3; removal of any remaining provisional wording |
 | Social profile URLs | The exact profile addresses for whichever networks are actually used | Footer and contact links; item 14; the `social.*` settings rows |
 | Privacy controller and retention wording | Who the data controller is, how long enquiries are kept, and the address for data requests — currently an explicit operator task in `app/routes/privacy.tsx` | Any real publication |
-| Final watermark artwork approval | Approval of the watermark asset and of the default position, which `app/data/site-settings.ts` sets for new uploads | Publication of real photography |
+| Final watermark artwork | Completed: operator-approved lowercase `anyaparallax` raster; bottom-right remains the default for new uploads | Installed through the final watermark completion slice |
 | Real production photography | The actual archive, uploaded through `/admin/upload`; production must not be seeded with development rows | Everything public |
 | Narrowing Access protection to the operator paths | Today the Access application covers the site broadly; the target is `/admin` and `/manager` only, with both `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` set (a half-configured Access deployment fails closed) | Safe public indexing and ordinary visitor access |
 | Further domain names | Whether an additional domain is attached, and which one is canonical in `PUBLIC_SITE_ORIGIN` | Canonical URLs, the sitemap and any redirect work |

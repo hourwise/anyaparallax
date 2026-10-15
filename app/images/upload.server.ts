@@ -181,13 +181,13 @@ export const defaultProcessorFactory: ProcessorFactory = async (env) => {
   if (!binding || typeof binding !== "object") {
     return null;
   }
-  const [{ createCloudflareImageProcessor }, { developmentWatermarkOverlay }] = await Promise.all([
+  const [{ createCloudflareImageProcessor }, { finalWatermarkOverlay }] = await Promise.all([
     import("../images/image-processor.cloudflare.server"),
     import("../images/watermark-asset"),
   ]);
   return createCloudflareImageProcessor({
     binding: binding as Parameters<typeof createCloudflareImageProcessor>[0]["binding"],
-    watermark: developmentWatermarkOverlay(),
+    watermark: finalWatermarkOverlay(),
   });
 };
 

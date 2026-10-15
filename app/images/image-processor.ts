@@ -20,7 +20,7 @@ export type SourceFormat = (typeof ACCEPTED_SOURCE_FORMATS)[number];
 /** Watermark placement. `none` performs NO draw operation at all. */
 export type WatermarkPosition = "none" | "center" | "bottom-right";
 
-/** Where the operator may put the development watermark. */
+/** Where the operator may put the photograph watermark. */
 export const WATERMARK_POSITIONS: readonly WatermarkPosition[] = [
   "none",
   "center",
@@ -87,12 +87,12 @@ export type WatermarkSetting = {
   readonly position: WatermarkPosition;
 };
 
-/** The development watermark overlay: a replaceable RGBA asset. */
+/** The photograph watermark overlay: an encoded RGBA asset. */
 export type WatermarkOverlay = {
   /** Encoded overlay bytes (PNG with alpha). */
   readonly bytes: Uint8Array;
   readonly contentType: string;
-  /** Provenance, surfaced so a placeholder can never pass for the final asset. */
+  /** Provenance identifying the approved raster artwork. */
   readonly label: string;
 };
 

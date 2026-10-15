@@ -342,8 +342,8 @@ Several IDs can be batched in one reply, one per line. An entry marked `via sett
 
 | ID | Audience | Route/surface | Element type | Current text | Source file/setting key | UI-editable? | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| PUB-WATERMARK-001 | PUBLIC | Every public derivative whose upload was watermarked | metadata | ANYAPARALLAX | `app/images/watermark-asset.ts:130` (`renderWordmark`) | via settings | Rasterised into the watermark PNG, not HTML text; drawn only when the watermark is enabled for that upload (default from the `watermark.default_enabled` setting). |
-| PUB-WATERMARK-002 | PUBLIC | Every public derivative whose upload was watermarked | metadata | PHOTOGRAPHY | `app/images/watermark-asset.ts:131` (`renderWordmark`) | via settings | Second line of the watermark wordmark. The overlay's internal `label` string is developer-facing and never rendered. |
+| PUB-WATERMARK-001 | PUBLIC | Every public derivative whose upload was watermarked | metadata | anyaparallax | `app/images/watermark-asset.ts` (`finalWatermarkOverlay`) | via settings | Operator-approved Cooper BT-style raster artwork; no font is distributed. Drawn on enabled normal photograph derivatives. |
+| PUB-WATERMARK-002 | PUBLIC | Every public derivative whose upload was watermarked | metadata | (retired) | `app/images/watermark-asset.ts` (`finalWatermarkOverlay`) | via settings | Retired secondary line: final V1 artwork has no PHOTOGRAPHY line. The overlay label is internal and never rendered. |
 
 ## Operator chrome shared by `/admin` and `/manager` — `ADM-NAV`
 

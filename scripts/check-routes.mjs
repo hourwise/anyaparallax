@@ -123,7 +123,7 @@ const requiredMarkers = [
   ["app/images/image-processor.ts", "drawRequestFor"],
   ["app/images/image-processor.cloudflare.server.ts", "createCloudflareImageProcessor"],
   ["app/images/image-processor.cloudflare.server.ts", "scale-down"],
-  ["app/images/watermark-asset.ts", "developmentWatermarkOverlay"],
+  ["app/images/watermark-asset.ts", "finalWatermarkOverlay"],
   ["app/images/process.ts", "processUpload"],
   ["app/images/upload.server.ts", "ingestUploads"],
   ["app/images/media.server.ts", "serveMedia"],

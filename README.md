@@ -58,7 +58,7 @@ Deliberately **not** implemented, and planned separately:
 
 Operator content is still outstanding and is tracked rather than assumed: the final About
 biography and portrait, the public copy review (see the copy glossary), social profile
-addresses, privacy controller/retention wording, final watermark artwork, and the real
+addresses, privacy controller/retention wording, and the real
 production photography.
 
 ## Requirements
@@ -429,3 +429,27 @@ photography is uploaded by Anya through `/admin`.
 a deployment. To enable the two development valves locally, copy `.dev.vars.example` to
 `.dev.vars` (gitignored) and adjust it; the served checks write their own values there
 and restore whatever they found.
+
+## Final V1 photograph watermark
+
+Final V1 watermark: `anyaparallax`, one lowercase line, using the operator-approved
+Cooper BT-style wordmark raster asset. No font file is included or distributed.
+The supplied PNG is retained in `DOCS/White Cooper-Style Anyaparallax Wordmark.png`;
+`app/images/anyaparallax-watermark.png` is its proportionally reduced 267 x 89 overlay.
+The full canvas, original textured edges and alpha are retained, without recolouring
+or trimming. The artwork contains baked-in alpha; the existing draw opacity of
+0.75 is applied in addition. Default position remains bottom-right, with the
+existing 2.5% inset (minimum 8 pixels). Private masters and About portraits are
+outside photograph watermarking. Existing photographs are not reprocessed.
+
+`node scripts/prepare-watermark.mjs` regenerates the PNG and its compile-time base64
+representation in `watermark-asset.ts`. `--check` checks both against the approved
+source. This uses Wrangler's installed Sharp codec only as local tooling; the Worker
+receives deterministic PNG bytes without filesystem access or an asset request.
+Run `node --experimental-strip-types --no-warnings scripts/checks/check-watermark.mjs`
+for the focused asset check; the same check is included in `pnpm run check:data`.
+
+Source: 2172 x 724, SHA-256
+`0000494a1d9d15155fc7cab42c3913c9dbcf6cbfb9295480698eabec77e5d5df`.
+Production PNG: 267 x 89, SHA-256
+`f866b1a7509a261d5b25b4e0018e55537b654449744f0538c6b0911de56ba711`.

@@ -35,11 +35,8 @@ const {
 } = await import("../../app/images/image-processor.ts");
 const { check, note, report } = await import("./report.mjs");
 
-const OVERLAY = {
-  bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]),
-  contentType: "image/png",
-  label: "test overlay",
-};
+const { finalWatermarkOverlay } = await import("../../app/images/watermark-asset.ts");
+const OVERLAY = finalWatermarkOverlay();
 
 /**
  * A recording fake of the Images binding.
@@ -94,7 +91,8 @@ function fakeBinding(options = {}) {
           return transformer;
         },
         draw(image, drawOptions) {
-          calls.draw.push({ options: drawOptions ?? null, isStream: typeof image?.getReader === "function" });
+          calls.draw.push({ options: drawOptions ?? null, isStream: typeof image?.getReader === "function",
+            bytes: new Response(image).arrayBuffer() });
           if (options.drawThrows) {
             throw new Error("draw is unavailable offline");
           }
@@ -180,6 +178,10 @@ check(
   corner.calls.draw.every((call) => call.isStream === true),
   "the overlay must be supplied to draw() as a stream of bytes",
 );
+for (const call of corner.calls.draw) {
+  check(Buffer.from(await call.bytes).equals(Buffer.from(OVERLAY.bytes)),
+    "the actual final PNG must reach both Cloudflare Images draw calls unchanged");
+}
 // The inset is relative to the SHORTER edge of the derivative it is drawn on,
 // so it scales with the image rather than being a fixed pixel count. The web
 // derivative of the default 1600x1200 source is 1600x1200, whose shorter edge is

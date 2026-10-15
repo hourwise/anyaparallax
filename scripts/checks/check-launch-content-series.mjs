@@ -138,7 +138,9 @@ check(await deleteEnquiry("missing", env) === "not-found", "unknown enquiry id w
 const buckets = createMemoryBuckets();
 const assetEnv = { DB: database.binding, MASTERS: buckets.masters, IMAGES: buckets.images };
 const goodProcessor = async () => ({
-  async prepare() {
+  async prepare(request) {
+    check(request.watermark.enabled === false && request.watermark.position === "none",
+      "About portrait must explicitly bypass normal photograph watermarking");
     return {
       source: { width: 1200, height: 1500, format: "image/jpeg" },
       web: { bytes: new Uint8Array([1, 2, 3]), width: 1200, height: 1500, contentType: "image/webp" },
