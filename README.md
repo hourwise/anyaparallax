@@ -1,18 +1,28 @@
 # Anyaparallax
 
-Photography portfolio for Anya — night cities, live music and the moments after dark.
+<!-- pcgsoft:overview:start -->
+Anyaparallax is a live photography portfolio for live music, automotive, travel, nature,
+portrait and event photography, with a dark monochrome presentation and privately
+controlled administration.
+<!-- pcgsoft:overview:end -->
 
-Current state: **V1 feature-complete, pending operator content.** The public site reads
-gallery and photograph data through a single query boundary that runs against Cloudflare
-D1. `/admin` and `/manager` are behind a real server-side identity and role boundary:
-Cloudflare Access authenticates a person, and the `users` table authorises what that
-person may do.
+| | |
+| --- | --- |
+| **Status** | **LIVE** |
+| **URL** | https://anyaparallax.co.uk |
+| **Public identity** | `anyaparallax` |
 
-Anya can run the site herself: create and order galleries, choose covers, manage tags,
-upload photographs, edit their metadata, publish and withdraw them, decide print-enquiry
-eligibility, review enquiries, and set watermark, social-profile and introduction
-defaults. Production infrastructure is provisioned and currently protected end to end by
-Cloudflare Access while the remaining content is prepared.
+<!-- pcgsoft:status-notes:start -->
+Live since 2026-10-18. The public portfolio is anonymously reachable at
+https://anyaparallax.co.uk; only the operator areas (`/admin`, `/manager`) are behind
+Cloudflare Access. Galleries and photographs continue to be added through the admin
+area as normal editorial work.
+<!-- pcgsoft:status-notes:end -->
+
+The public site reads gallery and photograph data through a single query boundary that
+runs against Cloudflare D1. `/admin` and `/manager` are behind a server-side identity and
+role boundary: Cloudflare Access authenticates a person, and the `users` table authorises
+what that person may do.
 
 ## Stack
 
@@ -23,43 +33,77 @@ Cloudflare Access while the remaining content is prepared.
 - **TypeScript** in strict mode
 - **pnpm** as the package manager
 
-## Status
+## V1 features (implemented and live)
 
-Implemented so far:
+- **Public photography portfolio**: an image-first homepage ("A shift in focus") led by
+  manually featured work, plus `/galleries`, `/gallery/:slug`, `/photo/:slug`, `/about`,
+  `/prints`, `/contact` and `/privacy`, with not-found and error handling
+- **Galleries** created, ordered and given covers by the photographer, with optional
+  ordered **series (subsections)** inside each gallery and title-free clickable thumbnails
+- **Individual photograph pages** with metadata, tags and social preview metadata on the
+  canonical origin `https://anyaparallax.co.uk`
+- **Curated / featured work** chosen by the photographer for the homepage
+- **Sharing**: a copyable canonical link and share targets on each photograph
+- **Contact and bookings** ("Work with me") with a public contact address
+- **Print enquiries**: per-photograph print eligibility and an enquiry form; enquiries are
+  reviewed in `/admin/enquiries`
+- **About / profile editor**: display name, role, location, strapline, biography and
+  optional **About portrait** upload, change and removal
+- **Watermark processing** of public derivatives at upload time (see "Final V1
+  photograph watermark")
+- **Photographer admin** (`/admin`): upload, metadata editing, tags, publish and withdraw,
+  gallery and series management, print eligibility, enquiries and site settings
+- **Manager diagnostics** (`/manager`): binding, storage and identity state, the
+  authorised-user directory and a read-only integrity report
+- **Privacy controls**: a public privacy notice, six-month enquiry retention with
+  confirmed individual deletion, `noindex`/`no-store` on every operator response, and no
+  like cookie while likes are disabled
 
-- Worker entry that places bindings on React Router's request context, deployed to two
-  isolated Cloudflare environments (see "Deployment state")
-- Route skeleton for `/`, `/galleries`, `/gallery/:slug`, `/photo/:slug`, `/about`,
-  `/prints` and `/contact`, plus not-found and error handling
-- Image-first homepage and data-driven gallery and photograph pages
-- Portfolio domain model, public query boundary and explicit public DTO projections, so
-  private-master keys can never reach a browser payload
-- D1 schema and migrations for users, galleries, photographs, tags, likes, share events,
-  enquiries and settings
-- R2 storage abstraction with a private masters bucket, a public images bucket and a key
-  strategy that keeps the two apart by construction
-- Cloudflare Access-compatible authentication boundary: server-side verification of the
-  Access assertion JWT (or a loopback-only development identity), an authorised-user
-  lookup in D1, and deny-by-default guards on every `/admin` and `/manager` route
-- Functional operator foundations: Anya's `/admin` dashboard with the photographer or
-  manager role, and the manager-only `/manager` surface with live binding, storage,
-  identity state and the authorised-user directory
+### Access model
 
-Deliberately **not** implemented, and planned separately:
+| Surface | Paths | Who |
+| --- | --- | --- |
+| Public | the portfolio routes above, `/media/...`, `/robots.txt`, `/sitemap.xml` | anonymous |
+| Protected | `/admin`, `/admin/*`, `/manager`, `/manager/*` | Cloudflare Access, then D1 role |
 
-- **Print purchasing and any ecommerce.** The print-enquiry flow is the whole of V1's
-  print story: no basket, checkout, payment, order, shipping or tax code exists, and none
-  is planned for V1. See `DOCS/ANYAPARALLAX_V2_PLAN.md`, where commerce is marked
-  `DEFERRED — NOT V1 IMPLEMENTATION`.
+Authentication is Cloudflare Access. Application authorisation is the D1 `users` table:
+`/admin` needs the photographer or manager role, `/manager` needs the manager role, and
+every protected layout and loader denies by default. The Access application also covers
+React Router's client data requests for the two area roots (`/admin.data`,
+`/manager.data`), because neither matches `/admin` nor `/admin/*`.
+
+### Image boundary
+
+- Private masters live in a separate private bucket and are never served to visitors.
+- Public derivatives (web image and thumbnail) live in a separate public bucket and are
+  served through `/media/...` only.
+- Publication is controlled by application state: a photograph is public only while both
+  it and its gallery are published.
+
+### Print boundary
+
+V1 prints are **enquiry-only**. There is no basket, checkout, online payment, order
+processing or shipping engine.
+
+### Likes
+
+Public likes are **disabled for launch**. The control is settings-gated at the UI and the
+endpoint; sharing stays available.
+
+### Watermark
+
+The final lowercase `anyaparallax` watermark is applied bottom-right to new photograph
+derivatives.
+
+## V2 (not implemented)
+
+V2 is planned separately in `DOCS/ANYAPARALLAX_V2_PLAN.md` and none of it is live:
+
+- **Print purchasing and any ecommerce**, marked `DEFERRED — NOT V1 IMPLEMENTATION`
 - A richer site-copy CMS, scheduled publication, enquiry email notifications, backup and
-  export tooling and multi-photographer support; all are V2 candidates in that plan.
+  export tooling and multi-photographer support
 - Any destructive maintenance console: `/manager/maintenance` reports integrity and
-  deliberately wires nothing destructive.
-
-Operator content is still outstanding and is tracked rather than assumed: the final About
-biography and portrait, the public copy review (see the copy glossary), social profile
-addresses, privacy controller/retention wording, and the real
-production photography.
+  deliberately wires nothing destructive
 
 ## Requirements
 
@@ -210,7 +254,8 @@ indexed.
 
 ### Setting up Cloudflare Access (per environment)
 
-1. Create a Cloudflare Access application covering the operator paths (`/admin`, `/manager`).
+1. Create a Cloudflare Access application covering the operator paths: `/admin`, `/admin/*`,
+   `/admin.data`, `/manager`, `/manager/*` and `/manager.data`.
 2. Add one policy per person, matching that person's email address. Access authenticates
    each identity independently; no shared logins or passwords are used anywhere.
 3. Copy the team domain and the application's AUD tag into the deployment configuration
@@ -381,38 +426,33 @@ with its own D1 database and its own private-masters and public-derivatives R2 b
 
 | Environment | Worker | Data and objects | Reachability |
 | --- | --- | --- | --- |
-| Preview | `anyaparallax-preview` | D1 + masters bucket + derivatives bucket of its own | its own `workers.dev` hostname, protected by Cloudflare Access |
-| Production | `anyaparallax` | D1 + masters bucket + derivatives bucket of its own | the real public domain, presently protected end to end by Cloudflare Access |
+| Preview | `anyaparallax-preview` | D1 + masters bucket + derivatives bucket of its own | its own `workers.dev` hostname, protected end to end by Cloudflare Access |
+| Production | `anyaparallax` | D1 + masters bucket + derivatives bucket of its own | **live** at https://anyaparallax.co.uk; public routes anonymous, `/admin` and `/manager` protected by Cloudflare Access |
 
-So the accepted state is: both Workers exist, both databases exist and are migrated, both
-sets of buckets exist, and the production domain is served **but not yet anonymously
-public** — Cloudflare Access currently covers the whole domain, and narrowing it to the
-operator paths is the outstanding operator step described below.
+Both environments run the source at `cf34387de7e772c2a6d82c8997c8742c09b5e40a` (final
+watermark). Commits after it that touch only documentation or the PCGsoft manifest need no
+redeployment. Nothing in this repository deploys automatically: a deployment is an
+explicit operator action.
 
-**The source candidate is ahead of the deployment.**
+Production is served only on its custom domain: the production Worker's `workers.dev`
+and version-preview URLs are disabled, so no alternate hostname exposes the application.
 
-| | Commit |
-| --- | --- |
-| Currently deployed source (both environments) | `d3dc042d1816ce3ec866a2405b07b632c2930305` |
-| V1 closure candidate (NOT deployed) | the tip of `deepseek/anyaparallax-v1c-final-closure` |
-
-The V1 completion and review-repair work — gallery management, workspace settings, tags,
-manager account management and the integrity report, the privacy notice, the review repairs —
-is committed source that has **not** been deployed to either environment. Nothing in this
-repository deploys automatically: a deployment is an explicit operator action, and the
-candidate becomes the deployed source only when that happens.
-
-Each has its own D1 database and its own private-masters and public-derivatives R2
-buckets; nothing is shared between them, and no resource identifier, account id, Access
-audience or credential is committed here. The deployment configuration is derived at
+Nothing is shared between the two environments, and no resource identifier, account id,
+Access audience or credential is committed here. The deployment configuration is derived at
 deploy time from the generated Vite/Cloudflare payload, so the repository stays free of
 environment-specific values.
 
-**Public release is an operator step.** Cloudflare Access currently protects the whole
-domain; narrowing it to the operator paths (`/admin`, `/admin/*`, `/manager`,
-`/manager/*` — both the parent and its descendants) is what makes the public routes
-anonymous, and it happens only after the outstanding content is approved. Production
-photography is uploaded by Anya through `/admin`.
+The production Cloudflare Access application covers exactly `/admin`, `/admin/*`,
+`/admin.data`, `/manager`, `/manager/*` and `/manager.data` — both each parent and its
+descendants. Everything else on the domain is public. Production photography is uploaded
+by Anya through `/admin`.
+
+## PCGsoft portfolio manifest
+
+`.pcgsoft/project.yml` is this repository's PCGsoft portfolio manifest (schema version 2):
+project-owned proposal data for PCGsoft's governed portfolio reconciliation. It is
+evidence for human review, not publication authority; the canonical PCGsoft record changes
+only through PCGsoft's own reviewed process.
 
 ## Documentation for the operator
 

@@ -1,0 +1,18 @@
+# PCGsoft portfolio manifest (schema version 2).
+# Project-owned proposal data for PCGsoft's governed reconciliation. It is
+# evidence for human review, not publication authority.
+schemaVersion: 2
+project:
+  slug: anyaparallax
+  name: Anyaparallax
+  category: web-client
+  status: live
+  statusLabel: Live
+  summary: Anyaparallax is a live photography portfolio for live music, automotive, travel, nature, portrait and event photography, with a dark monochrome presentation and privately controlled administration.
+  lastReviewed: 2026-10-18
+repository:
+  role: primary
+web:
+  state: live
+  urls:
+    - https://anyaparallax.co.uk
